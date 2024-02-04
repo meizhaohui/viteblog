@@ -1,0 +1,20 @@
+- hosts: node1
+  tasks:
+    - name: List our programming languages
+      ansible.builtin.debug:
+        msg: |
+          The {{ ansible_loop.index }} language is {{ item }}.
+          The length is {{ ansible_loop.length }}.
+          The list is {{ ansible_loop.allitems }}.
+          The previous item is {{ ansible_loop.previtem }}.
+          The following item is {{ ansible_loop.nextitem }}.
+      loop:
+        - Java
+        - Python
+        - C++
+        - C
+        - Golang
+        - PHP
+      when: 1 < ansible_loop.index < ansible_loop.length
+      loop_control:
+        extended: true

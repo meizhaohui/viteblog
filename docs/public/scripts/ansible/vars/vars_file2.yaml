@@ -1,0 +1,3 @@
+---
+  - listen_port1: 80
+  - listen_port2: 6379

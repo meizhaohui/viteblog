@@ -1,0 +1,13 @@
+---
+- hosts: node1
+  # 定义变量
+  vars:
+    - config_path: "/srv/tomcat/apache-tomcat-9.0.73/conf/server.xml"
+
+  tasks:
+    - name: display the different path
+      ansible.builtin.debug:
+        msg: |
+          The config path is {{ config_path }}
+          The basename is {{ config_path|ansible.builtin.basename }}
+          The dirname is {{ config_path|ansible.builtin.dirname }}

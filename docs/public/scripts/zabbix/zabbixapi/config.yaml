@@ -1,0 +1,198 @@
+zabbix_info:
+  # 主机IP信息
+  - ip: 192.168.56.14
+    # 是否忽略本段配置，方便忽略已经完成的监控项,true不忽略，false忽略
+    do_flag: false
+    # 监控项详情
+    item:
+      # 监控项的名称
+      item_name: 主机( python )进程监控1
+      # 监控项类型
+      # ZABBIX_AGENT，Zabbix客户端，进程或端口监控使用
+      # ZABBIX_AGENT_ACTIVE，Zabbix客户端(主动式)，日志监控使用
+      item_type: ZABBIX_AGENT
+      # 键值,进程监控
+      item_key: 'proc.num[python]'
+      # 信息类型，可选值
+      #    float，浮点数
+      #    character，字符
+      #    log，日志
+      #    numeric_unsigned，数字(无正负)
+      #    text，文本
+      info_type: numeric_unsigned
+      # 数据类型，可选值
+      #    0，十进位数字
+      #    1，八进位数字
+      #    2，十六进位数字
+      #    3，布尔值
+      data_type: 0
+      # 数据更新间隔，单位秒
+      delay: 300
+      # 历史数据保存天数
+      history: 3
+      # 趋势数据保存天数
+      trends: 5
+      # 描述信息
+      description: 通过api创建监控项-监控python进程状态
+      # 应用集,可选值'Processes'、'log'
+      applications: [ 'Processes' ]
+      # 监控项状态，0启用，1不启用
+      status: 0
+    # 触发器详情
+    trigger:
+      # 触发器名称
+      name: 'Python进程挂掉 on {HOST.NAME}'
+      # 触发器表达式
+      expression: '{192.168.56.14:proc.num[python].last()}<1'
+      # 触发器描述信息
+      comments: 通过api创建的触发器,监控python进程状态
+      # 触发器的严重性
+      #    0 - (default) not classified; 未分类
+      #    1 - information; 信息
+      #    2 - warning; 警告
+      #    3 - average; 一般严重
+      #    4 - high; 严重
+      #    5 - disaster. 灾难
+      priority: 4
+
+
+  # 主机IP信息
+  - ip: 192.168.56.14
+    # 是否忽略本段配置，方便忽略已经完成的监控项,true不忽略，false忽略
+    do_flag: false
+    # 监控项详情
+    item:
+      # 监控项的名称
+      item_name: 主机( 8000 )端口监控1
+      # 监控项类型
+      # ZABBIX_AGENT，Zabbix客户端，进程或端口监控使用
+      # ZABBIX_AGENT_ACTIVE，Zabbix客户端(主动式)，日志监控使用
+      item_type: ZABBIX_AGENT
+      # 键值,端口监控
+      #      item_key: ports_monitor 自定义监控项
+      item_key: 'net.tcp.listen[8000]'
+      # 信息类型，可选值
+      #    float，浮点数
+      #    character，字符
+      #    log，日志
+      #    numeric_unsigned，数字(无正负)
+      #    text，文本
+      info_type: numeric_unsigned
+      # 数据类型，可选值
+      #    0，十进位数字
+      #    1，八进位数字
+      #    2，十六进位数字
+      #    3，布尔值
+      # data_type: 0
+      # 数据更新间隔，单位秒
+      delay: 0
+      # 自定义时间间隔
+      # 参考：https://www.zabbix.com/documentation/3.0/en/manual/config/items/item/custom_intervals
+      # Flexible灵活，间隔600秒，周一到周日0点到24点，如:600/1-7,00:00-23:59
+      #            注意，使用灵活时，上面delay数据更新间隔应设置为0
+      # Scheduling调度，如:wd1-5h9-18
+      #            注意，使用调度时，上面delay数据更新间隔不应设置为0，应设置成一个具体时间(如120),否则无数据
+      delay_flex: 600/1-7,00:00-23:59
+      # 历史数据保存天数
+      history: 3
+      # 趋势数据保存天数
+      trends: 7
+      # 描述信息
+      description: 通过api创建端口监控项，每10分钟检查一次
+      # 应用集,可选值'Processes'、'log'
+      applications: [ 'Processes' ]
+      # 监控项状态，0启用，1不启用
+      status: 0
+    # 触发器详情
+    trigger:
+      # 触发器名称
+      name: '服务器8000端口异常on {HOST.NAME}'
+      # 触发器表达式
+      expression: '{192.168.56.14:net.tcp.listen[8000].last()}<1'
+      # 触发器描述信息
+      comments: 通过api创建的端口监控的触发器，每10分钟执行一次
+      # 触发器的严重性
+      #    0 - (default) not classified; 未分类
+      #    1 - information; 信息
+      #    2 - warning; 警告
+      #    3 - average; 一般严重
+      #    4 - high; 严重
+      #    5 - disaster. 灾难
+      priority: 4
+
+
+  # 主机IP信息
+  - ip: 192.168.56.14
+    # 是否忽略本段配置，方便忽略已经完成的监控项,true不忽略，false忽略
+    do_flag: true
+    # 监控项详情
+    item:
+      # 监控项的名称
+      item_name: 主机日志监控1
+      # 监控项类型
+      # ZABBIX_AGENT，Zabbix客户端，进程或端口监控使用
+      # ZABBIX_AGENT_ACTIVE，Zabbix客户端(主动式)，日志监控使用
+      item_type: ZABBIX_AGENT_ACTIVE
+      # 键值,日志监控
+      # 参考： https://www.zabbix.com/documentation/3.0/en/manual/config/items/itemtypes/log_items
+      # 日志文件监控 https://www.zabbix.com/documentation/3.4/zh/manual/config/items/itemtypes/log_items
+      # Zabbix代理 https://www.zabbix.com/documentation/3.4/zh/manual/config/items/itemtypes/zabbix_agent#supported-item-keys
+      # zabbix监控日志 https://blog.csdn.net/weixin_58400622/article/details/127792543
+
+      #      item_key: log[file,<regexp>,<encoding>,<maxlines>,<mode>,<output>]
+      #      item_key: logrt[file_regexp,<regexp>,<encoding>,<maxlines>,<mode>,<output>]
+      #                log[/var/log/messages,"ERROR",,,skip,]
+      #                logrt[/var/log/messages-.*,"ERROR",,,skip,]
+      # log和logrt中的参数说明：
+      # - regexp：要匹配内容的正则表达式，或者直接写你要检索的内容
+      # - encoding：编码相关，留空即可
+      # - maxlines：一次性最多提交多少行，这个参数覆盖配置文件zabbxi_agentd.conf中的'MaxLinesPerSecond'，也可以留空
+      # - mode：默认是all，也可以是skip，skip会跳过老数据，跳过处理历史的数据
+      # - output：输出给zabbix server的数据。可以是\1、\2一直\9，\1表示第一个正则表达式匹配到的内容，\2表示第二个正则表达式匹配到的内容。
+      item_key: 'log[/var/log/messages,"ERROR",,,skip,]'
+      # 信息类型，可选值
+      #    float，浮点数
+      #    character，字符
+      #    log，日志
+      #    numeric_unsigned，数字(无正负)
+      #    text，文本
+      info_type: log
+      # 数据类型，可选值，监控日志时不需要指定
+      #    0，十进位数字
+      #    1，八进位数字
+      #    2，十六进位数字
+      #    3，布尔值
+      # data_type: 0
+      # 数据更新间隔，单位秒
+      delay: 120
+      # 自定义时间间隔，日志时不需要指定
+      # 参考：https://www.zabbix.com/documentation/3.0/en/manual/config/items/item/custom_intervals
+      # Flexible灵活，间隔600秒，周一到周日0点到24点，如:600/1-7,00:00-23:59
+      # Scheduling调度，如:wd1-5h9-18
+      # delay_flex: 600/1-7,00:00-23:59
+      # 历史数据保存天数
+      history: 5
+      # 趋势数据保存天数，日志时不需要指定
+      # trends: 7
+      # 描述信息
+      description: 通过api创建日志监控项，每2分钟检查一次
+      # 应用集,可选值'Processes'、'Log'
+      applications: [ 'Log' ]
+      # 监控项状态，0启用，1不启用
+      status: 0
+    # 触发器详情
+    trigger:
+      # 触发器名称
+      name: '服务器日志异常on {HOST.NAME}'
+      # 触发器表达式
+      expression: '{192.168.56.14:log[/var/log/messages,"ERROR",,,skip,].str("ERROR", 2m)}=1 and {192.168.56.14:log[/var/log/messages,"ERROR",,,skip,].nodata(6m)}<>1 '
+      # 触发器描述信息
+      comments: 通过api创建的日志监控的触发器，每2分钟检查一次日志信息
+      # 触发器的严重性
+      #    0 - (default) not classified; 未分类
+      #    1 - information; 信息
+      #    2 - warning; 警告
+      #    3 - average; 一般严重
+      #    4 - high; 严重
+      #    5 - disaster. 灾难
+      priority: 2

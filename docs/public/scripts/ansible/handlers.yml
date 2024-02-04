@@ -1,0 +1,19 @@
+- hosts: node1
+  tasks:
+    - name: Delete multiple lines
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/nginx.conf
+        line: "{{ item }}"
+        state: absent
+      with_items:
+        - '# Orange'
+      become: yes
+      notify:
+        - Restart Nginx server
+
+  handlers:
+    - name: Restart Nginx server
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+      become: yes

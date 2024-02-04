@@ -1,0 +1,12 @@
+- hosts: node1
+  tasks:
+    - name: Register loop output as a variable
+      ansible.builtin.shell: "echo {{ item }}"
+      loop:
+        - "one"
+        - "two"
+      register: ECHO
+
+    - name: print variable ECHO
+      ansible.builtin.debug:
+        msg: "The ECHO value is: {{ ECHO }}"

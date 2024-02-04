@@ -1,0 +1,23 @@
+- hosts: node1
+  tasks:
+    - name: check user exist
+      ansible.builtin.find:
+        paths: /var/log
+        patterns: 'messages-*.gz'
+        age: 365d
+        recurse: yes
+      register: find_result
+
+    - name: Print files
+      ansible.builtin.debug:
+        msg: "{{ item.path }}"
+      with_items:
+        - "{{ find_result.files }}"
+
+    - name: Delete files
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      become: yes
+      with_items:
+        - "{{ find_result.files }}"

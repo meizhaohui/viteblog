@@ -1,0 +1,28 @@
+{
+  "name": "pypi-proxy",
+  "online": true,
+  "storage": {
+    "blobStoreName": "default",
+    "strictContentTypeValidation": true
+  },
+  "proxy": {
+    "remoteUrl": "https://pypi.tuna.tsinghua.edu.cn",
+    "contentMaxAge": 1440,
+    "metadataMaxAge": 1440
+  },
+  "negativeCache": {
+    "enabled": true,
+    "timeToLive": 1440
+  },
+  "httpClient": {
+    "blocked": false,
+    "autoBlock": true,
+    "connection": {
+      "retries": 0,
+      "userAgentSuffix": "Email: yourname@email.com",
+      "timeout": 60,
+      "enableCircularRedirects": false,
+      "enableCookies": false,
+      "useTrustStore": false
+    }
+}

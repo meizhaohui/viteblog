@@ -1,0 +1,12 @@
+---
+- hosts: node1
+  # 定义变量
+  vars:
+    file_contents: "{{ lookup('file', '/etc/selinux/config') }}"
+
+  tasks:
+    - name: debug lookups file contents
+      ansible.builtin.debug:
+        msg: |
+          The contents is {{ file_contents.split('\n') }}
+

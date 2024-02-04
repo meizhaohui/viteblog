@@ -1,0 +1,12 @@
+---
+- hosts: node1
+  # 定义变量
+  vars:
+    - config_path: "/srv/tomcat/apache-tomcat-9.0.73//conf//server.xml"
+
+  tasks:
+    - name: display the different path
+      ansible.builtin.debug:
+        msg: |
+          The config path is {{ config_path }}
+          The normpath is {{ config_path|ansible.builtin.normpath }}

@@ -1,0 +1,18 @@
+---
+- hosts: node1
+  # 定义变量
+  vars:
+    - password: "test2"
+
+  tasks:
+    - name: display the different hash value
+      ansible.builtin.debug:
+        msg: |
+          The password is {{ password }}
+          The default hash password is {{ password|hash }}
+          The sha1 hash password is {{ password|hash('sha1') }}
+          The md5 hash password is {{ password|hash('md5') }}
+          The checksum password is {{ password|checksum }}
+          The md5 password is {{ password|md5 }}
+          The password_hash password is {{ password|password_hash }}
+

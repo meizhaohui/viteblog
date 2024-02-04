@@ -1,0 +1,25 @@
+- hosts: node1
+  tasks:
+    - name: show the timezone 1
+      command:
+        cmd: ls -lah /etc/localtime
+      # [301] Commands should not change things if nothing needs doing
+      register: myoutput
+      changed_when: myoutput.rc != 0
+
+    - name: Set timezone to Asia/Tokyo
+      timezone:
+        name: Asia/Tokyo
+      become: yes
+
+    - name: Restart crond service
+      service:
+        name: crond
+        state: restarted
+      become: yes
+
+    - name: show the timezone 2
+      command:
+        cmd: ls -lah /etc/localtime
+      # [301] Commands should not change things if nothing needs doing
+      changed_when: false

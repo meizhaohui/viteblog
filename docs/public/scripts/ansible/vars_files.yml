@@ -1,0 +1,13 @@
+---
+- hosts: node1
+  # 定义变量文件
+  vars_files:
+    - vars/vars_file1.yaml
+    - vars/vars_file2.yaml
+
+  tasks:
+    - name: display variable from variable list
+      ansible.builtin.debug:
+        msg: |
+          The first service name is {{ service_name1 }} and the listen port is {{ listen_port1 }}.
+          The second service name is {{ service_name2 }} and the listen port is {{ listen_port2 }}.

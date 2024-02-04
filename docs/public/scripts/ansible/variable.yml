@@ -1,0 +1,11 @@
+---
+- hosts: node1
+  # 定义变量
+  vars:
+    - service_name: Nginx
+    - listen_port: 80
+
+  tasks:
+    - name: display variable from variable list
+      ansible.builtin.debug:
+        msg: The service name is {{ service_name }} and the listen port is {{ listen_port }}

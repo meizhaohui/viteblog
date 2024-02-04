@@ -1,0 +1,21 @@
+- hosts: node1
+  tasks:
+    - name: Sending an e-mail using Gmail SMTP servers
+      mail:
+        host: smtp.qiye.aliyun.com
+        port: 465
+        secure: always
+        username: notice@hellogitlab.com
+        # SMTP服务器密码信息，请注意保密
+        password: securepassword
+        from: notice@hellogitlab.com
+        to: 梅朝辉 <mzh@hellogitlab.com>
+        subject: Ansible-report
+        body: System {{ ansible_hostname }} has been successfully provisioned.
+      delegate_to: localhost
+
+    - name: Example playbook sending mail to root
+      mail:
+        subject: System {{ ansible_hostname }} has been successfully provisioned.
+      delegate_to: localhost
+

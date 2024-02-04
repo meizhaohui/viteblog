@@ -1,0 +1,10 @@
+- hosts: node1
+  tasks:
+    - name: Make Strings Appear in Uppercase/lowercase
+      ansible.builtin.template:
+        src: filter.html
+        dest: /usr/share/nginx/html/filter.html
+        owner: root
+        group: root
+        mode: '0644'
+      become: yes

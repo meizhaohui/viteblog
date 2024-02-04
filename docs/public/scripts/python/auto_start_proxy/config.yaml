@@ -1,0 +1,7 @@
+v2rayn_info:
+    # 代理程序路径
+    exe_path: D:\ProgramFiles\v2rayN-Core
+    # 代理程序名称
+    exe_name: v2rayN.exe
+    # 代理程序配置文件名称
+    config_name: guiNConfig.json

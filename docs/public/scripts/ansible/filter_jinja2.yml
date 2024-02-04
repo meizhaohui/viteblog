@@ -1,0 +1,14 @@
+---
+- hosts: node1
+  # 定义变量
+  vars:
+    - message: "Ansible provides open-source automation that reduces complexity and runs everywhere."
+
+  tasks:
+    - name: display the message
+      ansible.builtin.debug:
+        msg: |
+          The base message is {{ message }}
+          The upper message is {{ message|upper }}
+          The lower message is {{ message|lower }}
+          The capitalize message is {{ message|capitalize }}

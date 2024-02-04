@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {# 下面这一行解决页面中文乱码 #}
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>My Webpage</title>
+</head>
+<body>
+    <ul id="navigation">
+    {% for item in navigation %}
+        {% if item.caption == "百度一下" %}
+        <li>{{ loop.index }}: <a href="{{ item.href }}" style="color:red">{{ item.caption }}</a></li>
+        {% else %}
+        <li>{{ loop.index }}: <a href="{{ item.href }}" style="color:yellowgreen">{{ item.caption }}</a></li>
+        {% endif %}
+    {% endfor %}
+    </ul>
+
+    <h1>My Webpage</h1>
+    {{ author }}
+
+    {# a comment #}
+</body>
+</html>

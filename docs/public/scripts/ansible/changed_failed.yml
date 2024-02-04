@@ -1,0 +1,28 @@
+- hosts: node1
+  tasks:
+    - name: echo message without condition
+      ansible.builtin.command:
+        cmd: echo "message"
+
+    - name: echo message
+      ansible.builtin.command:
+        cmd: echo "message"
+      register: result
+      changed_when:
+        # 条件判断，由于仅仅输出消息，认定任务不是changed状态
+        - 1 != 1
+
+    - name: grep not exist string
+      ansible.builtin.command:
+        # grep 未匹配到任务字符串时，退出码是1
+        # 如果选择一行，退出状态为0；如果没有选择行，则为1；如果发生错误，则为2
+        cmd: grep 'not exist string' ~/.bashrc
+      register: result
+      failed_when:
+        - result.rc == 2
+
+    - name: grep not exist string without condition
+      ansible.builtin.command:
+        # grep 未匹配到任务字符串时，退出码是1
+        # 如果选择一行，退出状态为0；如果没有选择行，则为1；如果发生错误，则为2
+        cmd: grep 'not exist string' ~/.bashrc

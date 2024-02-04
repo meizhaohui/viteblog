@@ -1,0 +1,23 @@
+- hosts: node1
+  tasks:
+    - name: print date
+      ansible.builtin.debug:
+        msg: "The date is: {{ ansible_date_time.date }}"
+
+    - name: print time
+      ansible.builtin.debug:
+        msg: "The time is: {{ ansible_date_time.time }}"
+
+    - name: print hour
+      ansible.builtin.debug:
+        msg: "The time is: {{ ansible_date_time.hour }}"
+
+    - name: run between 00:00:00 and 12:00:00
+      ansible.builtin.debug:
+        msg: "The task run between 00:00:00 and 12:00:00"
+      when: ansible_date_time.hour < 12
+
+    - name: run between 12:00:00 and 24:00:00
+      ansible.builtin.debug:
+        msg: "The task run between 12:00:00 and 24:00:00"
+      when: ansible_date_time.hour > 12

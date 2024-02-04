@@ -1,0 +1,22 @@
+- hosts: node1
+  tasks:
+    - name: Default message status
+      ansible.builtin.debug:
+        msg: "The default status"
+      register: output
+
+    - name: echo output
+      ansible.builtin.debug:
+        msg: "{{ output.msg }}"
+
+    - name: Changed status
+      ansible.builtin.debug:
+        msg: "The changed status"
+      register: msg_output
+      changed_when: '"The changed status" in msg_output.msg'
+
+    - name: Unchanged status
+      ansible.builtin.debug:
+        msg: "The unchanged status"
+      register: msg_output
+      changed_when: '"The changed status" in msg_output.msg'

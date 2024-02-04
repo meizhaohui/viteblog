@@ -1,0 +1,14 @@
+- hosts: node1
+  tasks:
+    - name: Reboot the machine (Wait for 5 min)
+      reboot:
+        reboot_timeout: 300
+        msg: Reboot by Ansible
+      become: yes
+
+    - name: Wait for the machine to come back online
+      wait_for_connection:
+        connect_timeout: 60
+        sleep: 5
+        delay: 5
+        timeout: 300

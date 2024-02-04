@@ -1,0 +1,23 @@
+- hosts: node1
+  tasks:
+    - name: Show servers info
+      ansible.builtin.command:
+        cmd: 'echo "The server name is: {{ item.name }}."'
+      loop:
+        - name: server1
+          disks: 3gb
+          ram: 15Gb
+          network:
+            nic01: 100Gb
+            nic02: 10Gb
+
+        - name: server2
+          disks: 3gb
+          ram: 15Gb
+          network:
+            nic01: 100Gb
+            nic02: 10Gb
+      loop_control:
+        label: "{{ item.name }}"
+        # 暂停30秒
+        pause: 30

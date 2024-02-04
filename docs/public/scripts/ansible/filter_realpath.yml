@@ -1,0 +1,12 @@
+---
+- hosts: node1
+  # 定义变量
+  vars:
+    - java_path: "/usr/bin/java"
+
+  tasks:
+    - name: display the real path
+      ansible.builtin.debug:
+        msg: |
+          The java path is {{ java_path }}
+          The real path is {{ java_path|ansible.builtin.realpath }}

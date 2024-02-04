@@ -1,0 +1,11 @@
+- hosts: all
+  tasks:
+    - name: node1 run this task with condition
+      ansible.builtin.debug:
+        msg: "The custom name is: {{ node_name }}"
+      when: node_name is defined
+
+    - name: node1
+      ansible.builtin.debug:
+        msg: "The not_exist_var is not define"
+      when: not_exist_var is undefined

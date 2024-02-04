@@ -1,0 +1,38 @@
+- hosts: node1
+  tasks:
+    - name: Download tomcat file
+      ansible.builtin.get_url:
+        url: https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.73/bin/apache-tomcat-9.0.73.tar.gz
+        dest: /home/ansible/ansible_playbooks/files/apache-tomcat-9.0.73.tar.gz
+        validate_certs: no
+      # 由Ansible主机代理，即直接下载到Ansible主机上
+      delegate_to: 127.0.0.1
+
+    - name: create base folder
+      ansible.builtin.file:
+        path: /srv/tomcat
+        state: directory
+      become: yes
+
+    - name: Extract apache-tomcat-9.0.73.tar.gz into /srv/tomcat
+      ansible.builtin.unarchive:
+        src: /home/ansible/ansible_playbooks/files/apache-tomcat-9.0.73.tar.gz
+        dest: /srv/tomcat
+      become: yes
+
+    - name: Start tomcat server
+      shell: nohup ./startup.sh &
+      args:
+        chdir: /srv/tomcat/apache-tomcat-9.0.73/bin
+      become: yes
+      # [301] Commands should not change things if nothing needs doing
+      register: myoutput
+      changed_when: myoutput.rc != 0
+
+    - name: Wait for port 8080 to become open on the host
+      wait_for:
+        port: 8080
+        delay: 5
+        timeout: 10
+      become: yes
+

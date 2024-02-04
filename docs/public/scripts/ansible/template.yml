@@ -1,0 +1,52 @@
+- hosts: node1
+  vars:
+    author: "meizhaohui"
+    # navigation:
+    #   - {"href": "https://jinja.palletsprojects.com/", "caption": "JinJa2文档" }
+    #   - {"href": "http://www.ansible.com.cn/", "caption": "Ansible中文权威指南" }
+    #   - {"href": "https://www.baidu.com/", "caption": "百度一下" }
+    navigation:
+      - href: "https://jinja.palletsprojects.com/"
+        caption: "JinJa2文档"
+      - href: "http://www.ansible.com.cn/"
+        caption: "Ansible中文权威指南"
+      - href: "https://www.baidu.com/"
+        caption: "百度一下"
+  tasks:
+    - name: Template a file to /usr/share/nginx/html/web.html
+      ansible.builtin.template:
+        src: web.html
+        dest: /usr/share/nginx/html/web.html
+        owner: root
+        group: root
+        mode: '0644'
+      become: yes
+
+    - name: Template a file to /etc/file.conf
+      ansible.builtin.template:
+        src: /home/ansible/ansible_playbooks/mytemplates/foo.j2
+        dest: /etc/file.conf
+        owner: bin
+        group: wheel
+        mode: '0644'
+      become: yes
+
+    - name: Template a file, using symbolic modes (equivalent to 0644)
+      ansible.builtin.template:
+        src: bar
+        dest: /etc/bar.conf
+        owner: bin
+        group: wheel
+        mode: u=rw,g=r,o=r
+      become: yes
+
+- hosts: node1
+  tasks:
+    - name: Template a file to /etc/nginx/nginx.conf
+      ansible.builtin.template:
+        src: /home/ansible/ansible_playbooks/mytemplates/nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        owner: bin
+        group: wheel
+        mode: '0644'
+      become: yes

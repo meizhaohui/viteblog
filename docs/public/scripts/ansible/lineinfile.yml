@@ -1,0 +1,98 @@
+- hosts: node1
+  tasks:
+    - name: Add multiple lines
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/nginx.conf
+        line: "{{ item }}"
+        backup: yes
+        state: present
+      with_items:
+        - '# Orange'
+        - '# Apple'
+        - '# Banana'
+      become: yes
+
+    - name: Add new language documentation
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/nginx.conf
+        regexp: '(.*)English(.*)en(.*)'
+        line: '\1Chinese\2cn\3'
+        backrefs: yes
+        backup: yes
+        state: present
+      become: yes
+
+    - name: Insert the line at the beginning of the file
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/nginx.conf
+        insertbefore: BOF
+        line: "#  * Download Nginx: http://nginx.org/en/download.html"
+        backup: yes
+        state: present
+      become: yes
+
+     - name: Add download URL to nginx conf
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/nginx.conf
+        insertbefore: '^#   \* Official Russian Documentation: http://nginx.org/ru/docs/'
+        line: "#  * Download Nginx: http://nginx.org/en/download.html"
+        backup: yes
+        state: present
+      become: yes
+
+    - name: Add download URL to nginx conf
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/nginx.conf
+        insertafter: 'Documentation'
+        line: "#   * Download Nginx: http://nginx.org/en/download.html"
+      become: yes
+
+    - name: Add download URL to nginx conf
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/nginx.conf
+        regexp: 'Documentation'
+        line: "#   * Download Nginx: http://nginx.org/en/download.html"
+        firstmatch: yes
+      become: yes
+
+    - name: Change nginx port from 8081 to 80 and with unknown directive Listen
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/nginx.conf
+        regexp: '^        listen       8081;'
+        # 测试异常指令校验，请使用下一行Listen异常指令
+        # line: "        Listen       80;"
+        line: "        listen       80;"
+        validate: /usr/sbin/nginx -t -c %s
+      become: yes
+
+    - name: Reload Nginx server
+      ansible.builtin.command:
+        cmd: /usr/sbin/nginx -s reload
+      become: yes
+
+    - name: Change nginx port from 80 to 8081
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/nginx.conf
+        regexp: '^        listen       80;'
+        line: "        listen       8081;"
+        validate: /usr/sbin/nginx -t -c %s
+      become: yes
+
+    - name: Reload Nginx server
+      ansible.builtin.command:
+        cmd: /usr/sbin/nginx -s reload
+      become: yes
+
+    - name: Set motd info
+      ansible.builtin.lineinfile:
+        path: /etc/motd
+        regexp: '^IP:'
+        line: "IP:{{ ansible_default_ipv4['address'] }}"
+      become: yes
+
+    - name: Disable selinux
+      ansible.builtin.lineinfile:
+        path: /etc/selinux/config
+        regexp: '^SELINUX='
+        line: SELINUX=disabled
+      become: yes

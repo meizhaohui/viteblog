@@ -1,0 +1,13 @@
+---
+- hosts: node1
+  # 定义变量
+  vars:
+    - message: "Ansible is powerful."
+
+  tasks:
+    - name: display the message
+      ansible.builtin.debug:
+        msg: |
+          The base message is {{ message }}
+          The encoded message is {{ message|b64encode }}
+          The decoded message is {{ message|b64encode|b64decode }}

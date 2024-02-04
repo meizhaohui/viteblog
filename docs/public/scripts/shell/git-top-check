@@ -1,0 +1,12 @@
+#!/bin/bash
+# filename: git-top-check
+# description: check current folder is the top level directory of a Git repo?
+
+if [[ -d ".git" ]]; then
+    echo "This is a top level Git development repository."
+    exit 0
+fi
+
+echo "This is not a top level Git development repository."
+exit 1
+

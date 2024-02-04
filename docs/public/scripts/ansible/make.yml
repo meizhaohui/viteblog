@@ -1,0 +1,36 @@
+- hosts: node1
+  tasks:
+    - name: Run 'build' target
+      make:
+        chdir: /root/c_data/hello_world
+        target: build
+      become: yes
+
+    - name: Build the default target
+      make:
+        chdir: /root/c_data/hello_world
+      become: yes
+
+    - name: Build 'help' target with extra arguments
+      make:
+        chdir: /root/c_data/hello_world
+        target: help
+        params:
+          HELP: 1
+      become: yes
+
+    - name: Build 'help' target with extra arguments
+      make:
+        chdir: /root/c_data/hello_world
+        target: help
+        params:
+          HELP: 0
+      become: yes
+
+    - name: Build 'clean' target
+      make:
+        chdir: /root/c_data/hello_world
+        target: clean
+        file: /root/c_data/hello_world/Makefile
+      become: yes
+

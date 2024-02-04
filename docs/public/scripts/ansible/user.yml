@@ -1,0 +1,18 @@
+---
+- hosts: "{{ user_hosts }}"
+  vars_files:
+    - vars/user_list.yml
+  tasks:
+    - name: display variable from variable list
+      ansible.builtin.debug:
+        msg:  "The username is {{ item.user }}, the password is {{ item.password }}, the comment is {{ item.comment }}."
+      loop: "{{ user_info }}"
+
+    - name: create users
+      ansible.builtin.user:
+        name:  "{{ item.user }}"
+        password: "{{ item.password|password_hash('sha512') }}"
+        comment: "{{ item.comment }}"
+        state: present
+      loop: "{{ user_info }}"
+      become: yes

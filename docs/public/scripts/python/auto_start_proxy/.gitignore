@@ -1,0 +1,6 @@
+*.json
+logs/*
+Pipfile*
+.venv/*
+.idea/*
+

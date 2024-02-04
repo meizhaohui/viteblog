@@ -1,0 +1,2 @@
+---
+HOST_IP: "{{ hostvars[inventory_hostname]['inventory_hostname'] }}"

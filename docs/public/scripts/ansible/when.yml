@@ -1,0 +1,23 @@
+- hosts: node1
+  tasks:
+    - name: node1 run this task
+      ansible.builtin.debug:
+        msg: "The hostname is: {{ ansible_hostname }}"
+      when: ansible_hostname == "node1"
+
+    - name: Multiple condition
+      ansible.builtin.debug:
+        msg: The memory is {{ ansible_memtotal_mb }} MB and the core number is {{ ansible_processor_cores }}
+      when: ansible_memtotal_mb >= 1000 and ansible_processor_cores == 2
+
+    - name: Create temporary file
+      ansible.builtin.tempfile:
+        state: file
+        suffix: temp
+      register: tempfile_1
+
+    - name: Use the registered var and the file module to remove the temporary file
+      ansible.builtin.file:
+        path: "{{ tempfile_1.path }}"
+        state: absent
+      when: tempfile_1.path is defined

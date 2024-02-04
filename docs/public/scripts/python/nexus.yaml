@@ -1,0 +1,25 @@
+nexus_info:
+  Repositories:
+    - name: yum-proxy
+      type: proxy
+      format: yum
+      remote_url: https://mirrors.tuna.tsinghua.edu.cn/centos/
+      user_agent: Sync yum repo
+
+    - name: epel-proxy
+      type: proxy
+      format: yum
+      remote_url: https://mirrors.tuna.tsinghua.edu.cn/epel/
+      user_agent: Sync yum repo
+
+    - name: ius-proxy
+      type: proxy
+      format: yum
+      remote_url: https://mirrors.tuna.tsinghua.edu.cn/ius/
+      user_agent: Sync yum repo
+
+    - name: pypi-proxy
+      type: proxy
+      format: pypi
+      remote_url: https://pypi.tuna.tsinghua.edu.cn
+      user_agent: Sync python pypi repo

@@ -1,0 +1,15 @@
+---
+user_hosts:
+  - node1
+user_info:
+  - user: test1
+    # 密码需要用引号括起来,避免纯数字密码被解析成int类型数字
+    password: "123456"
+    # 备注信息可以使用中文，但尽量不用中文
+    comment: "自动创建用户test1"
+  - user: test2
+    password: "654321"
+    comment: "auto created test2"
+  - user: test3
+    password: "abcdefg"
+    comment: "auto created test3"

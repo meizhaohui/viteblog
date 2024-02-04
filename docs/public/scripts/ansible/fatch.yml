@@ -1,0 +1,24 @@
+- hosts: myhosts
+  tasks:
+    - name: Store file into /tmp/fetched/host.example.com/tmp/somefile
+      ansible.builtin.fetch:
+        src: /etc/selinux/config
+        dest: /tmp/fetched
+
+    - name: Specifying a path directly
+      ansible.builtin.fetch:
+        src: /etc/selinux/config
+        dest: /tmp/prefix-{{ inventory_hostname }}
+        flat: yes
+
+    - name: Specifying a destination path
+      ansible.builtin.fetch:
+        src: /etc/selinux/config
+        dest: /tmp/special/
+        flat: yes
+
+    - name: Storing in a path relative to the playbook
+      ansible.builtin.fetch:
+        src: /etc/selinux/config
+        dest: special/prefix-{{ inventory_hostname }}
+        flat: yes

@@ -1,0 +1,31 @@
+- hosts: node1
+  tasks:
+    - name: Wait until the file /tmp/foo is present before continuing
+      wait_for:
+        path: /tmp/foo
+
+    - name: Wait until the string "completed" is in the file /tmp/foo before continuing
+      wait_for:
+        path: /tmp/foo
+        search_regex: completed
+
+    - name: Output customized message when failed
+      wait_for:
+        path: /tmp/foo
+        state: present
+        timeout: 20
+        msg: Timeout to find file /tmp/foo
+        msg: 未到时文件 /tmp/foo
+
+    - name: Restart nginx service
+      service:
+        name: nginx
+        state: restarted
+      become: yes
+
+    - name: Wait for port 80 to become open on the host
+      wait_for:
+        port: 80
+        delay: 10
+      become: yes
+

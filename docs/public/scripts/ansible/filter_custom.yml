@@ -1,0 +1,13 @@
+---
+- hosts: node1
+  # 定义变量
+  vars:
+    - test_string: "a,b;c|d:e@f"
+
+  tasks:
+    - name: use custom filter to split test string to list
+      ansible.builtin.debug:
+        msg: |
+          The test_string is {{ test_string }}
+          The split list is {{ test_string|split_everything }}
+

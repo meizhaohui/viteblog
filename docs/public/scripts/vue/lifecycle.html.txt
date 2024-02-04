@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+		<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+	</head>
+	<body>
+		<div id="app">
+			{{ message }}
+			<button @click="destroy">内部销毁</button>
+		</div>
+
+		<!-- script脚本包裹了一段js代码 -->
+		<script>
+			// 在引用vue.js时，会声明一个全局变量Vue
+			// 通过`new Vue`的方式可以获取一个Vue的应用
+			// 它会返回一个对象，我们称之为应用对象，如`app`
+			// 在`new Vue`时需要注意的时候，需要传入一个对象{}作为参数
+			// 这个对象{}有两个非常重要的属性，el和data
+			var app = new Vue({
+				// 此处的el属性必须保留
+				el: '#app',
+				data: {
+					message: '消息',
+				},
+				methods: {
+					destroy() {
+						this.$destroy()
+						console.log('after run this.$destroy()');
+						//this.$destroy()不会销毁DOM, 需对DOM进行处理
+						document.querySelector('#app').remove()
+					},
+				},
+				// 在实例初始化之后，数据观测 (data observer) 和 event/watcher 事件配置之前被调用。
+				beforeCreate: function() {
+					console.log('beforeCreate')
+					console.log('el:', this.$el); // undefined
+					console.log('data:', this.$data); // undefined
+					console.log('message:', this.message); // undefined
+				},
+				/* 在实例创建完成后被立即调用。
+				在这一步，实例已完成以下的配置：数据观测 (data observer)，属性和方法的运算，watch/event 事件回调。
+				然而，挂载阶段还没开始，$el 属性目前不可见。 */
+				created: function() {
+					console.log('created')
+					console.log('el:', this.$el); // undefined
+					console.log('data:', this.$data); // 已经被初始化
+					console.log('message:', this.message); // 已经被初始化
+				},
+				// 在挂载开始之前被调用：相关的渲染函数首次被调用
+				beforeMount: function() {
+					console.log('beforeMount');
+					console.log('el:', this.$el); // 已经被初始化，此时el中通过{{message}}进行占位的
+					console.log('data:', this.$data); // 已经被初始化
+					console.log('message:', this.message); // 已经被初始化
+				},
+				//el 被新创建的 vm.$el 替换, 挂载成功	
+				mounted: function() {
+					console.log('mounted');
+					console.log('el:', this.$el); // 已经被初始化，此时el中的{{message}}占位已经被替换成真实的值
+					console.log('data:', this.$data); // 已经被初始化
+					console.log('message:', this.message); // 已经被初始化
+				},
+				// 数据更新时调用
+				beforeUpdate: function() {
+					console.log('beforeUpdate');
+					console.log('el:', this.$el); // 已经被更新
+					console.log('data:', this.$data); // 已经被更新
+					console.log('message:', this.message); // 已经被更新
+				},
+				// 组件 DOM 已经更新, 组件更新完毕 
+				updated: function() {
+					console.log('updated');
+					console.log('el:', this.$el); // 已经被更新
+					console.log('data:', this.$data); // 已经被更新
+					console.log('message:', this.message); // 已经被更新
+				},
+				// 销毁前
+				beforeDestroy: function() {
+					console.log('beforeDestroy');
+					console.log('el:', this.$el); // 数据被保留
+					console.log('data:', this.$data); // 数据被保留
+					console.log('message:', this.message); // 数据被保留
+				},
+				// 销毁后
+				destroyed: function() {
+					console.log('destroyed');
+					console.log('el:', this.$el); // 内部销毁时数据被保留
+					console.log('data:', this.$data); // 内部销毁时数据被保留
+					console.log('message:', this.message); // 内部销毁时数据被保留
+				}
+			});
+		</script>
+	</body>
+</html>

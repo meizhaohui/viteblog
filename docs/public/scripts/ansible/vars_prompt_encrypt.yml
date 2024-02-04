@@ -1,0 +1,23 @@
+---
+- hosts: node1
+  # 定义交互式获取变量
+  vars_prompt:
+    - name: user_name
+      prompt: please input the user name
+      # 非私有时，会显示输入的变量值
+      private: no
+    - name: user_password
+      prompt: please input the user password
+      encrypt: sha512_crypt
+      confirm: true
+      salt_size: 7
+      # 私有时。不会显示输入的变量值，对于密码输入的话，可以避免密码泄漏
+      private: yes
+
+  tasks:
+    - name: Create user
+      ansible.builtin.user:
+        name: "{{ user_name }}"
+        comment: "使用vars_prompt创建用户{{ user_name }}"
+        password: "{{ user_password }}"
+      become: yes

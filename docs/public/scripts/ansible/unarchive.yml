@@ -1,0 +1,16 @@
+- hosts: node1
+  tasks:
+    - name: create base folder
+      ansible.builtin.file:
+        path: /srv/tomcat
+        state: directory
+      become: yes
+
+    - name: Unarchive a file that needs to be downloaded (added in 2.0)
+      ansible.builtin.unarchive:
+        src: https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.73/bin/apache-tomcat-9.0.73.tar.gz
+        dest: /srv/tomcat
+        validate_certs: no
+        remote_src: yes
+      become: yes
+

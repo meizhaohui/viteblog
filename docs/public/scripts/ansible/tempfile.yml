@@ -1,0 +1,23 @@
+- hosts: node1
+  tasks:
+    - name: Create temporary build directory
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: build
+
+    - name: Create temporary file with prefix
+      ansible.builtin.tempfile:
+        state: file
+        prefix: ansible_temp_
+
+    - name: Create temporary file with suffix
+      ansible.builtin.tempfile:
+        state: file
+        suffix: .temp
+
+    - name: Create temporary file with path
+      ansible.builtin.tempfile:
+        state: file
+        # path定义的目录需要存在
+        path: /var/log/tempfile
+      become: yes

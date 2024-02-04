@@ -1,0 +1,24 @@
+- hosts: node1
+  tasks:
+    - name: Restart everything
+      command: echo "this task will restart the web services"
+      notify: "restart web services"
+      become: yes
+      # [301] Commands should not change things if nothing needs doing
+      register: myoutput
+      changed_when: myoutput.rc == 0
+
+  handlers:
+    - name: Restart memcached
+      ansible.builtin.service:
+        name: memcached
+        state: restarted
+      listen: "restart web services"
+      become: yes
+
+    - name: Restart nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+      listen: "restart web services"
+      become: yes

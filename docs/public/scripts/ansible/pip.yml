@@ -1,0 +1,29 @@
+- hosts: node1
+  tasks:
+    - name: Install python package
+      ansible.builtin.pip:
+        name: flask
+        executable: pip3
+      become: yes
+
+- hosts: node1
+  tasks:
+    - name: Install multi python packages with version specifiers
+      ansible.builtin.pip:
+        name: 
+          - flask==2.0.0
+          - bottle==0.11.1
+        executable: pip3
+      become: yes
+
+
+- hosts: node1
+  tasks:
+    # Install (Bottle) into the specified (virtualenv), inheriting none of the globally installed modules
+    - name: Install package in virtualenv
+      ansible.builtin.pip:
+        name:
+          - bottle==0.11.1
+        virtualenv_command: /usr/local/bin/virtualenv
+        virtualenv: /my_app/venv
+      become: yes

@@ -1,0 +1,12 @@
+---
+- hosts: node1
+
+  # 定义变量
+  vars:
+    mobile_number: "{{ mobile |default(18966666666) }}"
+
+  tasks:
+    - name: get the mobile address and isp info
+      ansible.builtin.debug:
+        msg: |
+          手机号:{{ mobile_number }} {{ lookup('teladdress', mobile_number) }}

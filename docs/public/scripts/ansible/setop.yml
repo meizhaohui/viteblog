@@ -1,0 +1,38 @@
+- hosts: all
+  gather_facts: no
+  tasks:
+    - name: Get memory info
+      ansible.builtin.debug:
+        msg:
+          - The total memory is {{ ansible_memory_mb['real']['total'] }} MB.
+          - The free memory is {{ ansible_memfree_mb }} MB.
+
+    - name: Get architecture info
+      ansible.builtin.debug:
+        msg: The system architecture is {{ ansible_architecture }}
+
+    - name: Get distribution info
+      ansible.builtin.debug:
+        msg: The system is {{ ansible_distribution }} {{ ansible_distribution_version }}
+
+
+    - name: Get the IP of the hosts
+      ansible.builtin.debug:
+        msg: The IP is => {{ ansible_default_ipv4['address'] }}
+
+
+- hosts: node2
+  gather_facts: no
+  tasks:
+    - name: Get ansible_local facts info
+      ansible.builtin.setup:
+        filter:
+          - ansible_local
+      become: yes
+
+    - name: Check the service status
+      service:
+        name: "{{ ansible_local['shell']['SERVICES']['service_one'] }}"
+        state: stopped
+    
+    

@@ -1,0 +1,267 @@
+# 条件渲染
+
+- `v-if`指令用于条件性地渲染一块内容。这块内容只会在指令的表达式返回真值的时候被渲染。`v-if`配套的还有`v-else`、`v-else-if`，`v-else`和`v-else-if`块都是可选的。如`<h1 v-if="awesome">Vue is awesome!</h1><h1 v-else>Oh no 😢</h1>`
+- `v-show`指令也可以根据条件展示元素。如`<h1 v-show="ok">Hello!</h1>`。`v-show`不支持`v-else`。
+- `v-if`只有当条件为真时，才进行渲染。而`v-show`不管初始条件是什么，元素总是会被渲染，并且只是简单地基于 CSS 进行切换，当条件为假时，会使用`style="display:none;"`样式来控制元素不显示。
+
+> 一般来说，`v-if` 有更高的切换开销，而 `v-show` 有更高的初始渲染开销。因此，如果需要非常频繁地切换，则使用 `v-show` 较好；如果在运行时条件很少改变，则使用 `v-if` 较好。
+
+我们直接测试一下官方示例：
+
+```html
+<div v-if="type === 'A'">
+  A
+</div>
+<div v-else-if="type === 'B'">
+  B
+</div>
+<div v-else-if="type === 'C'">
+  C
+</div>
+<div v-else>
+  Not A/B/C
+</div>
+```
+
+测试代码如下：
+
+```html
+<!DOCTYPE html>
+<!-- v-if_v-show.html -->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>v-if与v-show条件渲染的使用</title>
+    <!-- 开发环境版本，包含了有帮助的命令行警告 -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+    <!-- 参考：https://code.z01.com/bootstrap-vue/docs/#browser -->
+    <!-- Load required Bootstrap and BootstrapVue CSS -->
+    <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap/dist/css/bootstrap.min.css" />
+    <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css" />
+    <!-- Load Vue followed by BootstrapVue -->
+    <script src="//unpkg.com/vue@latest/dist/vue.min.js"></script>
+    <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"></script>
+  </head>
+  <body>
+    <div id="app" style="margin-left: 50px;">
+      <div v-if="type === 'A'">
+        A
+      </div>
+      <div v-else-if="type === 'B'">
+        B
+      </div>
+      <div v-else-if="type === 'C'">
+        C
+      </div>
+      <div v-else>
+        Not A/B/C
+      </div>
+      <b-button variant="success" v-on:click="changeDiv">Change</b-button>
+    </div>
+
+    <!-- script脚本包裹了一段js代码 -->
+    <script>
+      // 去掉 vue 的 "You are running Vue in development mode" 提示
+      Vue.config.productionTip = false
+      var app = new Vue({
+        // 此处的el属性必须保留，否则组件无法正常使用
+        el: '#app',
+        data: {
+          type: '',
+        },
+        methods: {
+          changeDiv: function() {
+            let arr = ['A', 'B', 'C']
+            // 从arr中随机选择一个元素
+            this.type = arr[Math.floor(Math.random() * arr.length)]
+          },
+        }
+      })
+    </script>
+  </body>
+</html>
+
+```
+
+在浏览器中访问页面：
+
+![](/img/20210531221004.png)
+
+点击按钮后：
+
+![](/img/20210531221036.png)
+
+再次点击：
+
+![](/img/20210531221057.png)
+
+查看渲染出来的元素：
+
+![](/img/20210531222933.png)
+
+此时可以看到，仅包含需要显示的`<div>A</div>`这个元素。并没有包含`<div>B</div>`等元素。
+
+为了演示`v-show`与`v-if`的不同，我们将上述代码中`v-if`直接改成`v-show`，并尝试运行。
+
+刷新页面，可以看到：
+
+![](/img/20210531223742.png)
+
+- 页面没有显示`A`，也没有显示`Not A/B/C`，这说明`v-show`不支持`v-else`指令。控制台没有报错。
+- 页面渲染了`<div style="display: none;">A</div>`，没有渲染其他元素。
+
+当点击`Change`按钮改变`type`的值时，如果`this.type='A'`，则`A`字母会显示出来。此时显示如下：
+
+![](/img/20210531224251.png)
+
+此时可以看到渲染为`<div style>A</div>`，没有`"display: none;"`样式属性了。说明了`v-show`是通过CSS样式进行切换来改变元素是否显示的。
+
+
+
+## 用key管理可复用的元素
+
+我们按官方示例，编写以下代码：
+
+```html
+<!DOCTYPE html>
+<!-- v-if_v-show.html -->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>v-if与v-show条件渲染的使用</title>
+    <!-- 开发环境版本，包含了有帮助的命令行警告 -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+    <!-- 参考：https://code.z01.com/bootstrap-vue/docs/#browser -->
+    <!-- Load required Bootstrap and BootstrapVue CSS -->
+    <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap/dist/css/bootstrap.min.css" />
+    <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css" />
+    <!-- Load Vue followed by BootstrapVue -->
+    <script src="//unpkg.com/vue@latest/dist/vue.min.js"></script>
+    <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"></script>
+  </head>
+  <body>
+    <div id="app" style="margin-left: 50px;">
+      <template v-if="loginType === 'username'">
+        <label>Username</label>
+        <input placeholder="Enter your username" v-model="usernameEmail">
+      </template>
+      <template v-else>
+        <label>Email</label>
+        <input placeholder="Enter your email address" v-model="usernameEmail">
+      </template>
+      <b-button variant="success" v-on:click="changeType">Change</b-button>
+    </div>
+
+    <!-- script脚本包裹了一段js代码 -->
+    <script>
+      // 去掉 vue 的 "You are running Vue in development mode" 提示
+      Vue.config.productionTip = false
+      var app = new Vue({
+        // 此处的el属性必须保留，否则组件无法正常使用
+        el: '#app',
+        data: {
+          loginType: 'username',
+          usernameEmail: ''
+        },
+        methods: {
+          changeType: function() {
+            // 切换登陆类型
+            console.log('切换前登陆类型为:' + this.loginType)
+            this.loginType = this.loginType === 'username' ? 'email' : 'username'
+            console.log('切换后登陆类型为:' + this.loginType)
+          },
+        }
+      })
+    </script>
+  </body>
+</html>
+
+```
+
+打开页面并在输入框中输入值：
+
+![](/img/20210602072930.png)
+
+点击`Change`切换按钮后：
+
+![](/img/20210602073108.png)
+
+多次点击切换按钮时，可以发现元素中仅紫色区域发生变化：
+
+![](/img/20210602073209.png)
+
+可以看到`<label>`标签的值发生变化，标签本身还在，同时，`<input>`仅仅替换掉了其`placeholder`的值。说明`label`和`input`都被高效地复用了。
+
+在切换登陆类型时，输入框中的内容被保留了下来。
+
+如果想输入框内容不被保留，可以给`input`输入框指定不同的`key`属性。
+
+
+
+修改一下代码：
+
+```html
+<!DOCTYPE html>
+<!-- v-if_v-show.html -->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>v-if与v-show条件渲染的使用</title>
+    <!-- 开发环境版本，包含了有帮助的命令行警告 -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+    <!-- 参考：https://code.z01.com/bootstrap-vue/docs/#browser -->
+    <!-- Load required Bootstrap and BootstrapVue CSS -->
+    <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap/dist/css/bootstrap.min.css" />
+    <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css" />
+    <!-- Load Vue followed by BootstrapVue -->
+    <script src="//unpkg.com/vue@latest/dist/vue.min.js"></script>
+    <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"></script>
+  </head>
+  <body>
+    <div id="app" style="margin-left: 50px;">
+      <template v-if="loginType === 'username'">
+        <label>Username</label>
+        <input placeholder="Enter your username" v-model="username" key="username-input">
+      </template>
+      <template v-else>
+        <label>Email</label>
+        <input placeholder="Enter your email address" v-model="email" key="email-input">
+      </template>
+      <b-button variant="success" v-on:click="changeType">Change</b-button>
+    </div>
+
+    <!-- script脚本包裹了一段js代码 -->
+    <script>
+      // 去掉 vue 的 "You are running Vue in development mode" 提示
+      Vue.config.productionTip = false
+      var app = new Vue({
+        // 此处的el属性必须保留，否则组件无法正常使用
+        el: '#app',
+        data: {
+          loginType: 'username',
+          username: '',
+          email: '',
+        },
+        methods: {
+          changeType: function() {
+            // 切换登陆类型
+            console.log('切换前登陆类型为:' + this.loginType)
+            this.loginType = this.loginType === 'username' ? 'email' : 'username'
+            console.log('切换后登陆类型为:' + this.loginType)
+          },
+        }
+      })
+    </script>
+  </body>
+</html>
+
+```
+
+此时`label`和`input`都会重新被渲染。
+
+由于有指定`v-model`，所以在切换时，会保留之前输入的用户名或邮箱。但用户名字符和邮箱字符又是独立的。
+
+如在用户名处输入`meizhaohui`，然后点击`Change`，切换到邮箱处，输入`mzh@hellogitlab.com`，然后再点击`Change`切换到用户名输入，可以看到`meizhaohui`仍然还在,再切换的话，又可以看到`mzh@hellogitlab.com`邮箱地址数据也还在。

@@ -1,0 +1,11 @@
+{% for vhost in nginx_vhosts %}
+server {
+    listen {{ vhost.listen | default('80 default_server') }};
+    {% if vhost.server name is defined %}
+    server_name {{ vhost.server_name }};
+    {% endif %}
+
+    {% if vhost.root is defined %}
+    root {{ vhost.root }};
+    {% endif %}
+}

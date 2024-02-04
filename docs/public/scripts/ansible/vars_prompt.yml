@@ -1,0 +1,20 @@
+---
+- hosts: node1
+  # 定义交互式获取变量
+  vars_prompt:
+    - name: service_name
+      prompt: please input the service name
+      # 非私有时，会显示输入的变量值
+      private: no
+    - name: listen_port
+      prompt: please input the service listen port
+      # 设置默认端口号，也可以不设置
+      default: 6666
+      # 私有时。不会显示输入的变量值，对于密码输入的话，可以避免密码泄漏
+      private: yes
+
+  tasks:
+    - name: display variable from variable list
+      ansible.builtin.debug:
+        msg: |
+          The first service name is {{ service_name }} and the listen port is {{ listen_port }}.

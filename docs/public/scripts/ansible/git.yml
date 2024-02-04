@@ -1,0 +1,10 @@
+- hosts: node2
+  tasks:
+    - name: Clone the git repo
+      ansible.builtin.git:
+        repo: https://gitee.com/meizhaohui/testgit.git
+        # dest最后一级目录需要不存在
+        dest: /tmp/testgit
+        depth: 1
+        # single_branch: yes
+        version: master

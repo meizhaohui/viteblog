@@ -1,0 +1,21 @@
+- hosts: node1
+  tasks:
+    - name: The first task
+      ansible.builtin.debug:
+        msg: "executed the tag1 task"
+      tags: tag1
+
+    - name: The second task
+      ansible.builtin.debug:
+        msg: "executed the tag2 task"
+      tags: tag2
+
+    - name: The third task
+      ansible.builtin.debug:
+        msg: "executed the tag3 task"
+      tags: tag3
+
+    - name: The fourth task
+      ansible.builtin.debug:
+        msg: "executed the last task that no tag"
+

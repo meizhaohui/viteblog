@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {# 下面这一行解决页面中文乱码 #}
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>filter</title>
+</head>
+<body>
+    <center>
+        <h1> The hostname of this webserver is {{ ansible_hostname }}</h1>
+        <h3> It is running on {{ ansible_os_family }} system </h3>
+     </center>
+     <center>
+        <h1> The hostname of this webserver is {{ ansible_hostname | upper }}</h1>
+        <h3> It is running on {{ ansible_os_family | upper }} system </h3>
+     </center>
+     <center>
+        <h1> The hostname of this webserver is {{ ansible_hostname | lower }}</h1>
+        <h3> It is running on {{ ansible_os_family | lower }} system </h3>
+     </center>
+</body>
+</html>

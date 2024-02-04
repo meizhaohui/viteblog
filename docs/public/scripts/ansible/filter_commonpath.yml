@@ -1,0 +1,15 @@
+---
+- hosts: node1
+  # 定义变量
+  vars:
+    path:
+      - "/usr/bin/java"
+      - "/usr/bin/python"
+      - "/bin/gcc"
+
+  tasks:
+    - name: display the common path
+      ansible.builtin.debug:
+        msg: |
+          The path list is {{ path }}
+          The common path is {{ path|ansible.builtin.commonpath }}

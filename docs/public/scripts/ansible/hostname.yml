@@ -1,0 +1,6 @@
+- hosts: all
+  tasks:
+    - name: Set hostname
+      ansible.builtin.hostname:
+        name: "{{ ansible_hostname }}"
+      become: yes
