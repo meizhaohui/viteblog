@@ -57,7 +57,7 @@ VitePress是什么？
 >
 > 2.VitePress 是面向未来的：其目标浏览器是只支持原生 ES 模块导入的浏览器。其鼓励使用原始的 JavaScript 而不用转义以及使用 CSS 变量来主题化
 
-而官方文档是这么说的：
+而官方文档 [什么是VitePress？](https://vitepress.qzxdp.cn/guide/what-is-vitepress.html) 是这么说的：
 
 
 
@@ -316,7 +316,392 @@ Failed to resolve dependency: vitepress > @vueuse/core, present in 'optimizeDeps
 
 ## 3. 网站优化
 
+### 3.1 修改博客运行端口号
+
+默认情况下，执行命令`pnpm run docs:dev`后会监听5173端口来运行博客程序。为了我们在浏览器中直接输入`localhost`就能打开博客，我修改一下博客的配置文件`package.json`，在`vitepress dev docs`后面增加内容` --port=80`，然后查看配置文件信息：
+
+```sh
+$ cat package.json
+{
+  "scripts": {
+    "docs:dev": "vitepress dev docs --port=80",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  }
+}
+$
+```
+
+此时，浏览器打开`localhost`，就可以直接打开博客了：
+
+![](/img/Snipaste_2024-02-04_20-12-58.png)
+
+
+
+### 3.2 优化导航栏
+
+随着博客文章越来越多，导航栏越来越多时，将导航栏配置都放在`config.js`文件中，会使该文件变得非常大。我们应将其拆分出来单独放一个文件中，也方便后期新增其他的导航信息。
+
+
+
+不拆分前，`config.js`中关于导航栏的配置如下：
+
+```js
+  /* 主题配置 */
+  themeConfig: {
+    i18nRouting: false,
+    logo: '/favicon.ico',
+    // https://vitepress.dev/reference/default-theme-config
+    nav: [{
+        text: '首页',
+        link: '/'
+      },
+      {
+        text: '操作系统',
+        items: [{
+            text: 'CentOS',
+            link: '/OS/Centos/'
+          },
+          {
+            text: 'Ubuntu',
+            link: '/OS/Ubuntu/'
+          },
+          {
+            text: 'MacOS',
+            link: '/OS/MacOS/'
+          },
+          {
+            text: 'Windows',
+            link: '/OS/Windows/'
+          },
+          {
+            text: 'Cobbler',
+            link: '/OS/Cobbler/'
+          },
+          {
+            text: 'Rocky Linux',
+            link: '/OS/RockyLinux/'
+          }
+        ]
+      },
+      {
+        text: '前端',
+        items: [{
+            text: 'Vue',
+            link: '/frontend/vue/'
+          }
+        ]
+      }
+     ]
+```
+
+会非常的长，在`.vitepress/`目录下创建配置文件夹`configs`，并在`configs`目录下创建`navConfig.js`文件，其内容如下：
+
+```js
+module.exports = [{
+        text: '首页',
+        link: '/'
+    },
+    {
+        text: '操作系统',
+        items: [{
+                text: 'CentOS',
+                link: '/OS/Centos/'
+            },
+            {
+                text: 'Ubuntu',
+                link: '/OS/Ubuntu/'
+            },
+            {
+                text: 'MacOS',
+                link: '/OS/MacOS/'
+            },
+            {
+                text: 'Windows',
+                link: '/OS/Windows/'
+            },
+            {
+                text: 'Cobbler',
+                link: '/OS/Cobbler/'
+            },
+            {
+                text: 'Rocky Linux',
+                link: '/OS/RockyLinux/'
+            }
+        ]
+    },
+    {
+        text: '前端',
+        items: [{
+                text: 'Vue',
+                link: '/frontend/vue/'
+            },
+            {
+                text: 'Javascript',
+                link: '/frontend/js/'
+            }
+        ]
+    }
+]
+
+```
+
+然后，修改`config.js`配置文件：
+
+```js
+// 将导航栏单独拆分成一个配置文件
+const navConf = require('./configs/navConfig.js');
+// https://vitepress.dev/reference/site-config
+export default {
+  // 打包输出目录
+  outDir: '../dist',
+
+  // 站点语言标题等
+  lang: 'zh-CN',
+  title: '编程技术分享',
+  description: '阿梅的IT成长之路，记录操作系统、前后端等学习总结文档',
+  
+  // 显示上次更新时间
+  lastUpdated: true,
+  // 为了和vuepress保持一致，不生成干净的URL
+  cleanUrls: false,
+
+  /* markdown 配置 */
+  markdown: {
+    // 开启markdown行数显示
+    lineNumbers: true
+  },
+
+  /* 主题配置 */
+  themeConfig: {
+    i18nRouting: false,
+    logo: '/favicon.ico',
+    // https://vitepress.dev/reference/default-theme-config
+    // 导航栏
+    nav: navConf,
+    // 侧边栏
+    sidebar: [{
+      text: 'Examples',
+      items: [{
+          text: 'Markdown Examples',
+          link: '/markdown-examples'
+        },
+        {
+          text: 'Runtime API Examples',
+          link: '/api-examples'
+        }
+      ]
+    }],
+    // 社交链接
+    socialLinks: [{
+      icon: 'github',
+      link: 'https://github.com/meizhaohui/'
+    }],
+    /* 右侧大纲配置 */
+    outline: {
+      level: 'deep',
+      label: '本页目录'
+    },
+
+    footer: {
+      message: '如有转载或 CV 的请标注本站原文地址',
+      copyright: 'Copyright © 2019-2024 阿梅的博客'
+    },
+
+    darkModeSwitchLabel: '外观',
+    returnToTopLabel: '返回顶部',
+    lastUpdatedText: '上次更新',
+
+
+    /* Algolia DocSearch 配置 */
+    // algolia,
+
+    docFooter: {
+      prev: '上一篇',
+      next: '下一篇'
+    }
+  }
+}
+```
+
+
+
+第2行的`const navConf = require('./configs/navConfig.js');` 是我新增的，而`nav: navConf,`则是删除原来写到`config.js`中的导航栏信息后的配置信息。
+
+
+
+这样导航栏就拆分出来了，效果图：
+
+![](/img/Snipaste_2024-02-04_21-11-12.png)
+
+
+
+
+
+### 3.3 优化侧边栏
+
+目前侧边栏还是模板里面自带的两个例子，不是我想要的结果。如将每个分类的目录都加到左侧的侧边栏。
+
+在`.vitepress/configs`配置文件夹下，编写配置文件`configs/sidebarConfig.js`，我这里是一个示例：
+
+```js
+// 侧边栏
+module.exports = {
+  '/OS/': [
+    {
+      text: 'CentOS',
+      collapsed: true, // 是否可折叠，默认可折叠true 
+      items: [
+        { text: '学会使用命令帮助', link: '/OS/Centos/X_use_help' },
+        { text: 'VIM编辑器的使用', link: '/OS/Centos/X_how_to_use_vim' },
+        { text: 'Bash script中的通配符与正则表达式', link: '/OS/Centos/X_wildcard_regular_expression_in_bash_script' }
+      ]
+    },
+    {
+      text: 'Ubuntu',
+      collapsed: true, // 是否可折叠，默认可折叠true 
+      items: [
+        { text: 'Ubuntu桌面初始化安装配置', link: '/OS/Ubuntu/ubuntu_init' },
+        { text: '更改ubuntu国内镜像源', link: '/OS/Ubuntu/ubuntu_change_repo' },
+        { text: 'Ubuntu防火墙设置', link: '/OS/Ubuntu/ubuntu_firewall' }
+      ]
+    },
+    {
+      text: 'Windows',
+      collapsed: true, // 是否可折叠，默认可折叠true 
+      items: [
+        { text: 'windows批处理的使用', link: '/OS/Windows/cmd' }
+      ]
+    },
+    {
+      text: 'RockyLinux',
+      collapsed: true, // 是否可折叠，默认可折叠true 
+      items: [
+        { text: 'RockyLinux docs', link: '/OS/RockyLinux/' }
+      ]
+    },
+    {
+      text: 'MacOS',
+      link: '/OS/MacOS/'
+    },
+    {
+      text: 'Cobbler自动化系统',
+      link: '/OS/Cobbler/'
+    }
+  ],
+  '/frontend/': [
+    {
+      text: 'Vue',
+      collapsed: true, // 是否可折叠，默认可折叠true 
+      items: [
+        { text: 'vue的基本使用', link: '/frontend/vue/vue_basic_use' },
+        { text: '模板语法', link: '/frontend/vue/syntax' },
+        { text: '计算属性与侦听器', link: '/frontend/vue/computed_watch' },
+        { text: 'Vue-Multiselect下拉框强化插件的使用', link: '/frontend/vue/use_Vue-Multiselect' },
+        { text: '动态绑定class或style样式', link: '/frontend/vue/class_style' },
+        { text: 'v-if与v-show条件渲染', link: '/frontend/vue/v-if_v_show' },
+        { text: 'v-for循环列表', link: '/frontend/vue/v-for' },
+        { text: '事件处理', link: '/frontend/vue/events' },
+        { text: '表单输入绑定', link: '/frontend/vue/forms' },
+        { text: '组件基础', link: '/frontend/vue/components' }
+      ]
+    },
+    {
+      text: 'JavaScript',
+      link: '/frontend/js/'
+    },
+  ]
+}
+```
+
+你可以根据个人需要再加别的。
+
+config.js中再进行修改：
+
+```js
+// 将导航栏单独拆分成一个配置文件
+const navConf = require('./configs/navConfig.js');
+// 将侧边栏单独拆分成一个配置文件
+const sidebarConf = require('./configs/sidebarConfig.js');
+
+// https://vitepress.dev/reference/site-config
+export default {
+  // 打包输出目录
+  outDir: '../dist',
+  base: process.env.APP_BASE_PATH || '/',
+
+  // 站点语言标题等
+  lang: 'zh-CN',
+  title: '编程技术分享',
+  description: '阿梅的IT成长之路，记录操作系统、前后端等学习总结文档',
+  
+  // 显示上次更新时间
+  lastUpdated: true,
+  // 为了和vuepress保持一致，不生成干净的URL
+  cleanUrls: false,
+
+  /* markdown 配置 */
+  markdown: {
+    // 开启markdown行数显示
+    lineNumbers: true
+  },
+
+  /* 主题配置 */
+  themeConfig: {
+    i18nRouting: false,
+    logo: '/favicon.ico',
+    // https://vitepress.dev/reference/default-theme-config
+    // 导航栏
+    nav: navConf,
+    // 侧边栏
+    sidebar: sidebarConf,
+    // 社交链接
+    socialLinks: [{
+      icon: 'github',
+      link: 'https://github.com/meizhaohui/'
+    }],
+    /* 右侧大纲配置 */
+    outline: {
+      level: 'deep',
+      label: '本页目录'
+    },
+
+    footer: {
+      message: '如有转载或 CV 的请标注本站原文地址',
+      copyright: 'Copyright © 2019-2024 阿梅的博客'
+    },
+
+    darkModeSwitchLabel: '外观',
+    returnToTopLabel: '返回顶部',
+    lastUpdatedText: '上次更新',
+
+
+    /* Algolia DocSearch 配置 */
+    // algolia,
+
+    docFooter: {
+      prev: '上一篇',
+      next: '下一篇'
+    }
+  }
+}
+```
+
+这样就可以正常显示侧边栏了。
+
+![](/img/Snipaste_2024-02-04_23-29-09.png)
+
+博客有模有样了！
+
+
+
+
+
+
+
 参考：
 
+-  什么是VitePress？[https://vitepress.qzxdp.cn/guide/what-is-vitepress.html](https://vitepress.qzxdp.cn/guide/what-is-vitepress.html) 
+-  茂茂物语: 各种笔记记录 [https://github.com/maomao1996/mm-notes](https://github.com/maomao1996/mm-notes)
 - 从 VuePress 迁移至 VitePress [https://github.com/maomao1996/daily-notes/issues/37](https://github.com/maomao1996/daily-notes/issues/37)
 - 前端导航 [https://fe-nav.netlify.app/nav/](https://fe-nav.netlify.app/nav/)

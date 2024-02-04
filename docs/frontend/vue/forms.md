@@ -193,6 +193,8 @@ HTML 表单用于收集用户输入。表单元素包括不同类型的 input �
 
 单选时，绑定到一个具体的值。多选时，绑定到一个数组。
 
+
+
 ```html
 <!DOCTYPE html>
 <!-- forms.html -->
@@ -238,14 +240,14 @@ HTML 表单用于收集用户输入。表单元素包括不同类型的 input �
     </script>
   </body>
 </html>
-
 ```
 
-注意，多选时，应将`Ctrl`键或`Shift`键按住，来选择多个。
+注意，多选时，应将Ctrl键或Shift键按住，来选择多个。
 
-![](/img/20210616231327.png)
+![20210616231327](/img/20210616231327.png)
 
-推荐使用Vue-Multiselect来处理下拉选择。请参考[Vue-Multiselect下拉框强化插件的使用](./use_Vue-Multiselect.md) 。
+
+推荐使用Vue-Multiselect来处理下拉选择。请参考 [Vue-Multiselect下拉框强化插件的使用](./use_Vue-Multiselect.md) 。
 
 
 

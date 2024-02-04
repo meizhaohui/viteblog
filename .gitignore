@@ -111,3 +111,26 @@ secureinfo.js
 *.bak
 change_history_commit_username_email.sh
 myblog/package-lock.json
+
+
+.DS_Store
+node_modules
+dist
+.temp
+cache
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+ docs/.vitepress/cache/*
+
