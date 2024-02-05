@@ -16,10 +16,6 @@ const navConf = require('./configs/navConfig.js');
 // 将侧边栏单独拆分成一个配置文件
 const sidebarConf = require('./configs/sidebarConfig.js');
 
-
-
-
-
 // https://vitepress.dev/reference/site-config
 export default {
   // 打包输出目录
