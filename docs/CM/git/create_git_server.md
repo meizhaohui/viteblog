@@ -4,7 +4,7 @@
 
 ::: danger 危险
 
-特别说明：使用git daemon开启启`receive-pack`服务后，任何人可以匿名访问git存储库，非常不安全，建议考虑使用gitolite项目来进行权限控制。
+特别说明：使用git daemon开启`receive-pack`服务后，任何人可以匿名访问git存储库，非常不安全，建议考虑使用gitolite项目来进行权限控制。
 
 :::
 

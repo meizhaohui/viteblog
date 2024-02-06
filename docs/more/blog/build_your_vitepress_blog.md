@@ -703,5 +703,6 @@ export default {
 
 -  什么是VitePress？[https://vitepress.qzxdp.cn/guide/what-is-vitepress.html](https://vitepress.qzxdp.cn/guide/what-is-vitepress.html) 
 -  茂茂物语: 各种笔记记录 [https://github.com/maomao1996/mm-notes](https://github.com/maomao1996/mm-notes)
+-  茂茂物语 Mao Mao 的成长之路 [https://notes.fe-mm.com/](https://notes.fe-mm.com/)
 - 从 VuePress 迁移至 VitePress [https://github.com/maomao1996/daily-notes/issues/37](https://github.com/maomao1996/daily-notes/issues/37)
 - 前端导航 [https://fe-nav.netlify.app/nav/](https://fe-nav.netlify.app/nav/)
