@@ -693,6 +693,23 @@ export default {
 
 博客有模有样了！
 
+#### 3.4 设置徽标<Badge type="info" text="default" />
+
+参考 [https://vitepress.qzxdp.cn/reference/default-theme-badge.html](https://vitepress.qzxdp.cn/reference/default-theme-badge.html) 。
+
+ 您可以使用全局可用的`Badge`组件。 
+
+```html
+### Title <Badge type="info" text="default" />
+### Title <Badge type="tip" text="^1.9.0" />
+### Title <Badge type="warning" text="beta" />
+### Title <Badge type="danger" text="caution" />
+```
+
+效果图：
+
+![Snipaste_2024-02-07_22-17-37.png](/img/Snipaste_2024-02-07_22-17-37.png)
+
 
 
 ## 4. 页面异常处理
@@ -712,6 +729,10 @@ export default {
 最后发现是约44行表格中左双大括号有问题，<code v-pre>"{{"</code> 外面需要使用`<code v-pre>` `</code>`来转义：
 
 ![Snipaste_2024-02-07_20-24-46.png](/img/Snipaste_2024-02-07_20-24-46.png)
+
+
+
+
 
 
 

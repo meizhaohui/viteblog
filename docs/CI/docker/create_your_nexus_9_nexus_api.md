@@ -431,7 +431,7 @@ GET方法调用`/service/rest/v1/security/realms/active`接口，可以返回所
 
 
 
-#### 3.3.3 设置激活的Realm
+#### 3.3.3 设置激活的Realm<Badge type="danger" text="危险" />
 
 Set the active security realms in the order they should be used。
 
