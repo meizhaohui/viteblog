@@ -562,7 +562,9 @@ node1                      : ok=3    changed=2    unreachable=0    failed=0    s
 [ansible@master ~]$ 
 ```
 
-使用`register`关键字来注册变量，`{{` variable `}}`来输出变量。
+使用`register`关键字来注册变量，<code v-pre>{{ variable }}</code> 来输出变量。
+
+> 将转义的内容放在 `<code v-pre> ... </code>` 中。
 
 #### 3.1.7 测试free_form参数
 

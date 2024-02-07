@@ -695,7 +695,23 @@ export default {
 
 
 
+## 4. 页面异常处理
 
+### 4.1 Error parsing JavaScript expression: Unterminated string constant
+
+有时打开页面，提示一些莫名其妙的异常。
+
+![Snipaste_2024-02-07_20-05-03.png](/img/Snipaste_2024-02-07_20-05-03.png)
+
+此时我们可以在vscode中安装markdownlint插件，然后使用vscode打开对应的markdown文件，然后查看有哪些异常的位置需要修复：
+
+![Snipaste_2024-02-07_20-12-04.png](/img/Snipaste_2024-02-07_20-12-04.png)
+
+按每行提示进行修改，直到页面正常为止。
+
+最后发现是约44行表格中左双大括号有问题，<code v-pre>"{{"</code> 外面需要使用`<code v-pre>` `</code>`来转义：
+
+![Snipaste_2024-02-07_20-24-46.png](/img/Snipaste_2024-02-07_20-24-46.png)
 
 
 

@@ -258,5 +258,139 @@ module.exports = {
         { text: 'SVN的基本使用', link: '/CM/svn/' },
       ]
     },
+    {
+      text: 'Ansible',
+      collapsed: true, // 是否可折叠，默认可折叠true 
+      items: [
+        { text: 'Ansible学习笔记', link: '/CM/ansible/' },
+        { text: 'Ansible初体验', link: '/CM/ansible/base' },
+        { text: 'Ping连接测试模块', link: '/CM/ansible/ping' },
+        { text: 'Debug调试模块', link: '/CM/ansible/debug' },
+        { text: 'Command命令模块', link: '/CM/ansible/command' },
+        { text: 'Shell执行远程脚本模块', link: '/CM/ansible/shell' },
+        { text: 'Cron定时任务模块', link: '/CM/ansible/cron' },
+        { text: 'User用户模块', link: '/CM/ansible/user' },
+        { text: 'Group用户组模块', link: '/CM/ansible/group' },
+        { text: 'Copy复制模块', link: '/CM/ansible/copy' },
+        { text: 'File文件模块', link: '/CM/ansible/file' },
+        { text: 'Yum包模块', link: '/CM/ansible/yum' },
+        { text: 'Service服务模块', link: '/CM/ansible/service' },
+        { text: 'Script执行本地脚本模块-不推荐', link: '/CM/ansible/script' },
+        { text: 'Setup事实变量模块', link: '/CM/ansible/setup' },
+        { text: 'Fetch从远程复制文件模块', link: '/CM/ansible/fetch' },
+        { text: 'Find查找模块', link: '/CM/ansible/find' },
+        { text: 'Firewalld防火墙模块', link: '/CM/ansible/firewalld' },
+        { text: 'get_url下载文件到远程节点模块', link: '/CM/ansible/get_url' },
+        { text: 'git远程仓库检出模块', link: '/CM/ansible/git' },
+        { text: 'git_config git配置模块', link: '/CM/ansible/git_config' },
+        { text: 'hostname修改主机名模块', link: '/CM/ansible/hostname' },
+        { text: 'htpasswd用户认证模块', link: '/CM/ansible/htpasswd' },
+        { text: 'jenkins_job Jenkins任务管理模块', link: '/CM/ansible/jenkins_job' },
+        { text: 'jenkins_job_info Jenkins任务信息模块', link: '/CM/ansible/jenkins_job_info' },
+        { text: 'ldap_attrs LDAP属性模块', link: '/CM/ansible/ldap_attr' },
+        { text: 'lineinfile文件内容修改模块', link: '/CM/ansible/lineinfile' },
+        { text: 'blockinfile文件块模块', link: '/CM/ansible/blockinfile' },
+        { text: 'mail邮件模块', link: '/CM/ansible/mail' },
+        { text: 'make编译模块', link: '/CM/ansible/make' },
+        { text: 'pip python库管理模块', link: '/CM/ansible/pip' },
+        { text: 'tempfile临时文件模块', link: '/CM/ansible/tempfile' },
+        { text: 'template模板模块', link: '/CM/ansible/template' },
+        { text: 'timezone时区模块', link: '/CM/ansible/timezone' },
+        { text: 'wait_for条件等待模块', link: '/CM/ansible/wait_for' },
+        { text: 'wait_for_connection等待远程主机连接模块', link: '/CM/ansible/wait_for_connection' },
+        { text: 'unarchive解压模块', link: '/CM/ansible/unarchive' },
+        { text: 'ansible when条件判断', link: '/CM/ansible/when' },
+        { text: 'changed_when与failed_when条件判断', link: '/CM/ansible/changed_when' },
+        { text: 'ansible循环', link: '/CM/ansible/loop' },
+        { text: 'ansible-vault数据加密', link: '/CM/ansible/ansible-vault' },
+        { text: 'ansible handlers触发器', link: '/CM/ansible/handlers' },
+        { text: 'ansible tags标签', link: '/CM/ansible/tags' },
+        { text: 'ansible fiter过滤器', link: '/CM/ansible/filter' },
+        { text: 'lookups插件', link: '/CM/ansible/lookups' },
+        { text: '编写facts模块', link: '/CM/ansible/facts_module' },
+        { text: 'ansible role角色(1)--role角色概述与相关功能概述 ', link: '/CM/ansible/role' },
+        { text: 'ansible role角色(2)--创建第一个role角色', link: '/CM/ansible/role_2' },
+        { text: 'ansible role角色(3)--一步一步学role角色', link: '/CM/ansible/role_3' },
+      ]
+    },
+    {
+      text: 'Proxmox',
+      collapsed: true, // 是否可折叠，默认可折叠true 
+      items: [
+        { text: 'Proxmox Virtual Environment', link: '/CM/proxmox/' },
+        { text: 'Proxmox VE介绍', link: '/CM/proxmox/X1_Introduction' },
+        { text: 'Proxmox VE安装', link: '/CM/proxmox/X2_InstallingProxmoxVE' },
+      ]
+    },
+  ],
+  '/CI/': [
+    {
+      text: 'Jenkins',
+      collapsed: true, // 是否可折叠，默认可折叠true 
+      items: [
+        { text: 'Jenkins安装与基本配置', link: '/CI/jenkins/install' },
+        { text: 'Jenkins插件推荐', link: '/CI/jenkins/plugins' },
+      ]
+    },
+    {
+      text: 'Docker',
+      collapsed: true, // 是否可折叠，默认可折叠true 
+      items: [
+        { text: 'docker的基本使用', link: '/CI/docker/docker_basic_use' },
+        { text: '使用docker搭建nextcloud私有云盘', link: '/CI/docker/nextcloud_in_docker' },
+        { text: 'docker配置redis缓存', link: '/CI/docker/redis_in_docker' },
+        { text: 'docker配置PostgreSQL数据库', link: '/CI/docker/postgresql_in_docker' },
+        { text: '轻量级Gogs安装与配置', link: '/CI/docker/gogs_in_docker' },
+        { text: 'bridge-nf-call-iptables is disabled', link: '/CI/docker/WARNING-bridge-nf-call-iptables_is_disabled' },
+        { text: '使用clair扫描Docker镜像漏洞', link: '/CI/docker/clair' },
+        { text: '修改默认数据存储目录', link: '/CI/docker/change_root_dir' },
+        { text: '查看下载的docker镜像的版本信息', link: '/CI/docker/the_latest_image' },
+        { text: 'docker容器增加端口映射', link: '/CI/docker/add_port_to_container' },
+        { text: '通过进程pid查询对应docker容器信息', link: '/CI/docker/get_container_by_pid' },
+        { text: 'docker-compose的使用', link: '/CI/docker/docker-compose' },
+        { text: '', link: '/CI/docker/' },
+      ]
+    },
+    {
+      text: 'nexus私有仓库',
+      collapsed: true, // 是否可折叠，默认可折叠true 
+      items: [
+        { text: '搭建自己的nexus私有仓库1-nexus初体验', link: '/CI/docker/create_your_nexus' },
+        { text: '搭建自己的nexus私有仓库2-创建python pypi代理', link: '/CI/docker/create_your_nexus_2' },
+        { text: '搭建自己的nexus私有仓库3-创建yum ius代理', link: '/CI/docker/create_your_nexus_3' },
+        { text: '搭建自己的nexus私有仓库4-创建docker私有仓库', link: '/CI/docker/create_your_nexus_4_docker_proxy' },
+        { text: '搭建自己的nexus私有仓库5-测试docker仓库pull和push', link: '/CI/docker/create_your_nexus_5_test_docker_proxy' },
+        { text: '搭建自己的nexus私有仓库6-使用Nginx反向代理', link: '/CI/docker/create_your_nexus_6_nginx_proxy' },
+        { text: '搭建自己的nexus私有仓库7-修改nexus容器时区', link: '/CI/docker/create_your_nexus_7_change_timezone' },
+        { text: '搭建自己的nexus私有仓库8-Nexus3的数据库结构', link: '/CI/docker/create_your_nexus_8_nexus_database' },
+        { text: '搭建自己的nexus私有仓库9-Nexus API接口的使用1', link: '/CI/docker/create_your_nexus_9_nexus_api' },
+        { text: '搭建自己的nexus私有仓库10-Nexus API接口的使用2', link: '/CI/docker/create_your_nexus_10_nexus_api_2' },
+      ]
+    },
+    {
+      text: 'k8s',
+      collapsed: true, // 是否可折叠，默认可折叠true 
+      items: [
+        { text: 'k8s集群部署', link: '/CI/k8s/deploy' },
+        { text: '获取k8s集群组件状态kubectl get cs', link: '/CI/k8s/k8s_get_cs' },
+        { text: '获取k8s集群节点状态kubectl get nodes', link: '/CI/k8s/k8s_get_nodes' },
+        { text: '获取k8s集群信息kubectl cluster-info', link: '/CI/k8s/k8s_cluster_info' },
+      ]
+    },
+    {
+      text: 'GitLab',
+      collapsed: true, // 是否可折叠，默认可折叠true 
+      items: [
+        { text: 'CenOS7安装GitLab(使用外部Nginx配置)', link: '/CI/gitlab/X_centos7_install_gitlab_with_external_nginx' },
+        { text: 'GitLab的汉化与CI持续集成gitlab-runner的配置', link: '/CI/gitlab/X_configure_gitlab_i18n_and_create_gitlab_ci_with_gitlab_runner' },
+        { text: 'GitLab CI流水线配置文件.gitlab-ci.yml详解', link: '/CI/gitlab/X_gitlab_ci_.gitlab-ci.yml_detail' },
+        { text: 'CenOS7安装GitLab(使用外部Nginx配置)并配置HTTPS协议', link: '/CI/gitlab/X_centos7_install_gitlab_with_external_nginx_and_https' },
+      ]
+    },
   ],
 }
+
+
+
+
+ 

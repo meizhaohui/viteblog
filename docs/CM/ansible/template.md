@@ -1,11 +1,10 @@
 # template模块
 
-
 [[toc]]
 
 ## 1. 概要
 
-- `template`模块可以将Ansible主机上面的模板文件复制到远程被控主机上。 
+- `template`模块可以将Ansible主机上面的模板文件复制到远程被控主机上。
 - `template`模块与`copy`模块的区别是，`copy`模块会原样复制文件，而`template`模板在复制时会对模板文件进行渲染后再进行复制。
 - 官方文档：[https://docs.ansible.com/ansible/latest/collections/ansible/builtin/template_module.html](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/template_module.html)
 - 模板由Jinja2 templating language处理，也就是模板Jinja2模板语言处理。
@@ -19,16 +18,14 @@
 - `template_destpath` is the path of the template on the remote system (added in 2.8). 模板在远程系统上面的路径。
 - `template_run_date` is the date that the template was rendered. 模板渲染的时间。
 
-
-
 ## 2. 参数
 
 | 参数                     | 可选值 | 默认值 | 说明                                                         |
 | ------------------------ | ------ | ------ | ------------------------------------------------------------ |
 | `attributes`             |        |        | `string`，文件最终的属性 |
 | `backup`             | `true`、`false`       |  `false`      | `boolean`，是否创建文件备份 |
-| `block_end_string`             |       |  "%}"     | `string`，块结束标志 |
-| `block_start_string`             |       |  "{%"     | `string`，块开始标志 |
+| `block_end_string`             |       |  `"%}"`     | `string`，块结束标志 |
+| `block_start_string`             |       |  `"{%"`     | `string`，块开始标志 |
 | `comment_end_string`             |       |       | `string`，备注声明结束标志 |
 | `comment_start_string`             |       |       | `string`，备注声明开始标志 |
 | `dest`             |        |      | `path`，必须字段，模板在远程主机上渲染的路径 |
@@ -43,8 +40,8 @@
 | `src`             |       |       | `path`必须字段，在Ansible管理主机上模板文件路径，文件必须是UTF-8编码 |
 | `trim_blocks`             | `true`、`false`       |  `false`      | `boolean`，是否删除块后面的第一个换行符 |
 | `validate`             |       |       | `string`，在实际执行生效前执行校验的命令 |
-| `variable_end_string`             |       | "}}"      | `string`，模板中变量结束标记|
-| `variable_start_string`             |       |  "{{"     | `string`，模板中变量开始标记 |
+| `variable_end_string`             |       | `"}}"`      | `string`，模板中变量结束标记|
+| `variable_start_string`             |       |  <code v-pre>"{{"</code>     | `string`，模板中变量开始标记 |
 
 ## 3. 官方示例
 
@@ -103,6 +100,7 @@
 ### 4.1 附加变量的使用
 
 剧本文件如下：
+
 ```yaml
 - hosts: node1
   tasks:
@@ -134,6 +132,7 @@
 ```
 
 检查并执行剧本：
+
 ```sh
 [ansible@master ansible_playbooks]$ ansible-lint template.yml
 [ansible@master ansible_playbooks]$ ansible-playbook template.yml -v
@@ -156,6 +155,7 @@ node1                      : ok=2    changed=1    unreachable=0    failed=0    s
 可以看到，剧本执行完成。文件成功复制到node1节点。
 
 此时在node1节点上验证一下：
+
 ```sh
 [root@node1 ~]# cat /etc/file.conf
 # this is foo.j2 template
@@ -174,12 +174,12 @@ ansible is the numeric user id of the owner.
 
 通过查看文件内容、文件属性情况可知，在`foo.j2`文件中配置的附件变量都被正常的渲染，复制到节点后，文件内容已经变成渲染后的信息了。
 
-
 ### 4.2 校验模板文件名后缀文件备份
 
 - 模板文件不需要以`.j2`后缀结尾。
 
 我们修改一下剧本文件：
+
 ```yaml
 - hosts: node1
   tasks:
@@ -195,6 +195,7 @@ ansible is the numeric user id of the owner.
 ```
 
 然后再执行剧本：
+
 ```sh
 [ansible@master ansible_playbooks]$ ansible-lint template.yml
 [ansible@master ansible_playbooks]$ ansible-playbook template.yml -v
@@ -217,6 +218,7 @@ node1                      : ok=2    changed=1    unreachable=0    failed=0    s
 可以看到执行成功。
 
 再在节点上检查一下：
+
 ```sh
 [root@node1 ~]# ll /etc/file.conf*
 -rw-r--r-- 1 bin wheel 647 Feb 22 07:15 /etc/file.conf
@@ -247,12 +249,12 @@ ansible is the numeric user id of the owner.
 
 可以看到，原来存在的文件已经备份了，并生成了新的文件，新的文件内容也重新被渲染了。
 
-
 ### 4.3 使用模板默认目录templates存放模板文件
 
 上面示例中我们通过使用`src: /home/ansible/ansible_playbooks/mytemplates/foo.j2`或`src: /home/ansible/ansible_playbooks/mytemplates/foo`来指定模板文件的绝对路径，如果我们将模板文件存放到剧本文件同级目录的`templates`目录下，Ansible也会自动查找到对应的剧本文件。
 
 我们先复制一下文件：
+
 ```sh
 [ansible@master ~]$ cd ansible_playbooks/
 [ansible@master ansible_playbooks]$ mkdir templates
@@ -262,6 +264,7 @@ ansible is the numeric user id of the owner.
 ```
 
 然后修改一下剧本文件`template.yml`:
+
 ```yaml
 - hosts: node1
   tasks:
@@ -278,6 +281,7 @@ ansible is the numeric user id of the owner.
 ```
 
 即此处`src: bar`仅指定模板的名称，并没有指定其路径，尝试执行剧本：
+
 ```sh
 [ansible@master ansible_playbooks]$ ansible-lint template.yml
 [ansible@master ansible_playbooks]$ ansible-playbook template.yml -v
@@ -298,6 +302,7 @@ node1                      : ok=2    changed=1    unreachable=0    failed=0    s
 ```
 
 可以看到，剧本成功执行，在node1节点上检查一下：
+
 ```sh
 [root@node1 ~]# ll /etc/file.conf*
 -rw-r--r-- 1 bin wheel 643 Feb 23 06:51 /etc/file.conf
@@ -318,10 +323,10 @@ ansible is the numeric user id of the owner.
 
 可以看到，Ansible自动从`template.yml`剧本文件同级目录`/home/ansible/ansible_playbooks/templates`下查找到了模板文件`bar`，并成功渲染！！
 
-
 ### 4.4 使用符号模式设置文件权限
 
 设置文件权限时，不仅可以使用`mode: '0644'`这样数字的形式，也可以使用`mode: u=rw,g=r,o=r`这样的符号模式，示例如下：
+
 ```yaml
 - hosts: node1
   tasks:
@@ -337,6 +342,7 @@ ansible is the numeric user id of the owner.
 ```
 
 检查并执行剧本：
+
 ```sh
 [ansible@master ansible_playbooks]$ ansible-lint template.yml
 [ansible@master ansible_playbooks]$ ansible-playbook template.yml -v
@@ -359,6 +365,7 @@ node1                      : ok=2    changed=1    unreachable=0    failed=0    s
 可以看到，也成功执行。
 
 在节点node1上面查看文件属性和内容：
+
 ```sh
 [root@node1 ~]# cat /etc/bar.conf
 # this is foo.j2 template
@@ -372,11 +379,13 @@ ansible is the numeric user id of the owner.
 
 [root@node1 ~]#
 ```
+
 可以看到，文件权限和内容已经配置好了。
 
 ### 4.5 使用for循环渲染Web页面
 
 编写`web.html`文件：
+
 ```html
 <!DOCTYPE html>
 <html lang="en">
@@ -401,6 +410,7 @@ ansible is the numeric user id of the owner.
 ```
 
 编写剧本文件：
+
 ```yaml
 - hosts: node1
   vars:
@@ -422,6 +432,7 @@ ansible is the numeric user id of the owner.
 ```
 
 检查并执行剧本：
+
 ```sh
 [ansible@master ansible_playbooks]$ ansible-lint template.yml
 [ansible@master ansible_playbooks]$ ansible-playbook template.yml -v
@@ -442,11 +453,13 @@ node1                      : ok=2    changed=1    unreachable=0    failed=0    s
 ```
 
 注意，在本机`/etc/hosts`中绑定一下服务器IP与域名：
+
 ```sh
 192.168.56.111 node1 node1.com
 ```
 
 在节点上检查生成的html文件：
+
 ```sh
 [root@node1 ~]# ls -lah /usr/share/nginx/html/web.html
 -rw-r--r-- 1 root root 505 Mar  4 10:40 /usr/share/nginx/html/web.html
@@ -471,9 +484,11 @@ node1                      : ok=2    changed=1    unreachable=0    failed=0    s
 </html>
 [root@node1 ~]#
 ```
+
 在浏览器中访问 [http://node1.com/web.html](http://node1.com/web.html)
 
 我们也可以这样编写剧本文件：
+
 ```yaml
 - hosts: node1
   vars:
@@ -501,11 +516,12 @@ node1                      : ok=2    changed=1    unreachable=0    failed=0    s
 ```
 
 可以看到页面已经正常渲染了：
-![](/img/Snipaste_2023-03-04_10-47-53.png)
+![Snipaste_2023-03-04_10-47-53.png](/img/Snipaste_2023-03-04_10-47-53.png)
 
 ### 4.6 for/if同时使用改变页面样式
 
 我们修改一下`web.html`文件模板内容：
+
 ```html
 <!DOCTYPE html>
 <html lang="en">
@@ -533,7 +549,9 @@ node1                      : ok=2    changed=1    unreachable=0    failed=0    s
 </html>
 
 ```
+
 然后再次执行剧本：
+
 ```sh
 [ansible@master ansible_playbooks]$ ansible-lint template.yml
 [ansible@master ansible_playbooks]$ ansible-playbook template.yml -v
@@ -554,11 +572,12 @@ node1                      : ok=2    changed=1    unreachable=0    failed=0    s
 ```
 
 此时刷新页面，再次看看页面效果：
-![](/img/Snipaste_2023-03-04_19-22-39.png)
+![Snipaste_2023-03-04_19-22-39.png](/img/Snipaste_2023-03-04_19-22-39.png)
 
 ### 4.7 过滤器的使用
 
 编写模板文件`filter.html`:
+
 ```html
 <!DOCTYPE html>
 <html lang="en">
@@ -585,6 +604,7 @@ node1                      : ok=2    changed=1    unreachable=0    failed=0    s
 ```
 
 编写剧本文件`template_filter.yml`:
+
 ```yaml
 - hosts: node1
   tasks:
@@ -599,6 +619,7 @@ node1                      : ok=2    changed=1    unreachable=0    failed=0    s
 ```
 
 检查并执行剧本：
+
 ```sh
 [ansible@master ansible_playbooks]$ ls -lah templates/filter.html
 -rw-rw-r-- 1 ansible ansible 766 Mar  5 10:29 templates/filter.html
@@ -621,13 +642,14 @@ node1                      : ok=2    changed=1    unreachable=0    failed=0    s
 ```
 
 此时检查页面效果：
-![](/img/Snipaste_2023-03-05_10-33-20.png)
+![Snipaste_2023-03-05_10-33-20.png](/img/Snipaste_2023-03-05_10-33-20.png)
 可以看到，在模板中正常使用大小写转换的过滤器！！
 
 过滤器的使用请参考:
--  1. [Using filters to manipulate data](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_filters.html)
--  2. Jinja2内置过滤器 [List of Builtin Filters](https://jinja.palletsprojects.com/en/3.1.x/templates/#list-of-builtin-filters)
 
-![](/img/Snipaste_2023-03-05_10-51-11.png)
+- 1. [Using filters to manipulate data](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_filters.html)
+- 2. Jinja2内置过滤器 [List of Builtin Filters](https://jinja.palletsprojects.com/en/3.1.x/templates/#list-of-builtin-filters)
+
+![Snipaste_2023-03-05_10-51-11.png](/img/Snipaste_2023-03-05_10-51-11.png)
 
 当后面学会使用role角色功能后，template模块更加方法。
