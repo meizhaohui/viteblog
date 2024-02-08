@@ -693,7 +693,7 @@ export default {
 
 博客有模有样了！
 
-#### 3.4 设置徽标<Badge type="info" text="default" />
+### 3.4 设置徽标<Badge type="info" text="default" />
 
 参考 [https://vitepress.qzxdp.cn/reference/default-theme-badge.html](https://vitepress.qzxdp.cn/reference/default-theme-badge.html) 。
 
@@ -710,7 +710,193 @@ export default {
 
 ![Snipaste_2024-02-07_22-17-37.png](/img/Snipaste_2024-02-07_22-17-37.png)
 
+### 3.5 优化搜索功能
 
+参考：
+
+- vitepress 本地搜索 [https://vitepress.qzxdp.cn/reference/default-theme-search.html](https://vitepress.qzxdp.cn/reference/default-theme-search.html)
+- vitepress 搜索插件 [https://www.npmjs.com/package/vitepress-plugin-pagefind](https://www.npmjs.com/package/vitepress-plugin-pagefind)
+
+安装插件：
+
+```
+pnpm add -D vitepress-plugin-pagefind pagefind
+```
+
+```sh
+# 查看当前工作路径
+$ pwd
+/drives/e/data/viteblog
+
+# 安装插件
+$ pnpm add -D vitepress-plugin-pagefind pagefind
+Progress: resolved 0, reused 1, downloaded 0, added 0
+Progress: resolved 67, reused 23, downloaded 25, added 0
+Packages: +40
+++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 161, reused 82, downloaded 39, added 12
+Progress: resolved 161, reused 82, downloaded 39, added 39
+Progress: resolved 161, reused 82, downloaded 40, added 39
+Progress: resolved 161, reused 82, downloaded 40, added 40, done
+
+devDependencies:
++ pagefind 1.0.4
++ vitepress-plugin-pagefind 0.2.11
+
+Done in 7.3s
+$
+```
+
+然后，在`.vitepress/config.js`增加插件相关内容：
+
+![Snipaste_2024-02-08_22-43-21.png](/img/Snipaste_2024-02-08_22-43-21.png)
+
+以上两个位置是新增的。
+
+
+
+修改后的配置如下：
+
+```js
+/* 自动侧边栏 https://github.com/w3ctech-editorial-department/vitepress-auto-configure-nav-sidebar
+import AutoConfigureNavSidebarPlugin from '@w3ctech-editorial-department/vitepress-auto-configure-nav-sidebar'
+const { sidebar } = AutoConfigureNavSidebarPlugin({
+  collapsed: true,
+  isCollapse: true,
+  showNavIcon: false,
+  singleLayerNav: false,
+  showSidebarIcon: true,
+  ignoreFolders: ['.vuepress'],
+  customIndexFileName: "目录",
+})
+*/
+
+// 导入本地搜索插件 https://www.npmjs.com/package/vitepress-plugin-pagefind
+import { chineseSearchOptimize, pagefindPlugin } from 'vitepress-plugin-pagefind'
+
+// 将导航栏单独拆分成一个配置文件
+const navConf = require('./configs/navConfig.js');
+// 将侧边栏单独拆分成一个配置文件
+const sidebarConf = require('./configs/sidebarConfig.js');
+
+// https://vitepress.dev/reference/site-config
+export default {
+  // 打包输出目录
+  outDir: '../dist',
+  // 站点语言标题等
+  lang: 'zh-CN',
+  // 搜索功能优化
+  // 注意，不要将vite属性放到themeConfig主题配置里面去了，会导致搜索插件不起作用
+  vite: {
+    plugins: [pagefindPlugin({
+      customSearchQuery: chineseSearchOptimize,
+      btnPlaceholder: '搜索',
+      placeholder: '搜索文档',
+      emptyText: '空空如也',
+      heading: '共: {{searchResult}} 条结果',
+      // 搜索结果不展示最后修改日期日期
+      showDate: false,
+    })],
+  },
+  // tab标签页上面显示的标题
+  title: '编程技术分享',
+  description: '阿梅的IT成长之路，记录操作系统、前后端等学习总结文档',
+  
+  // 为了和vuepress保持一致，不生成干净的URL
+  cleanUrls: false,
+
+  /* markdown 配置 */
+  markdown: {
+    // 开启markdown行数显示
+    lineNumbers: true
+  },
+
+  /* 主题配置 */
+  themeConfig: {
+    // 是否将语言环境更改zh
+    i18nRouting: false,
+    // 显示在导航栏中网站标题之前的logo文件
+    logo: '/favicon.ico',
+    // 站点标题
+    siteTitle: '编程技术分享',
+    // https://vitepress.dev/reference/default-theme-config
+    // 导航栏，导航菜单项的配置
+    nav: navConf,
+    // 侧边栏，侧边栏菜单项的配置
+    sidebar: sidebarConf,
+    // 右侧大纲配置，在大纲中显示的标题级别/
+    outline: {
+      level: 'deep',
+      label: '当前页导航'
+    },
+    // 社交帐户链接
+    socialLinks: [{
+      icon: 'github',
+      link: 'https://github.com/meizhaohui/'
+    }],
+    // 页脚配置
+    // 当 SideBar 可见时，页脚将不会显示
+    footer: {
+      message: '本首页参考 https://notes.fe-mm.com/ 配置而成',
+      copyright: 'Copyright © 2019-2024 阿梅的博客'
+    },
+
+    // 显示上次更新时间
+    lastUpdated: true,
+    lastUpdatedText: '上次更新',
+    // 显示编辑链接
+    editLink: {
+        // 注意，把"/edit"字符前的地址换成你的github仓库地址
+        pattern: 'https://github.com/meizhaohui/viteblog/edit/main/docs/:path',
+        // 编辑链接显示的文本内容
+        text: "在 GitHub 上编辑此页"
+    },
+
+    // 自定义深色模式开关标签
+    // 该标签仅显示在移动视图中
+    darkModeSwitchLabel: '外观',
+    // 自定义返回顶部按钮的标签
+    // 该标签仅显示在移动视图中
+    returnToTopLabel: '返回顶部',
+
+    // VitePress支持使用浏览器内置索引进行模糊全文搜索
+    // 此处使用本地搜索
+    // 你也可以配置algolia搜索
+    // 需要去官网 https://docsearch.algolia.com/apply 申请key
+    // 做相应的修改即可
+    // search: {
+    //   provider: 'algolia',
+    //   options: {
+    //     appId: '...',
+    //     apiKey: '...',
+    //     indexName: '...'
+    // },
+    search: {
+      provider: 'local',
+      text: '搜索',
+    },
+    
+    // 自定义上一个和下一个链接上方显示的文本
+    docFooter: {
+      prev: '上一篇',
+      next: '下一篇'
+    }
+  }
+}
+
+```
+
+
+
+搜索效果：
+
+优化前：
+
+![Snipaste_2024-02-08_22-25-29.png](/img/Snipaste_2024-02-08_22-25-29.png)
+
+优化后：
+
+![Snipaste_2024-02-08_22-38-52.png](/img/Snipaste_2024-02-08_22-38-52.png)
 
 ## 4. 页面异常处理
 
@@ -738,8 +924,10 @@ export default {
 
 参考：
 
--  什么是VitePress？[https://vitepress.qzxdp.cn/guide/what-is-vitepress.html](https://vitepress.qzxdp.cn/guide/what-is-vitepress.html) 
--  茂茂物语: 各种笔记记录 [https://github.com/maomao1996/mm-notes](https://github.com/maomao1996/mm-notes)
--  茂茂物语 Mao Mao 的成长之路 [https://notes.fe-mm.com/](https://notes.fe-mm.com/)
+- 什么是VitePress？[https://vitepress.qzxdp.cn/guide/what-is-vitepress.html](https://vitepress.qzxdp.cn/guide/what-is-vitepress.html) 
+- 茂茂物语: 各种笔记记录 [https://github.com/maomao1996/mm-notes](https://github.com/maomao1996/mm-notes)
+- 茂茂物语 Mao Mao 的成长之路 [https://notes.fe-mm.com/](https://notes.fe-mm.com/)
 - 从 VuePress 迁移至 VitePress [https://github.com/maomao1996/daily-notes/issues/37](https://github.com/maomao1996/daily-notes/issues/37)
 - 前端导航 [https://fe-nav.netlify.app/nav/](https://fe-nav.netlify.app/nav/)
+- [从零用VitePress搭建博客教程(4) – 如何自定义首页布局和主题样式修改？](https://www.cnblogs.com/myboogle/p/17776406.html)
+- 粥里有勺糖 [https://theme.sugarat.top/](https://theme.sugarat.top/)

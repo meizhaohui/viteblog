@@ -11,6 +11,8 @@ const { sidebar } = AutoConfigureNavSidebarPlugin({
 })
 */
 
+// 导入本地搜索插件 https://www.npmjs.com/package/vitepress-plugin-pagefind
+import { chineseSearchOptimize, pagefindPlugin } from 'vitepress-plugin-pagefind'
 
 // 将导航栏单独拆分成一个配置文件
 const navConf = require('./configs/navConfig.js');
@@ -23,6 +25,19 @@ export default {
   outDir: '../dist',
   // 站点语言标题等
   lang: 'zh-CN',
+  // 搜索功能优化
+  // 注意，不要将vite属性放到themeConfig主题配置里面去了，会导致搜索插件不起作用
+  vite: {
+    plugins: [pagefindPlugin({
+      customSearchQuery: chineseSearchOptimize,
+      btnPlaceholder: '搜索',
+      placeholder: '搜索文档',
+      emptyText: '空空如也',
+      heading: '共: {{searchResult}} 条结果',
+      // 搜索结果不展示最后修改日期日期
+      showDate: false,
+    })],
+  },
   // tab标签页上面显示的标题
   title: '编程技术分享',
   description: '阿梅的IT成长之路，记录操作系统、前后端等学习总结文档',
@@ -69,6 +84,13 @@ export default {
     // 显示上次更新时间
     lastUpdated: true,
     lastUpdatedText: '上次更新',
+    // 显示编辑链接
+    editLink: {
+        // 注意，把"/edit"字符前的地址换成你的github仓库地址
+        pattern: 'https://github.com/meizhaohui/viteblog/edit/main/docs/:path',
+        // 编辑链接显示的文本内容
+        text: "在 GitHub 上编辑此页"
+    },
 
     // 自定义深色模式开关标签
     // 该标签仅显示在移动视图中
@@ -79,8 +101,19 @@ export default {
 
     // VitePress支持使用浏览器内置索引进行模糊全文搜索
     // 此处使用本地搜索
+    // 你也可以配置algolia搜索
+    // 需要去官网 https://docsearch.algolia.com/apply 申请key
+    // 做相应的修改即可
+    // search: {
+    //   provider: 'algolia',
+    //   options: {
+    //     appId: '...',
+    //     apiKey: '...',
+    //     indexName: '...'
+    // },
     search: {
-      provider: 'local'
+      provider: 'local',
+      text: '搜索',
     },
     
     // 自定义上一个和下一个链接上方显示的文本

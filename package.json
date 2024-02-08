@@ -5,6 +5,8 @@
     "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
-    "@w3ctech-editorial-department/vitepress-auto-configure-nav-sidebar": "^1.0.0"
+    "@w3ctech-editorial-department/vitepress-auto-configure-nav-sidebar": "^1.0.0",
+    "pagefind": "^1.0.4",
+    "vitepress-plugin-pagefind": "^0.2.11"
   }
 }
