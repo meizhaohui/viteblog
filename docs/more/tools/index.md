@@ -351,3 +351,11 @@ Geek Uninstaller，官网[https://geekuninstaller.com/](https://geekuninstaller.
 效果图：
 
 ![](/img/Snipaste_2023-12-01_22-57-51.png)
+
+## 30. 配置工具colorhexa
+
+直接访问 [https://www.colorhexa.com/](https://www.colorhexa.com/) 
+
+在搜索框中输入任何颜色格式 。 这可以是十六进制值，RGB，CMYK，HSL甚至是颜色的名称。 几乎每种格式都受支持。
+
+![Snipaste_2024-02-08_23-13-12.png](/img/Snipaste_2024-02-08_23-13-12.png)
