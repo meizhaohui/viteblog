@@ -1,6 +1,6 @@
 import DefaultTheme from "vitepress/theme";
 import "./custom.css";
-  
+
 export default {
   ...DefaultTheme,
   NotFound: () => "404", // <- this is a Vue 3 functional component

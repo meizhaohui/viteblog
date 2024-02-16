@@ -77,9 +77,9 @@ export default {
     // 页脚配置
     // 当 SideBar 可见时，页脚将不会显示
     footer: {
-      message: '本首页参考 https://notes.fe-mm.com/ 配置而成',
-      copyright: 'Copyright © 2019-2024 阿梅的博客'
-    },
+       message: '本首页参考 https://notes.fe-mm.com/ 配置而成',
+       copyright: 'Copyright © 2019-2024 阿梅的博客 <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener noreferrer">京ICP备19051502号</a>'
+     },
 
     // 显示上次更新时间
     lastUpdated: true,

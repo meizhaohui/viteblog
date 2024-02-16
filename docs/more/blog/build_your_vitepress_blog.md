@@ -898,6 +898,18 @@ export default {
 
 ![Snipaste_2024-02-08_22-38-52.png](/img/Snipaste_2024-02-08_22-38-52.png)
 
+搜索结果中，最下方显示还是英文的，因为`vitepress-plugin-pagefind`插件里面源码`Search.vue`中使用的是硬编码，我们直接修改一下本地`Search.vue`文件：
+
+![Snipaste_2024-02-16_22-39-52.png](/img/Snipaste_2024-02-16_22-39-52.png)
+
+对应路径是 `node_modules/vitepress-plugin-pagefind/src/Search.vue`。
+
+修改后，再次进行搜索，搜索结果底部已经正常显示中文了：
+
+![Snipaste_2024-02-16_22-41-50.png](/img/Snipaste_2024-02-16_22-41-50.png)
+
+
+
 ## 4. 页面异常处理
 
 ### 4.1 Error parsing JavaScript expression: Unterminated string constant

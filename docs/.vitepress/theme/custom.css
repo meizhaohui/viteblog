@@ -112,6 +112,8 @@
   --vp-c-indigo-2: #3a5ccc;
   --vp-c-indigo-3: #5672cd;
   --vp-c-indigo-soft: rgba(100, 108, 255, 0.14);
+  /* 修改超链接URL颜色 */
+  --vp-c-url-1: #3eaf7c;
 
   --vp-c-purple-1: #6f42c1;
   --vp-c-purple-2: #7e4cc9;
@@ -157,7 +159,9 @@
   --vp-c-green-3: #298459;
   --vp-c-green-soft: rgba(16, 185, 129, 0.16);
 
-  --vp-c-yellow-1: #f9b44e;
+  /* 修改暗黑模式时代码行号显示颜色 */
+  /* --vp-c-yellow-1: #f9b44e; */
+  --vp-c-yellow-1: yellow;
   --vp-c-yellow-2: #da8b17;
   --vp-c-yellow-3: #a46a0a;
   --vp-c-yellow-soft: rgba(234, 179, 8, 0.16);
@@ -271,7 +275,8 @@
   --vp-c-default-3: var(--vp-c-gray-3);
   --vp-c-default-soft: var(--vp-c-gray-soft);
 
-  --vp-c-brand-1: var(--vp-c-indigo-1);
+  /* --vp-c-brand-1: var(--vp-c-indigo-1); */
+  --vp-c-brand-1: var(--vp-c-url-1);
   --vp-c-brand-2: var(--vp-c-indigo-2);
   --vp-c-brand-3: var(--vp-c-indigo-3);
   --vp-c-brand-soft: var(--vp-c-indigo-soft);
@@ -396,6 +401,7 @@
   --vp-code-link-hover-color: var(--vp-c-brand-2);
   --vp-code-bg: var(--vp-c-default-soft);
 
+
   --vp-code-block-color: var(--vp-c-text-2);
   --vp-code-block-bg: var(--vp-c-bg-alt);
   --vp-code-block-divider-color: var(--vp-c-gutter);
@@ -419,6 +425,8 @@
   --vp-code-copy-code-hover-border-color: var(--vp-c-divider);
   --vp-code-copy-code-hover-bg: var(--vp-c-bg);
   --vp-code-copy-code-active-text: var(--vp-c-text-2);
+  /* 修改代码复制后显示文本 */
+  /* --vp-code-copy-copied-text-content: 'copied'; */
   --vp-code-copy-copied-text-content: '复制成功';
 
   --vp-code-tab-divider: var(--vp-code-block-divider-color);
