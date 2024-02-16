@@ -1019,6 +1019,38 @@ export default {
 
 
 
+以上配置还是有点问题，当图片左侧存在侧边栏时，点击图片时会出现图片左半边不能正常显示的问题，
+
+参考：
+
+在自定义样式`.vitepress/theme/custom.css`中增加以下内容：
+
+```js
+/**
+  * Component: image zoom
+  * -------------------------------------------------------------------------- */
+
+:root {
+  --medium-zoom-z-index: 100;
+  --medium-zoom-c-bg: var(--vp-c-bg);
+}
+
+.medium-zoom-overlay {
+  /* override element style set by medium-zoom script */
+  z-index: var(--medium-zoom-z-index);
+  background-color: var(--medium-zoom-c-bg) !important;
+}
+
+.medium-zoom-overlay ~ img {
+  z-index: calc(var(--medium-zoom-z-index) + 1);
+}
+
+```
+
+此时，再重新运行项目，就不会出现图片被遮住的问题。
+
+
+
 ## 4. 页面异常处理
 
 ### 4.1 Error parsing JavaScript expression: Unterminated string constant
