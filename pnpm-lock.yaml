@@ -8,6 +8,9 @@ devDependencies:
   '@w3ctech-editorial-department/vitepress-auto-configure-nav-sidebar':
     specifier: ^1.0.0
     version: 1.0.0(vitepress@1.0.0-rc.41)
+  medium-zoom:
+    specifier: ^1.1.0
+    version: 1.1.0
   pagefind:
     specifier: ^1.0.4
     version: 1.0.4
@@ -1065,6 +1068,10 @@ packages:
 
   /mark.js@8.11.1:
     resolution: {integrity: sha512-1I+1qpDt4idfgLQG+BNWmrqku+7/2bi5nLf4YwF8y8zXvmfiTBY3PV3ZibfrjBueCByROpuBjLLFCajqkgYoLQ==}
+    dev: true
+
+  /medium-zoom@1.1.0:
+    resolution: {integrity: sha512-ewyDsp7k4InCUp3jRmwHBRFGyjBimKps/AJLjRSox+2q/2H4p/PNpQf+pwONWlJiOudkBXtbdmVbFjqyybfTmQ==}
     dev: true
 
   /merge2@1.4.1:

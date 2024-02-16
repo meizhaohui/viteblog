@@ -908,6 +908,115 @@ export default {
 
 ![Snipaste_2024-02-16_22-41-50.png](/img/Snipaste_2024-02-16_22-41-50.png)
 
+### 3.6 图片单击放大
+
+vitepress 实现，单击图片时图片放大，再次单击图像时图片缩小的功能。
+
+详细可参考：Allow images to be zoomed in on click [https://github.com/vuejs/vitepress/issues/854](https://github.com/vuejs/vitepress/issues/854)
+
+安装插件：
+
+```sh
+pnpm add -D medium-zoom
+```
+
+
+
+安装过程：
+
+```sh
+# 查看当前工作路径
+$ pwd
+/drives/e/data/viteblog
+
+# 安装插件
+$ pnpm add -D medium-zoom
+Progress: resolved 0, reused 1, downloaded 0, added 0
+
+   ╭──────────────────────────────────────────────────────────────────╮
+   │                                                                  │
+   │                Update available! 8.15.1 → 8.15.3.                │
+   │   Changelog: https://github.com/pnpm/pnpm/releases/tag/v8.15.3   │
+   │                Run "pnpm add -g pnpm" to update.                 │
+   │                                                                  │
+   │      Follow @pnpmjs for updates: https://twitter.com/pnpmjs      │
+   │                                                                  │
+   ╰──────────────────────────────────────────────────────────────────╯
+
+Progress: resolved 75, reused 69, downloaded 2, added 0
+Packages: +1
++
+Progress: resolved 162, reused 121, downloaded 2, added 1, done
+
+devDependencies:
++ medium-zoom 1.1.0
+
+Done in 2.3s
+$
+```
+
+ 然后，在`.vitepress/theme/index.js`增加插件相关内容 ：
+
+```js
+import DefaultTheme from "vitepress/theme";
+import { onMounted, watch, nextTick } from 'vue';
+import { useRoute } from 'vitepress';
+import mediumZoom from 'medium-zoom';
+import "./custom.css";
+
+export default {
+  ...DefaultTheme,
+  NotFound: () => "404", // <- this is a Vue 3 functional component
+  enhanceApp({ app, router, siteData }) {
+    // app is the Vue 3 app instance from createApp()
+    // router is VitePress' custom router (see `lib/app/router.js`)
+    // siteData is a ref of current site-level metadata.
+  },
+  setup() {
+    const route = useRoute();
+    const initZoom = () => {
+      // mediumZoom('[data-zoomable]', { background: 'var(--vp-c-bg)' }); 
+      mediumZoom('.main img', { background: 'var(--vp-c-bg)' });
+    };
+    onMounted(() => {
+      initZoom();
+    });
+    watch(
+      () => route.path,
+      () => nextTick(() => initZoom())
+    );
+  },
+};
+
+```
+
+
+
+修改后，内容如下：
+
+![Snipaste_2024-02-16_23-20-23.png](/img/Snipaste_2024-02-16_23-20-23.png)
+
+红线框出的是新增的。
+
+然后在自定义样式`.vitepress/theme/custom.css`中增加以下内容：
+
+```css
+/**
+  * Component: image zoom
+  * -------------------------------------------------------------------------- */
+
+.medium-zoom-overlay {
+  z-index: 20;
+}
+
+.medium-zoom-image {
+  z-index: 21;
+}
+
+```
+
+重新运行项目就可以看到图片放大效果了！！
+
 
 
 ## 4. 页面异常处理
@@ -943,3 +1052,4 @@ export default {
 - 前端导航 [https://fe-nav.netlify.app/nav/](https://fe-nav.netlify.app/nav/)
 - [从零用VitePress搭建博客教程(4) – 如何自定义首页布局和主题样式修改？](https://www.cnblogs.com/myboogle/p/17776406.html)
 - 粥里有勺糖 [https://theme.sugarat.top/](https://theme.sugarat.top/)
+- Allow images to be zoomed in on click [https://github.com/vuejs/vitepress/issues/854](https://github.com/vuejs/vitepress/issues/854)
