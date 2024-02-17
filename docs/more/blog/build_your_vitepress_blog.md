@@ -1152,9 +1152,126 @@ Done in 1.9s
 $
 ```
 
+### 4.6 打包异常Pagefind wasn't able to build an index
 
+当使用`vitepress-plugin-pagefind`插件优化本地搜索时，使用`pnpm docs:build`打包项目时，可能会出现`Pagefind wasn't able to build an index`异常，导致打包失败：
 
+![Snipaste_2024-02-17_17-58-24.png](/img/Snipaste_2024-02-17_17-58-24.png)
 
+出现异常的原因是插件默认使用`npx pagefind --site docs\.vitepress\dist --exclude-selectors "div.aside, a.header-anchor"`命令去查找index文件，由于我们打包后生成的文件是在`docs`目录同级的`dist`目录，所以上面命令会报错。
+
+而我们手动运行命令`npx pagefind --verbose --source dist`,则可以正常执行：
+
+```sh
+$ pwd
+/drives/e/data/viteblog
+
+$ npx pagefind --verbose --source dist
+pagefind npm wrapper: Running the executable at E:\data\viteblog\node_modules\.pnpm\@pagefind+windows-x64@1.0.4\node_modules\@pagefind\windows-x64\bin\pagefind_extended.exe
+
+Running Pagefind v1.0.4 (Extended)
+Running in verbose mode
+Running from: "E:\\data\\viteblog"
+Source:       "dist"
+Output:       "dist\\pagefind"
+
+[Walking source directory]
+Found 237 files matching **/*.{html}
+
+[Parsing files]
+Found a data-pagefind-body element on the site.
+↳ Ignoring pages without this tag.
+1 page found without an <html> element.
+Pages without an outer <html> element will not be processed by default.
+If adding this element is not possible, use the root selector config to target a different root element.
+  * "/scripts/python/use_bottle2_" has no <html> element
+
+[Reading languages]
+Discovered 1 language: zh-cn
+  * zh-cn: 234 pages
+
+[Building search indexes]
+Language zh-cn:
+  Indexed 234 pages
+  Indexed 42788 words
+  Indexed 0 filters
+  Indexed 0 sorts
+
+Total:
+  Indexed 1 language
+  Indexed 234 pages
+  Indexed 42788 words
+  Indexed 0 filters
+  Indexed 0 sorts
+Note: Pagefind doesn't support stemming for the language zh-cn.
+Search will still work, but will not match across root words.
+Note: Pagefind doesn't support stemming for the language zh-cn.
+Search will still work, but will not match across root words.
+
+Finished in 5.693 seconds
+1 configuration warning(s):
+
+The `source` option is deprecated as of Pagefind 1.0. The `source` option has been renamed to `site`:
+
+cli:    --site
+config: site
+env:    PAGEFIND_SITE
+└─ "The location of your built static website"
+
+pagefind npm wrapper: Process exited with status 0
+$ 
+```
+
+修改`.vitepress/config.js`配置文件,增加以下两行：
+
+```js
+      // 修复打包时Pagefind wasn't able to build an index异常
+      indexingCommand: 'npx pagefind --source "./dist" --bundle-dir "pagefind" --exclude-selectors "div.aside, a.header-anchor"',
+```
+
+![Snipaste_2024-02-17_18-20-23.png](/img/Snipaste_2024-02-17_18-20-23.png)
+
+然后再次执行打包命令：
+
+![Snipaste_2024-02-17_18-22-58.png](/img/Snipaste_2024-02-17_18-22-58.png)
+
+可以看到，提示打包成功，但有警告。
+
+即：
+
+> 2 configuration warning(s):
+>
+> The `bundle-dir` option is deprecated as of Pagefind 1.0. Use either `output-subdir` or `output-path` instead:
+>
+> cli:    --output-subdir
+> config: output_subdir
+> env:    PAGEFIND_OUTPUT_SUBDIR
+> └─ "Where to output the search files, relative to the processed site"
+>
+> cli:    --output-path
+> config: output_path
+> env:    PAGEFIND_OUTPUT_PATH
+> └─ "Where to output the search files, relative to the working directory of the command"
+>
+>
+> The `source` option is deprecated as of Pagefind 1.0. The `source` option has been renamed to `site`:
+>
+> cli:    --site
+> config: site
+> env:    PAGEFIND_SITE
+> └─ "The location of your built static website"
+
+也就是说，我们定义的`indexingCommand: 'npx pagefind --source "./dist" --bundle-dir "pagefind" --exclude-selectors "div.aside, a.header-anchor"'`中有两个选项在Pagefind 1.0版本中废弃了，建议用 `output-subdir` 或 `output-path` 代替`bundle-dir`选项；使用`site`代替`source`选项。或者使用环境变量。
+
+修改配置文件：
+
+```js
+      // 修复打包时Pagefind wasn't able to build an index异常
+      // indexingCommand: 'npx pagefind --source "./dist" --bundle-dir "pagefind" --exclude-selectors "div.aside, a.header-anchor"',
+      indexingCommand: 'npx pagefind --site "./dist" --output_path "pagefind" --exclude-selectors "div.aside, a.header-anchor"',
+```
+
+![Snipaste_2024-02-17_18-31-12.png](/img/Snipaste_2024-02-17_18-31-12.png)
 
 
 

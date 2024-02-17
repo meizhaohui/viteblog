@@ -21,7 +21,8 @@ const sidebarConf = require('./configs/sidebarConfig.js');
 
 // https://vitepress.dev/reference/site-config
 export default {
-  // 打包输出目录
+  // 打包输出目录，默认 ./.vitepress/dist
+  
   outDir: '../dist',
   // 站点语言标题等
   lang: 'zh-CN',
@@ -37,6 +38,9 @@ export default {
       heading: '共: {{searchResult}} 条结果',
       // 搜索结果不展示最后修改日期日期
       showDate: false,
+      // 修复打包时Pagefind wasn't able to build an index异常
+      // indexingCommand: 'npx pagefind --source "./dist" --bundle-dir "pagefind" --exclude-selectors "div.aside, a.header-anchor"',
+      indexingCommand: 'npx pagefind --site "./dist" --output-path "pagefind" --exclude-selectors "div.aside, a.header-anchor"',
     })],
     
     // 修复打包异常
