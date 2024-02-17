@@ -133,4 +133,5 @@ yarn-error.log*
 *.sw?
 
  docs/.vitepress/cache/*
+pagefind/*
 

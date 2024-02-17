@@ -1268,10 +1268,16 @@ $
 ```js
       // 修复打包时Pagefind wasn't able to build an index异常
       // indexingCommand: 'npx pagefind --source "./dist" --bundle-dir "pagefind" --exclude-selectors "div.aside, a.header-anchor"',
-      indexingCommand: 'npx pagefind --site "./dist" --output_path "pagefind" --exclude-selectors "div.aside, a.header-anchor"',
+      indexingCommand: 'npx pagefind --site "./dist" --output-path "pagefind" --exclude-selectors "div.aside, a.header-anchor"',
 ```
 
 ![Snipaste_2024-02-17_18-31-12.png](/img/Snipaste_2024-02-17_18-31-12.png)
+
+再次构建项目，可以看到构建成功，没有报异常：
+
+![Snipaste_2024-02-17_18-40-07.png](/img/Snipaste_2024-02-17_18-40-07.png)
+
+
 
 
 
