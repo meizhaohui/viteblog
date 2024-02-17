@@ -132,7 +132,7 @@ Sun Jan 28 15:03:56 UTC 2024
 
 参考：
 
-- 可以参考我另外一篇文章 [docker容器增加端口映射](./add_port_to_container/md) ，修改容器配置文件。
+- 可以参考我另外一篇文章 [docker容器增加端口映射](./add_port_to_container.md) ，修改容器配置文件。
 - 参考 [How to set an environment variable in a running docker container](https://stackoverflow.com/questions/27812548/how-to-set-an-environment-variable-in-a-running-docker-container)
 
 > **Get the Container ID**

@@ -896,7 +896,7 @@ ${inotifywait} -mrq --timefmt '%Y%m%d %H:%M:%S' \
 
 我们可以使用supervisor来管理`file_watch.sh`脚本，不用我们自己在后台运行该脚本，这些就算`file_watch.sh`脚本在后台运行时挂掉，supervisor也可以自动让其重新运行。
 
-- `supervisor`的使用，此处不详细介绍，可参考 [进程管理工具之Supervisor](../../monitor/supervisor)
+- `supervisor`的使用，此处不详细介绍，可参考 [进程管理工具之Supervisor](../../monitor/supervisor/index.md)
 
 我们通过查看源端运行的进程可知，运行脚本时启动了多个进程，如下所示：
 ```sh

@@ -590,7 +590,7 @@ To ssh://gogs.hellogitlab.com:10022/meizhaohui/testrepo.git
 
 由于某些原因，我需要更新一下服务地址，直接使用`https://gogs.hellogitlab.com`来访问我们的Gogs服务。
 
-你可以参考 [统一网站端口号]( ../../about/blog/build_your_vuepress_blog_1.html#统一网站端口号) 其中有详细的说明。
+你可以参考 [统一网站端口号]( ../../more/blog/build_your_vuepress_blog_1.md#统一网站端口号) 其中有详细的说明。
 
 此处我们仅修改一下`/etc/nginx/conf.d/gogs.conf`配置即可。
 

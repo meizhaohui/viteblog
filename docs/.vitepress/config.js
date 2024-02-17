@@ -28,6 +28,7 @@ export default {
   // 搜索功能优化
   // 注意，不要将vite属性放到themeConfig主题配置里面去了，会导致搜索插件不起作用
   vite: {
+    /* 临时关闭pagefindPlugin */
     plugins: [pagefindPlugin({
       customSearchQuery: chineseSearchOptimize,
       btnPlaceholder: '搜索',
@@ -37,14 +38,54 @@ export default {
       // 搜索结果不展示最后修改日期日期
       showDate: false,
     })],
+    
+    // 修复打包异常
+    build:{
+      sourcemap: false,
+      minify: 'terser',
+      chunkSizeWarningLimit: 3500,
+      emptyOutDir: true,
+      terserOptions: {
+        compress: {
+          drop_console: true,
+          drop_debugger: true
+        }
+      },
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              return id.toString().split('node_modules/')[1].split('/')[0].toString();
+            }
+          },
+          chunkFileNames: (chunkInfo) => {
+            const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/') : [];
+            const fileName = facadeModuleId[facadeModuleId.length - 2] || '[name]';
+            return `js/${fileName}/[name].[hash].js`;
+          }
+        }
+      }
+    },
   },
   // tab标签页上面显示的标题
   title: '编程技术分享',
   description: '阿梅的IT成长之路，记录操作系统、前后端等学习总结文档',
   
-  // 为了和vuepress保持一致，不生成干净的URL
-  cleanUrls: false,
-
+  // 生成干净的URL，避免下载本地文件时在URL后面增加.html后缀
+  cleanUrls: true,
+  // 忽略指定死链接，避免编译打包失败
+  ignoreDeadLinks: [
+    // ignore all localhost links
+    /^http?:\/\/localhost/,
+    // ignore all links include "/scripts/""
+    /\/scripts\//,
+    // ignore all links include "/resource/""
+    /\/resource\//,
+    // custom function, ignore all links include "ignore"
+    (url) => {
+      return url.toLowerCase().includes('ignore')
+    }
+  ],
   /* markdown 配置 */
   markdown: {
     // 开启markdown行数显示
@@ -82,7 +123,14 @@ export default {
      },
 
     // 显示上次更新时间
-    lastUpdated: true,
+    // 优化上次更新时间显示
+    // lastUpdated: true,
+    lastUpdated: {
+      formatOptions: {
+        dateStyle: 'medium',
+        timeStyle: 'medium'
+      }
+    },
     lastUpdatedText: '上次更新',
     // 显示编辑链接
     editLink: {

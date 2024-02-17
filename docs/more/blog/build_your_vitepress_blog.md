@@ -1051,6 +1051,32 @@ export default {
 
 
 
+### 3.7 优化上次更新显示
+
+参考：[https://vitepress.dev/reference/default-theme-config#lastupdated](https://vitepress.dev/reference/default-theme-config#lastupdated)
+
+![Snipaste_2024-02-17_17-29-40.png](/img/Snipaste_2024-02-17_17-29-40.png)
+
+```js
+export default {
+  themeConfig: {
+    lastUpdated: {
+      text: 'Updated at',
+      formatOptions: {
+        dateStyle: 'full',
+        timeStyle: 'medium'
+      }
+    }
+  }
+}
+```
+
+像官方示例一样，增加`formatOptions`参数，根据个人喜好可以调整`dataStyle`和`timeStyle`参数的值。
+
+
+
+
+
 ## 4. 页面异常处理
 
 ### 4.1 Error parsing JavaScript expression: Unterminated string constant
@@ -1068,6 +1094,63 @@ export default {
 最后发现是约44行表格中左双大括号有问题，<code v-pre>"{{"</code> 外面需要使用`<code v-pre>` `</code>`来转义：
 
 ![Snipaste_2024-02-07_20-24-46.png](/img/Snipaste_2024-02-07_20-24-46.png)
+
+### 4.2 打包异常Found dead link
+
+使用`pnpm docs:build`打包项目时，可能会出现`Found dead link`异常，导致打包失败：
+
+![Snipaste_2024-02-17_12-46-39.png](/img/Snipaste_2024-02-17_12-46-39.png)
+
+可以参考 [https://vitepress.dev/reference/site-config#ignoredeadlinks](https://vitepress.dev/reference/site-config#ignoredeadlinks) 设置忽略死链接，但最好我们能够检查一下这些死链接到底是因为什么原因导致的，并修复这些死链接。
+
+### 4.3 打包异常vitepress data not properly injected in app
+
+使用`pnpm docs:build`打包项目时，可能会出现`vitepress data not properly injected in app`异常，导致打包失败：
+
+![Snipaste_2024-02-17_16-40-20.png](/img/Snipaste_2024-02-17_16-40-20.png)
+
+参考：[https://github.com/vuejs/vitepress/issues/2287](https://github.com/vuejs/vitepress/issues/2287)
+
+![Snipaste_2024-02-17_16-42-18.png](/img/Snipaste_2024-02-17_16-42-18.png)
+
+为了避免示例文件导致本地搜索异常，将docs目录下的`api-examples.md`和`markdown-examples.md`两个文件删除掉。
+
+
+
+### 4.4 打包异常Some chunks are larger than 500 kB after minification
+
+使用`pnpm docs:build`打包项目时，可能会出现`Some chunks are larger than 500 kB after minification`异常，导致打包失败：
+
+![Snipaste_2024-02-17_13-12-57.png](/img/Snipaste_2024-02-17_13-12-57.png)
+
+
+
+### 4.5 打包异常terser not found. Since Vite v3, terser has become an optional dependency
+
+上一节修改打包配置时，又提示异常`[vite:terser] terser not found. Since Vite v3, terser has become an optional dependency. You need to install it.`。
+
+需要手动安装该插件：
+
+```sh
+# 查看当前路径
+$ pwd
+/drives/e/data/viteblog
+
+# 安装terser
+$ pnpm add -D terser
+Progress: resolved 0, reused 1, downloaded 0, added 0
+Progress: resolved 111, reused 95, downloaded 11, added 0
+Packages: +13 -3
++++++++++++++---
+Progress: resolved 173, reused 123, downloaded 11, added 13, done
+
+devDependencies:
+- busuanzi.pure.js 1.0.3
++ terser 5.27.1
+
+Done in 1.9s
+$
+```
 
 
 

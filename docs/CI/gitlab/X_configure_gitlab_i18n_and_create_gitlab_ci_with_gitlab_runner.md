@@ -3,7 +3,7 @@
 
 [[toc]]
 
-本文讲解在[CentOS7安装GitLab(使用外部Nginx配置)](./centos7_install_gitlab_with_external_nginx.html) 的基础上，对GitLab进行汉化，并配置CI持续集成工具`gitlab-runner`。
+本文讲解在[CentOS7安装GitLab(使用外部Nginx配置)](./X_centos7_install_gitlab_with_external_nginx.md) 的基础上，对GitLab进行汉化，并配置CI持续集成工具`gitlab-runner`。
 
 
 
