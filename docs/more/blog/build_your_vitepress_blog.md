@@ -1075,6 +1075,194 @@ export default {
 
 
 
+### 3.8 集成gitalk评论功能
+
+
+
+#### 3.8.1 创建一个github存储仓库
+
+创建一个github存储仓库，用于存储评论信息，评论信息会作为issue显示。如我创建`viteblog-gitalk`仓库用来存储评论信息。
+
+#### 3.8.2 注册OAuth应用
+
+注册地址 [https://github.com/settings/applications/new](https://github.com/settings/applications/new)
+
+![Snipaste_2024-02-18_20-27-13.png](/img/Snipaste_2024-02-18_20-27-13.png)
+
+填写相关信息：
+
+- Application name: viteblog-gitalk
+- Homepage URL: https://meizhaohui.github.io/viteblog-gitalk/
+- Application description: vitepress集成gitalk评论功能
+- Authorization callback URL: https://hellogitlab.com/，  填写当前使用插件页面的域名，我就填写我的博客首页地址了。
+
+![Snipaste_2024-02-18_20-30-08.png](/img/Snipaste_2024-02-18_20-30-08.png)
+
+
+
+#### 3.8.3 生成Client secrets信息
+
+上一节注册OAuth应用成功后，自动跳转到应用页面，此时点击右侧的【Generate a new client secret】生成Client secret信息：
+
+![Snipaste_2024-02-18_20-34-15.png](/img/Snipaste_2024-02-18_20-34-15.png)
+
+生成后查看对应的secret:
+
+![Snipaste_2024-02-18_20-37-37.png](/img/Snipaste_2024-02-18_20-37-37.png)
+
+**记得将对应的 client secret 信息复制出来，保存到一个文本里面，避免页面关闭后查看不了。**
+
+
+
+#### 3.8.4 安装依赖包
+
+```sh
+$ pwd
+/drives/e/data/viteblog
+
+# 安装gitalk
+$ pnpm add -D gitalk
+Progress: resolved 0, reused 1, downloaded 0, added 0
+Progress: resolved 215, reused 210, downloaded 0, added 0
+ WARN  2 deprecated subdependencies found: axios@0.19.2, core-js@1.2.7
+Already up to date
+Progress: resolved 274, reused 235, downloaded 0, added 0, done
+
+ WARN  Issues with peer dependencies found
+.
+└─┬ vitepress 1.0.0-rc.41
+  └─┬ @docsearch/js 3.5.2
+    └─┬ @docsearch/react 3.5.2
+      ├── ✕ unmet peer react@">= 16.8.0 < 19.0.0": found 15.7.0
+      └── ✕ unmet peer react-dom@">= 16.8.0 < 19.0.0": found 15.7.0
+
+Done in 1.7s
+                                                                                         
+$
+```
+
+
+
+#### 3.8.5 挂载 Gitalk 组件
+
+参考：
+
+- VitePress 使用 Gitalk 添加评论功能 [https://article.juejin.cn/post/7238999090222497852](https://article.juejin.cn/post/7238999090222497852)
+- vitepress配置评论(gitalk) [https://juejin.cn/post/7146037234527895560](https://juejin.cn/post/7146037234527895560)
+- 创建 .vitepress/theme/MyLayout.vue 文件，其内容如下：
+
+```vue
+<!--.vitepress/theme/MyLayout.vue-->
+<template>
+  <Layout />
+</template>
+
+<script setup>
+import DefaultTheme from "vitepress/theme";
+const { Layout } = DefaultTheme;
+import { watch, nextTick, onMounted } from "vue";
+import "gitalk/dist/gitalk.css";
+import Gitalk from "gitalk";
+import { useRouter } from "vitepress";
+
+let { route } = useRouter(); // 页面路由对象
+
+onMounted(() => {
+  watch(
+    () => route.path, // 监听路由变化，重新挂载评论组件
+    () => {
+      nextTick(() => {
+        if (typeof window !== undefined) {
+          const content_div = document.querySelector(".content-container"); // 查找页面内容DOM节点，此节点只有layout为Page（默认layout属性）的md文档才有
+          if (content_div) {
+            const before_s_div = document.getElementById("gitalk-page-container"); // 获取页面评论组件DOM节点
+            if(before_s_div) {
+              content_div.removeChild(before_s_div)
+            }
+            const s_div = document.createElement("div"); // 创建节点
+            s_div.setAttribute("id", "gitalk-page-container"); // 设置id
+            content_div.appendChild(s_div); // querySelector的节点可自己根据自己想加载的地方设置
+            const gitment = new Gitalk({
+              proxy: "https://vercel.younglina.top/github_access_token",
+              id: route.data.title, // 可选，推荐设置为页面标题，因为会作为标签传给Github issues，且issues标签有长度限制。
+              owner: "meizhaohui", // GitHub repository 所有者
+              // 此处的仓库名称要和3.8.1节创建的仓库名称保持一致
+              repo: "viteblog-gitalk", // GitHub repository
+              clientID: "your client id", // 自己的clientID
+              clientSecret: "your client secret", // 自己的clientSecret
+              admin: ["meizhaohui"], // GitHub repository 所有者
+              labels: ["Gitalk"], // GitHub issue 的标签
+              createIssueManually: false, //如果当前页面没有相应的 isssue 且登录的用户属于 admin，则会自动创建 issue。如果设置为 true，则显示一个初始化页面，创建 issue 需要点击 init 按钮。
+            });
+            gitment.render("gitalk-page-container");
+          }
+        }
+      })
+    },
+    { immediate: true }
+  );
+});
+</script>
+
+```
+
+注意，配置文件的`proxy: "https://vercel.younglina.top/github_access_token",`是配置的代理，避免获取github token异常导致网络问题，评论不了。
+
+
+
+然后，在 .vitepress/theme/index.js 文件导入上面的vue文件：
+
+```
+import DefaultTheme from "vitepress/theme";
+import { onMounted, watch, nextTick } from 'vue';
+import { useRoute } from 'vitepress';
+import mediumZoom from 'medium-zoom';
+import MyLayout from "./MyLayout.vue";
+import "./custom.css";
+
+export default {
+  ...DefaultTheme,
+  Layout: MyLayout,
+  NotFound: () => "404", // <- this is a Vue 3 functional component
+  enhanceApp({ app, router, siteData }) {
+    // app is the Vue 3 app instance from createApp()
+    // router is VitePress' custom router (see `lib/app/router.js`)
+    // siteData is a ref of current site-level metadata.
+  },
+  setup() {
+    const route = useRoute();
+    const initZoom = () => {
+      // mediumZoom('[data-zoomable]', { background: 'var(--vp-c-bg)' });
+      mediumZoom('.main img', { background: 'var(--vp-c-bg)' });
+    };
+    onMounted(() => {
+      initZoom();
+    });
+    watch(
+      () => route.path,
+      () => nextTick(() => initZoom())
+    );
+  },
+};
+
+```
+
+![Snipaste_2024-02-18_22-51-19.png](/img/Snipaste_2024-02-18_22-51-19.png)
+
+
+
+#### 3.8.6 测试评论
+
+使用`pnpm docs:build`构建项目并上传到服务器后，就可以测试评论功能了。
+
+在博客中评论完成后，可以在github上面同步看到对应的评论信息：
+
+![Snipaste_2024-02-18_23-12-11.png](/img/Snipaste_2024-02-18_23-12-11.png)
+
+为了让我的博客评论信息能够直接显示成我博客仓库的issue，可将 .vitepress/theme/MyLayout.vue 文件中的`repo: "viteblog-gitalk",` 修改成`repo: "viteblog",`，这样评论信息就直接会显示到自己的博客仓库的issue中了。
+
+
+
 
 
 ## 4. 页面异常处理

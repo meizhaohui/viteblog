@@ -22,14 +22,12 @@ const sidebarConf = require('./configs/sidebarConfig.js');
 // https://vitepress.dev/reference/site-config
 export default {
   // 打包输出目录，默认 ./.vitepress/dist
-  
   outDir: '../dist',
   // 站点语言标题等
   lang: 'zh-CN',
   // 搜索功能优化
   // 注意，不要将vite属性放到themeConfig主题配置里面去了，会导致搜索插件不起作用
   vite: {
-    /* 临时关闭pagefindPlugin */
     plugins: [pagefindPlugin({
       customSearchQuery: chineseSearchOptimize,
       btnPlaceholder: '搜索',

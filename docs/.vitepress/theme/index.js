@@ -2,10 +2,12 @@ import DefaultTheme from "vitepress/theme";
 import { onMounted, watch, nextTick } from 'vue';
 import { useRoute } from 'vitepress';
 import mediumZoom from 'medium-zoom';
+import MyLayout from "./MyLayout.vue";
 import "./custom.css";
 
 export default {
   ...DefaultTheme,
+  Layout: MyLayout,
   NotFound: () => "404", // <- this is a Vue 3 functional component
   enhanceApp({ app, router, siteData }) {
     // app is the Vue 3 app instance from createApp()

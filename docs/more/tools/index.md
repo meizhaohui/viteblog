@@ -352,7 +352,7 @@ Geek Uninstaller，官网[https://geekuninstaller.com/](https://geekuninstaller.
 
 ![](/img/Snipaste_2023-12-01_22-57-51.png)
 
-## 30. 配置工具colorhexa
+## 30. 颜色工具colorhexa
 
 直接访问 [https://www.colorhexa.com/](https://www.colorhexa.com/) 
 

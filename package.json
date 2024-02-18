@@ -6,6 +6,7 @@
   },
   "devDependencies": {
     "@w3ctech-editorial-department/vitepress-auto-configure-nav-sidebar": "^1.0.0",
+    "gitalk": "^1.8.0",
     "medium-zoom": "^1.1.0",
     "pagefind": "^1.0.4",
     "terser": "^5.27.1",
