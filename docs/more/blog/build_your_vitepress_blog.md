@@ -1467,6 +1467,144 @@ $
 
 
 
+## 5. 部署
+
+使用`pnpm docs:build`打包项目后，会在`docs`同级目录生成`dist`文件夹：
+
+![Snipaste_2024-02-19_22-47-47.png](/img/Snipaste_2024-02-19_22-47-47.png)
+
+在服务器上创建`/var/www/html/viteblog`文件夹，并将`dist`上传到服务器上的`/var/www/html/viteblog`目录下：
+
+```sh
+[root@master ~]# ll /var/www/html/viteblog/
+total 484
+-rw-r--r--  1 root root  57282 Feb 18 23:21 404.html
+drwxr-xr-x  2 root root 196608 Feb 18 23:21 assets
+drwxr-xr-x  8 root root   4096 Feb 17 22:50 backend
+drwxr-xr-x  6 root root   4096 Feb 17 22:50 CI
+drwxr-xr-x  6 root root   4096 Feb 17 22:50 CM
+drwxr-xr-x  6 root root   4096 Feb 17 22:50 database
+-rw-r--r--  1 root root   4286 Feb 18 23:21 favicon.ico
+drwxr-xr-x  2 root root   4096 Feb 17 22:50 friendlink
+drwxr-xr-x  4 root root   4096 Feb 17 22:50 frontend
+-rw-r--r--  1 root root  10017 Feb 18 23:21 hashmap.json
+drwxr-xr-x  2 root root  81920 Feb 18 23:21 img
+-rw-r--r--  1 root root  63744 Feb 18 23:21 index.html
+drwxr-xr-x  8 root root   4096 Feb 17 22:50 js
+-rw-r--r--  1 root root  16960 Feb 18 23:21 logo.png
+drwxr-xr-x  4 root root   4096 Feb 17 22:50 monitor
+drwxr-xr-x  7 root root   4096 Feb 17 22:50 more
+drwxr-xr-x  8 root root   4096 Feb 17 22:50 OS
+drwxr-xr-x  5 root root   4096 Feb 17 22:50 resource
+drwxr-xr-x 12 root root   4096 Feb 17 22:50 scripts
+[root@master ~]#
+```
+
+我使用nginx作为web服务器，增加配置文件`/etc/nginx/conf.d/viteblog.conf`：
+
+```nginx
+# /etc/nginx/conf.d/viteblog.conf
+server {
+        listen       80;
+        server_name hellogitlab.com;
+        rewrite ^ https://$http_host$request_uri? permanent;
+}
+server {
+        listen       443 ssl;
+        server_name  hellogitlab.com;
+        ssl_certificate "/etc/pki/nginx/1_hellogitlab.com_bundle.crt";
+        ssl_certificate_key "/etc/pki/nginx/2_hellogitlab.com.key";
+        ssl_session_timeout 5m;
+        ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+        ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:HIGH:!aNULL:!MD5:!RC4:!DHE;
+        ssl_prefer_server_ciphers on;
+        root /var/www/html/viteblog;
+}
+
+```
+
+此时主页可以正常打开，子页面也可以打开，但刷新子页面则会显示`404 Not Found`异常：
+
+![Snipaste_2024-02-19_22-58-40.png](/img/Snipaste_2024-02-19_22-58-40.png)
+
+参考：
+
+- [Vitepress `cleanUrls` option on a Nginx server ](https://blog.mehdi.cc/articles/vitepress-cleanurls-on-nginx-environment)
+- [Routing access failure after server Nginx deployment](https://github.com/vuejs/vitepress/discussions/2837)
+
+![Snipaste_2024-02-19_23-01-08.png](/img/Snipaste_2024-02-19_23-01-08.png)
+
+![Snipaste_2024-02-19_23-01-33.png](/img/Snipaste_2024-02-19_23-01-33.png)
+
+参考以上博客，优化`/etc/nginx/conf.d/viteblog.conf`配置文件：
+
+```nginx {17-39}
+# /etc/nginx/conf.d/viteblog.conf
+server {
+        listen       80;
+        server_name hellogitlab.com;
+        rewrite ^ https://$http_host$request_uri? permanent;
+}
+server {
+        listen       443 ssl;
+        server_name  hellogitlab.com;
+        ssl_certificate "/etc/pki/nginx/1_hellogitlab.com_bundle.crt";
+        ssl_certificate_key "/etc/pki/nginx/2_hellogitlab.com.key";
+        ssl_session_timeout 5m;
+        ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+        ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:HIGH:!aNULL:!MD5:!RC4:!DHE;
+        ssl_prefer_server_ciphers on;
+        root /var/www/html/viteblog;
+        index index.html;
+        # Remove the trailing slash (permanent 301 redirect).
+        rewrite ^(.+)/$ $1 permanent;
+
+        # Remove the trailing `index.html`.
+        if ($request_uri ~ ^/(.*)index\.html(\?|$)) {
+            return 301 /$1;
+        }
+
+        # Remove the trailing `.html`.
+        if ($request_uri ~ ^/(.*)\.html(\?|$)) {
+            return 301 /$1;
+        }
+
+        location / {
+            # When the HTTP status code is 404, answer with the `/404.html` file.
+            error_page 404 /404.html;
+            # When `foo/bar` (which is `$uri`) is requested,
+            # try to serve the first existing file among the list:
+            # `foo/bar`, `foo/bar.html` or `foo/bar/index.html`.
+            # Otherwise answer with a 404 code.
+            try_files $uri $uri.html $uri/ =404;
+        }
+}
+
+```
+
+17-39行高亮部分的配置是新增的。
+
+
+
+然后重启nginx服务：
+
+```sh
+# 检查nginx配置文件
+[root@master ~]# nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+# 重启nginx服务
+[root@master ~]# systemctl restart nginx
+[root@master ~]#
+```
+
+此时，再刷新页面，可以正常显示，不会报404 not found异常了。
+
+
+
+至此，博客全部迁移完成！从vuepress迁移到vitepress了。
+
 
 
 参考：
@@ -1479,3 +1617,6 @@ $
 - [从零用VitePress搭建博客教程(4) – 如何自定义首页布局和主题样式修改？](https://www.cnblogs.com/myboogle/p/17776406.html)
 - 粥里有勺糖 [https://theme.sugarat.top/](https://theme.sugarat.top/)
 - Allow images to be zoomed in on click [https://github.com/vuejs/vitepress/issues/854](https://github.com/vuejs/vitepress/issues/854)
+- [Vitepress `cleanUrls` option on a Nginx server ](https://blog.mehdi.cc/articles/vitepress-cleanurls-on-nginx-environment)
+- [Routing access failure after server Nginx deployment](https://github.com/vuejs/vitepress/discussions/2837)
+
