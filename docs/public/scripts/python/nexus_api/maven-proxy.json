@@ -1,12 +1,12 @@
 {
-  "name": "pypi-proxy",
+  "name": "maven-proxy",
   "online": true,
   "storage": {
     "blobStoreName": "default",
     "strictContentTypeValidation": true
   },
   "proxy": {
-    "remoteUrl": "https://pypi.tuna.tsinghua.edu.cn",
+    "remoteUrl": "https://maven.aliyun.com/repository/public",
     "contentMaxAge": 1440,
     "metadataMaxAge": 1440
   },
@@ -25,4 +25,10 @@
       "enableCookies": false,
       "useTrustStore": false
     }
+  },
+  "maven": {
+    "versionPolicy": "RELEASE",
+    "layoutPolicy": "STRICT",
+    "contentDisposition": "ATTACHMENT"
   }
+}

@@ -524,7 +524,7 @@ Nexus API页面给出了参数示例：
 }
 ```
 
-有了上一级的centos-proxy代理仓库的创建经验，此节修改以上参数就简单得多。
+有了上一节的centos-proxy代理仓库的创建经验，此节修改以上参数就简单得多。
 
 
 
@@ -686,3 +686,206 @@ WARNING: Running pip as the 'root' user can result in broken permissions and con
 
 再次确认代码仓库能正常工作了。
 
+
+
+## 3. 创建maven-proxy代理仓库
+
+**本节创建一个Java打包工具maven的`maven-proxy`代理仓库。**
+
+Create Maven proxy repository。
+
+POST请求`  /service/rest/v1/repositories/maven/proxy`接口。
+
+Nexus API页面给出了参数示例：
+
+```json
+{
+  "name": "internal",
+  "online": true,
+  "storage": {
+    "blobStoreName": "default",
+    "strictContentTypeValidation": true
+  },
+  "cleanup": {
+    "policyNames": [
+      "string"
+    ]
+  },
+  "proxy": {
+    "remoteUrl": "https://remote.repository.com",
+    "contentMaxAge": 1440,
+    "metadataMaxAge": 1440
+  },
+  "negativeCache": {
+    "enabled": true,
+    "timeToLive": 1440
+  },
+  "httpClient": {
+    "blocked": false,
+    "autoBlock": true,
+    "connection": {
+      "retries": 0,
+      "userAgentSuffix": "string",
+      "timeout": 60,
+      "enableCircularRedirects": false,
+      "enableCookies": false,
+      "useTrustStore": false
+    },
+    "authentication": {
+      "type": "username",
+      "username": "string",
+      "password": "string",
+      "ntlmHost": "string",
+      "ntlmDomain": "string",
+      "preemptive": false
+    }
+  },
+  "routingRule": "string",
+  "replication": {
+    "preemptivePullEnabled": false,
+    "assetPathRegex": "string"
+  },
+  "maven": {
+    "versionPolicy": "MIXED",
+    "layoutPolicy": "STRICT",
+    "contentDisposition": "ATTACHMENT"
+  }
+}
+```
+
+有了上一节的centos-proxy和pypi-proxy代理仓库的创建经验，此节修改以上参数就简单得多。
+
+
+
+此时，我们直接来改Python代码，直接用代码来请求API接口。
+
+修改后的代码：
+
+```python
+######################################################################
+# 创建maven-proxy代理仓库
+import requests
+
+url = "http://nexusapi.com:8081/service/rest/v1/repositories/maven/proxy"
+
+payload = {
+    "name": "maven-proxy",
+    "online": True,
+    "storage": {
+        "blobStoreName": "default",
+        "strictContentTypeValidation": True
+    },
+    "proxy": {
+        "remoteUrl": "https://maven.aliyun.com/repository/public",
+        "contentMaxAge": 1440,
+        "metadataMaxAge": 1440
+    },
+    "negativeCache": {
+        "enabled": True,
+        "timeToLive": 1440
+    },
+    "httpClient": {
+        "blocked": False,
+        "autoBlock": True,
+        "connection": {
+            "retries": 0,
+            "userAgentSuffix": "Email: yourname@email.com",
+            "timeout": 60,
+            "enableCircularRedirects": False,
+            "enableCookies": False,
+            "useTrustStore": False
+        }
+    },
+    "maven": {
+        "versionPolicy": "RELEASE",
+        "layoutPolicy": "STRICT",
+        "contentDisposition": "ATTACHMENT"
+    }
+}
+headers = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "content-type": "application/json",
+    "Authorization": "Basic YWRtaW46YWRtaW4xMjM="
+}
+
+response = requests.request("POST", url, json=payload, headers=headers)
+
+print(response.text)
+print(response.status_code)
+
+```
+
+执行代码：
+
+```sh
+$ python nexus_api.py 
+
+201
+```
+
+刷新Nexus页面，可以看到，maven-proxy代理仓库创建成功！
+
+![Snipaste_2024-02-23_21-49-41.png](/img/Snipaste_2024-02-23_21-49-41.png)
+
+代理仓库详情：
+
+![Snipaste_2024-02-23_21-56-06.png](/img/Snipaste_2024-02-23_21-56-06.png)
+
+对应的Maven代理仓库地址 `http://nexusapi.com:8081/repository/maven-proxy/`。
+
+
+
+参考 [ vscode配置maven环境](../../backend/Java/basic) 修改maven配置，并测试是否能通过代理仓库maven项目。
+
+
+
+修改maven配置文件，将原来阿里云仓库注释掉，然后设置代理仓库的URL等信息：
+
+```xml
+  <mirrors>
+    <!-- mirror
+     | Specifies a repository mirror site to use instead of a given repository. The repository that
+     | this mirror serves has an ID that matches the mirrorOf element of this mirror. IDs are used
+     | for inheritance and direct lookup purposes, and must be unique across the set of mirrors.
+     |
+    <mirror>
+      <id>mirrorId</id>
+      <mirrorOf>repositoryId</mirrorOf>
+      <name>Human Readable Name for this Mirror.</name>
+      <url>http://my.repository.com/repo/path</url>
+    </mirror>
+    
+    <mirror>
+        <id>aliyunmaven</id>
+        <mirrorOf>*</mirrorOf>
+        <name>阿里云公共仓库</name>
+        <url>https://maven.aliyun.com/repository/public</url>
+    </mirror>
+    -->
+    <mirror>
+        <id>nexuu-maven</id>
+        <mirrorOf>*</mirrorOf>
+        <name>Nexus Maven代理仓库</name>
+        <url>http://nexusapi.com:8081/repository/maven-proxy</url>
+    </mirror>
+  </mirrors>
+```
+
+然后创建maven项目：
+
+![Snipaste_2024-02-23_22-06-03.png](/img/Snipaste_2024-02-23_22-06-03.png)
+
+![Snipaste_2024-02-23_22-06-54.png](/img/Snipaste_2024-02-23_22-06-54.png)
+
+可以看到maven项目创建成功，能够正常从代理仓库下载依赖包。
+
+然后打开对应的maven项目，可以看到能够正常运行：
+
+![Snipaste_2024-02-23_22-45-47.png](/img/Snipaste_2024-02-23_22-45-47.png)
+
+在nexus browse浏览器页面也可以看到maven-proxy仓库缓存了数据：
+
+![Snipaste_2024-02-23_22-47-41.png](/img/Snipaste_2024-02-23_22-47-41.png)
+
+也就说明通过api接口创建的maven代理仓库能够正常工作。
