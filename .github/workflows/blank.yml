@@ -42,9 +42,7 @@ jobs:
           cache: pnpm
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8.15.1
+        run: npm install -g pnpm@8.15.1
 
       - name: Build vitepress
         run: pnpm install && pnpm docs:build
