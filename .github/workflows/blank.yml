@@ -34,3 +34,25 @@ jobs:
         run: |
           echo Add other actions to build,
           echo test, and deploy your project.
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8.15.1
+
+      - name: Build vitepress
+        run: pnpm install && pnpm docs:build
+      
+      # 部署到 GitHub Pages
+      - name: Deploy
+        uses: meizhaohui/actions-gh-pages@v3
+        with:
+          deploy_key: ${{ secrets.VITEPRESS_BLOGS_TOKEN }}
+          publish_dir: dist
+          publish_branch: gh-pages
