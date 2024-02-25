@@ -46,10 +46,15 @@ jobs:
       - name: Build vitepress
         run: pnpm install && pnpm docs:build
       
-      # 部署到 GitHub Pages
+      # 部署到远程云服务器
       - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          deploy_key: ${{ secrets.VITEPRESS_BLOGS_TOKEN }}
-          publish_dir: dist
-          publish_branch: gh-pages
+        # run: rsync --rsh="ssh -p${REMOTE_PORT}" -avP --compress --delete "${SOURCE}" "${REMOTE_USER}"@"${REMOTE_HOST}":"${TARGET}"
+        uses: easingthemes/ssh-deploy@v2.0.7
+        env:
+          ARGS: "-avP --compress --delete"
+          SSH_PRIVATE_KEY: ${{ secrets.ACCESS_TOKEN }}
+          SOURCE: "dist pagefind"
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          REMOTE_PORT: ${{ secrets.REMOTE_PORT }}
+          TARGET: ${{ secrets.TARGET }}
