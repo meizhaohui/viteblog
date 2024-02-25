@@ -48,8 +48,8 @@ jobs:
       
       # 部署到远程云服务器
       - name: Deploy
-        run: rsync --rsh="ssh -p${REMOTE_PORT}" -avP --compress --delete "${SOURCE1}" "${SOURCE2}" "${REMOTE_USER}"@"${REMOTE_HOST}":"${TARGET}"
-        # uses: easingthemes/ssh-deploy@v2.0.7
+        # run: rsync --rsh="ssh -p${REMOTE_PORT}" -avP --compress --delete "${SOURCE1}" "${SOURCE2}" "${REMOTE_USER}"@"${REMOTE_HOST}":"${TARGET}"
+        uses: easingthemes/ssh-deploy@v2.0.7
         env:
           ARGS: "-avP --compress --delete"
           SSH_PRIVATE_KEY: ${{ secrets.ACCESS_TOKEN }}
@@ -59,3 +59,5 @@ jobs:
           REMOTE_USER: ${{ secrets.REMOTE_USER }}
           REMOTE_PORT: ${{ secrets.REMOTE_PORT }}
           TARGET: ${{ secrets.TARGET }}
+          SCRIPT_BEFORE: |
+            ssh -Tv -i /home/runner/.ssh/deploy_key -o StrictHostKeyChecking=no -p "${REMOTE_PORT}" "${REMOTE_USER}"@"${REMOTE_HOST}"
