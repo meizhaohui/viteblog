@@ -48,13 +48,14 @@ jobs:
       
       # 部署到远程云服务器
       - name: Deploy
-        run: rsync -e "ssh -i /home/runner/.ssh/deploy_key" --rsh="ssh -p${REMOTE_PORT}" -avP --compress --delete "${SOURCE}" "${REMOTE_USER}"@"${REMOTE_HOST}":"${TARGET}"
+        # run: rsync -e "ssh -i /home/runner/.ssh/deploy_key" --rsh="ssh -p${REMOTE_PORT}" -avP --compress --delete "${SOURCE}" "${REMOTE_USER}"@"${REMOTE_HOST}":"${TARGET}"
         # uses: easingthemes/ssh-deploy@v2.0.7
-        env:
-          ARGS: "-avP --compress --delete"
-          SSH_PRIVATE_KEY: ${{ secrets.ACCESS_TOKEN }}
-          SOURCE: "dist"
-          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-          REMOTE_USER: ${{ secrets.REMOTE_USER }}
-          REMOTE_PORT: ${{ secrets.REMOTE_PORT }}
-          TARGET: ${{ secrets.TARGET }}
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          port: ${{ secrets.REMOTE_PORT }}
+          key: ${{ secrets.ACCESS_TOKEN }}
+          source: "dist"
+          target: ${{ secrets.TARGET }}
+
