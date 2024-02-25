@@ -40,8 +40,8 @@ jobs:
         with:
           node-version: 20
 
-      - name: Setup pnpm
-        run: npm install -g pnpm@8.15.1
+      - name: Setup pnpm and dependencies
+        run: npm install -g pnpm@8.15.1 && pnpm add -D vitepress@1.0.0-rc.41 vue@3.4.15
 
       - name: Build vitepress
         run: pnpm install && pnpm docs:build
