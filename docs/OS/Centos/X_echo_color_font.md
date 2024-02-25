@@ -194,7 +194,7 @@ echo -e "${bg_red}${fg_green}${set_bold}红色背景粗体的绿色字${set_clea
 [meizhaohui@localhost ~]$ sh print_color.sh
 ```
 
-![red_back_bold_green.PNG](/img/red_back_bold_green.PNG)    
+![red_back_bold_green_new.png](/img/red_back_bold_green_new.png)    
 
 ## 日志颜色控制
 
