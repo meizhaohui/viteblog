@@ -47,7 +47,7 @@ jobs:
         run: pnpm install && pnpm docs:build
       
       # 部署到远程云服务器
-      - name: Deploy
+      - name: Deploy dist
         # run: rsync -e "ssh -i /home/runner/.ssh/deploy_key" --rsh="ssh -p${REMOTE_PORT}" -avP --compress --delete "${SOURCE}" "${REMOTE_USER}"@"${REMOTE_HOST}":"${TARGET}"
         # uses: easingthemes/ssh-deploy@v2.0.7
         uses: appleboy/scp-action@v0.1.4
@@ -56,5 +56,17 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           port: ${{ secrets.REMOTE_PORT }}
           key: ${{ secrets.ACCESS_TOKEN }}
-          source: "dist,pagefind"
+          source: "dist"
+          target: ${{ secrets.TARGET }}
+
+      - name: Deploy pagefind
+        # run: rsync -e "ssh -i /home/runner/.ssh/deploy_key" --rsh="ssh -p${REMOTE_PORT}" -avP --compress --delete "${SOURCE}" "${REMOTE_USER}"@"${REMOTE_HOST}":"${TARGET}"
+        # uses: easingthemes/ssh-deploy@v2.0.7
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          port: ${{ secrets.REMOTE_PORT }}
+          key: ${{ secrets.ACCESS_TOKEN }}
+          source: "pagefind"
           target: ${{ secrets.TARGET }}
