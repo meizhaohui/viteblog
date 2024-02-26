@@ -1376,3 +1376,26 @@ iTerm2 常用快捷键：
 - ⌘(command) + 数字 切换标签
 - ⌃(control) + u 删除当前光标前的字符
 - ⌃(control) + l 清屏
+
+## 22. 常用命令
+
+### 22.1 查看端口占用情况
+
+```sh
+# -P参数表示不将端口号转换为服务名
+# -n参数表示不将IP地址转换为主机名。这样可以加快查询速度，并显示原始信息
+[mzh@MacBookPro ~ ]$ lsof  -n -i :5173
+COMMAND    PID USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
+Google    1311  mzh   29u  IPv6 0xe6883075fc5d69c7      0t0  TCP [::1]:57473->[::1]:5173 (ESTABLISHED)
+node      3408  mzh   38u  IPv6 0xe6883075fc5d61c7      0t0  TCP [::1]:5173->[::1]:57473 (ESTABLISHED)
+node      3408  mzh   42u  IPv6 0xe6883075fc5d59c7      0t0  TCP [::1]:5173 (LISTEN)
+
+# -v参数表示显示详细信息，包括进程名称和进程ID
+[mzh@MacBookPro ~ ]$ netstat -anp tcp -v|head -n 2 && netstat -anp tcp -v|grep '5173'
+Active Internet connections (including servers)
+Proto Recv-Q Send-Q  Local Address          Foreign Address        (state)      rhiwat  shiwat    pid   epid state  options           gencnt    flags   flags1 usscnt rtncnt fltrs
+tcp6       0      0  ::1.5173               ::1.57473              ESTABLISHED  407032  146808   3408      0 00102 00000104 000000000000e8fb 00000081 01000800      1      0 000001
+tcp6       0      0  ::1.57473              ::1.5173               ESTABLISHED  407615  146808   1311      0 00102 00000008 000000000000e8fa 00000081 00000800      1      0 000001
+tcp6       0      0  ::1.5173               *.*                    LISTEN       131072  131072   3408      0 00100 00000106 000000000000813c 00000001 00000800      1      0 000001
+[mzh@MacBookPro ~ ]$
+```
