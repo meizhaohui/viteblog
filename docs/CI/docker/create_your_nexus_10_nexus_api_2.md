@@ -889,3 +889,174 @@ $ python nexus_api.py
 ![Snipaste_2024-02-23_22-47-41.png](/img/Snipaste_2024-02-23_22-47-41.png)
 
 也就说明通过api接口创建的maven代理仓库能够正常工作。
+
+
+
+## 4. 创建docker-proxy代理仓库
+
+**本节创建docker加速源的`docker-proxy`代理仓库。**
+
+Create Docker proxy repository。
+
+POST请求`  /service/rest/v1/repositories/docker/proxy`接口。
+
+Nexus API页面给出了参数示例：
+
+```json
+{
+  "name": "internal",
+  "online": true,
+  "storage": {
+    "blobStoreName": "default",
+    "strictContentTypeValidation": true
+  },
+  "cleanup": {
+    "policyNames": [
+      "string"
+    ]
+  },
+  "proxy": {
+    "remoteUrl": "https://remote.repository.com",
+    "contentMaxAge": 1440,
+    "metadataMaxAge": 1440
+  },
+  "negativeCache": {
+    "enabled": true,
+    "timeToLive": 1440
+  },
+  "httpClient": {
+    "blocked": false,
+    "autoBlock": true,
+    "connection": {
+      "retries": 0,
+      "userAgentSuffix": "string",
+      "timeout": 60,
+      "enableCircularRedirects": false,
+      "enableCookies": false,
+      "useTrustStore": false
+    },
+    "authentication": {
+      "type": "username",
+      "username": "string",
+      "password": "string",
+      "ntlmHost": "string",
+      "ntlmDomain": "string"
+    }
+  },
+  "routingRule": "string",
+  "replication": {
+    "preemptivePullEnabled": false,
+    "assetPathRegex": "string"
+  },
+  "docker": {
+    "v1Enabled": false,
+    "forceBasicAuth": true,
+    "httpPort": 8082,
+    "httpsPort": 8083,
+    "subdomain": "docker-a"
+  },
+  "dockerProxy": {
+    "indexType": "HUB",
+    "indexUrl": "string",
+    "cacheForeignLayers": true,
+    "foreignLayerUrlWhitelist": [
+      "string"
+    ]
+  }
+}
+```
+
+此时，我们直接将json字符串写入到`docker-proxy.json`文件中，然后用代码读取该文件：
+
+```json
+{
+  "name": "docker-proxy",
+  "online": true,
+  "storage": {
+    "blobStoreName": "docker",
+    "strictContentTypeValidation": true
+  },
+  "proxy": {
+    "remoteUrl": "https://hub-mirror.c.163.com",
+    "contentMaxAge": 1440,
+    "metadataMaxAge": 1440
+  },
+  "negativeCache": {
+    "enabled": true,
+    "timeToLive": 1440
+  },
+  "httpClient": {
+    "blocked": false,
+    "autoBlock": true,
+    "connection": {
+      "retries": 0,
+      "userAgentSuffix": "Email: yourname@email.com",
+      "timeout": 60,
+      "enableCircularRedirects": false,
+      "enableCookies": false,
+      "useTrustStore": false
+   }
+  },
+  "docker": {
+    "v1Enabled": true,
+    "forceBasicAuth": false,
+    "httpPort": 8001,
+    "httpsPort": null,
+    "subdomain": null
+  },
+  "dockerProxy": {
+    "indexType": "HUB",
+    "indexUrl": null,
+    "cacheForeignLayers": false,
+    "foreignLayerUrlWhitelist": []
+  }
+}
+```
+
+代理网易的docker镜像[https://hub-mirror.c.163.com](https://hub-mirror.c.163.com)，然后更新`nexus_api.py`文件：
+
+```python
+######################################################################
+# 创建docker-proxy代理仓库
+import os
+
+import requests
+import json
+
+url = "http://nexusapi.com:8081/service/rest/v1/repositories/docker/proxy"
+script_path = os.path.abspath(__file__)
+parent_dir = os.path.join(script_path, '..')
+filename = f"{parent_dir}/nexus_api/docker-proxy.json"
+
+with open(filename) as file:
+    payload = json.load(file)
+headers = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "content-type": "application/json",
+    "Authorization": "Basic YWRtaW46YWRtaW4xMjM="
+}
+
+response = requests.request("POST", url, json=payload, headers=headers)
+
+print(response.text)
+print(response.status_code)
+
+```
+
+执行代码：
+
+```sh
+$ python nexus_api.py 
+
+201
+```
+
+刷新Nexus页面，可以看到，docker-proxy代理仓库创建成功！
+
+![Snipaste_2024-02-27_20-35-18.png](/img/Snipaste_2024-02-27_20-35-18.png)
+
+![Snipaste_2024-02-27_20-37-39.png](/img/Snipaste_2024-02-27_20-37-39.png)
+
+说明docker-proxy代理仓库创建成功！
+
