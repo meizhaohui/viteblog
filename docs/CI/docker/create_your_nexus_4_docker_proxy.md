@@ -117,7 +117,7 @@ docker代理仓库说明：
 后面通过测试发现，在腾讯云主机上面部署的nuxus容器，使用公网地址https://mirrors.cloud.tencent.com 对docker镜像加速不起作用，使用内网地址https://mirror.ccs.tencentyun.com 能正常加速。
 
 也可以使用其他加速源：
-- 科大镜像：https://docker.mirrors.ustc.edu.cn
+- 科大镜像：https://docker.mirrors.ustc.edu.cn  注， 科大镜像站的各容器镜像服务仅限校内使用。
 - 网易：https://hub-mirror.c.163.com
 - 阿里云：https://<你的ID>.mirror.aliyuncs.com
 :::
