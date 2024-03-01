@@ -1102,6 +1102,30 @@ Nexus API页面给出了参数示例：
 
 此时，我们直接将json字符串写入到`docker-hosted.json`文件中，然后用代码读取该文件：
 
+```json
+{
+  "name": "docker-hosted",
+  "online": true,
+  "storage": {
+    "blobStoreName": "docker",
+    "strictContentTypeValidation": true,
+    "writePolicy": "ALLOW",
+    "latestPolicy": true
+  },
+
+  "component": {
+    "proprietaryComponents": false
+  },
+  "docker": {
+    "v1Enabled": true,
+    "forceBasicAuth": false,
+    "httpPort": 8002,
+    "httpsPort": null,
+    "subdomain": null
+  }
+}
+```
+
 然后更新`nexus_api.py`文件：
 
 ```python
@@ -1147,3 +1171,106 @@ $ python nexus_api.py
 
 
 
+## 6. 创建docker-group聚合仓库
+
+**本节创建docker-group聚合仓库，指定HTTP端口8003，用于将docker-proxy代理仓库和docker-hosted本地仓库组成一个组。**
+
+Create Docker group repository。
+
+POST请求`  /service/rest/v1/repositories/docker/group`接口。
+
+Nexus API页面给出了参数示例：
+
+```json
+{
+  "name": "internal",
+  "online": true,
+  "storage": {
+    "blobStoreName": "default",
+    "strictContentTypeValidation": true
+  },
+  "group": {
+    "memberNames": [
+      "string"
+    ],
+    "writableMember": "string"
+  },
+  "docker": {
+    "v1Enabled": false,
+    "forceBasicAuth": true,
+    "httpPort": 8082,
+    "httpsPort": 8083,
+    "subdomain": "docker-a"
+  }
+}
+```
+
+此时，我们直接将json字符串写入到`docker-group.json`文件中，然后用代码读取该文件：
+
+```json
+{
+  "name": "docker-group",
+  "online": true,
+  "storage": {
+    "blobStoreName": "docker",
+    "strictContentTypeValidation": true
+  },
+  "group": {
+    "memberNames": [
+      "docker-hosted",
+      "docker-proxy"
+    ],
+    "writableMember": null
+  },
+  "docker": {
+    "v1Enabled": true,
+    "forceBasicAuth": false,
+    "httpPort": 8003,
+    "httpsPort": null,
+    "subdomain": null
+  }
+}
+```
+
+然后更新`nexus_api.py`文件：
+
+```python
+######################################################################
+# 创建docker-group聚合仓库
+import os
+
+import requests
+import json
+
+url = "http://nexusapi.com:8081/service/rest/v1/repositories/docker/group"
+script_path = os.path.abspath(__file__)
+parent_dir = os.path.join(script_path, '..')
+filename = f"{parent_dir}/nexus_api/docker-group.json"
+
+with open(filename) as file:
+    payload = json.load(file)
+headers = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "content-type": "application/json",
+    "Authorization": "Basic YWRtaW46YWRtaW4xMjM="
+}
+
+response = requests.request("POST", url, json=payload, headers=headers)
+
+print(response.text)
+print(response.status_code)
+
+```
+
+执行代码：
+
+```sh
+$ python nexus_api.py 
+
+201
+```
+
+刷新Nexus页面，可以看到，docker-group聚合仓库创建成功！
+
+![Snipaste_2024-03-01_23-58-41.png](/img/Snipaste_2024-03-01_23-58-41.png)

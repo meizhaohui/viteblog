@@ -1,0 +1,22 @@
+{
+  "name": "docker-group",
+  "online": true,
+  "storage": {
+    "blobStoreName": "docker",
+    "strictContentTypeValidation": true
+  },
+  "group": {
+    "memberNames": [
+      "docker-hosted",
+      "docker-proxy"
+    ],
+    "writableMember": null
+  },
+  "docker": {
+    "v1Enabled": true,
+    "forceBasicAuth": false,
+    "httpPort": 8003,
+    "httpsPort": null,
+    "subdomain": null
+  }
+}
