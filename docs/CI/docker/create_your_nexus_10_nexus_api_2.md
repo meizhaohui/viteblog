@@ -1060,3 +1060,90 @@ $ python nexus_api.py
 
 说明docker-proxy代理仓库创建成功！
 
+
+
+## 5. 创建docker-hosted本地仓库
+
+**本节创建docker-hosted本地仓库，指定HTTP端口8002，用于上传自己打包的镜像。**
+
+Create Docker hosted repository。
+
+POST请求`  /service/rest/v1/repositories/docker/hosted`接口。
+
+Nexus API页面给出了参数示例：
+
+```json
+{
+  "name": "internal",
+  "online": true,
+  "storage": {
+    "blobStoreName": "default",
+    "strictContentTypeValidation": true,
+    "writePolicy": "allow_once",
+    "latestPolicy": true
+  },
+  "cleanup": {
+    "policyNames": [
+      "string"
+    ]
+  },
+  "component": {
+    "proprietaryComponents": true
+  },
+  "docker": {
+    "v1Enabled": false,
+    "forceBasicAuth": true,
+    "httpPort": 8082,
+    "httpsPort": 8083,
+    "subdomain": "docker-a"
+  }
+}
+```
+
+此时，我们直接将json字符串写入到`docker-hosted.json`文件中，然后用代码读取该文件：
+
+然后更新`nexus_api.py`文件：
+
+```python
+######################################################################
+# 创建docker-hosted本地仓库
+import os
+
+import requests
+import json
+
+url = "http://nexusapi.com:8081/service/rest/v1/repositories/docker/hosted"
+script_path = os.path.abspath(__file__)
+parent_dir = os.path.join(script_path, '..')
+filename = f"{parent_dir}/nexus_api/docker-hosted.json"
+
+with open(filename) as file:
+    payload = json.load(file)
+headers = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "content-type": "application/json",
+    "Authorization": "Basic YWRtaW46YWRtaW4xMjM="
+}
+
+response = requests.request("POST", url, json=payload, headers=headers)
+
+print(response.text)
+print(response.status_code)
+
+```
+
+执行代码：
+
+```sh
+$ python nexus_api.py 
+
+201
+```
+
+刷新Nexus页面，可以看到，docker-hosted本地仓库创建成功！
+
+![Snipaste_2024-03-01_23-40-57.png](/img/Snipaste_2024-03-01_23-40-57.png)
+
+
+
