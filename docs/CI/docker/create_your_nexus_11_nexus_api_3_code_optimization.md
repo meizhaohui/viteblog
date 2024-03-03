@@ -57,6 +57,7 @@ $ find
 ./config/pypi-proxy.json
 ./config/yum-proxy.json
 ./main.py
+./requirements.txt
 ```
 
 
@@ -100,5 +101,34 @@ nexus_info:
       type: group
       format: docker
 
+```
+
+如果有其他类型的仓库需要创建，只用创建对应的仓库的json配置文件，并增加到`config/nexus.yaml`配置文件中即可。
+
+
+
+## 1.2 优化Python代码
+
+使用`pipenv`创建虚拟环境，并安装相关依赖包：
+
+```sh
+$ pipenv run pip install requests yaml loguru
+```
+
+生成依赖文件：
+
+```sh
+$ pipenv run pip freeze
+certifi==2024.2.2
+charset-normalizer==3.3.2
+colorama==0.4.6
+idna==3.6
+loguru==0.7.2
+PyYAML==6.0.1
+requests==2.31.0
+urllib3==2.2.1
+win32-setctime==1.1.0
+$ pipenv run pip freeze > requirements.txt
+$ 
 ```
 

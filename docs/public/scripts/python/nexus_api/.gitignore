@@ -1,0 +1,6 @@
+logs/*
+log/*
+Pipfile*
+.venv/*
+.idea/*
+
