@@ -26,3 +26,4 @@ Nexus私有仓库系列总结：
 8. [搭建自己的nexus私有仓库8-Nexus3的数据库结构](./create_your_nexus_8_nexus_database.md)
 9. [搭建自己的nexus私有仓库9-Nexus API接口的使用1](./create_your_nexus_9_nexus_api.md)
 10. [搭建自己的nexus私有仓库10-Nexus API接口的使用2](./create_your_nexus_10_nexus_api_2.md)
+10. [搭建自己的nexus私有仓库11--Nexus API接口的使用3——Nexus API接口的使用优化](./create_your_nexus_11_nexus_api_3_code_optimization.md)
