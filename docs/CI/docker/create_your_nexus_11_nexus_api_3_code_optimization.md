@@ -63,3 +63,42 @@ $ find
 
 ## 1.1 定义nexus仓库的配置文件
 
+`config/nexus.yaml`配置文件用于定义需要创建的仓库的配置文件与仓库类型的对应关系。
+
+```yaml
+nexus_info:
+  Repositories:
+    - file: yum-proxy.json
+      type: proxy
+      format: yum
+
+    - name: epel-yum-proxy.json
+      type: proxy
+      format: yum
+
+    - name: ius-yum-proxy.json
+      type: proxy
+      format: yum
+
+    - name: pypi-proxy.json
+      type: proxy
+      format: pypi
+
+    - name: maven-proxy.json
+      type: proxy
+      format: maven
+
+    - name: docker-proxy.json
+      type: proxy
+      format: docker
+
+    - name: docker-hosted.json
+      type: hosted
+      format: docker
+
+    - name: docker-group.json
+      type: group
+      format: docker
+
+```
+
