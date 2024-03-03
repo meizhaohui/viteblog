@@ -41,6 +41,24 @@
 
 ![Snipaste_2024-03-03_18-07-22.png](/img/Snipaste_2024-03-03_18-07-22.png)
 
+nexus_api文件夹目录结构如下：
+
+```sh
+$ find
+.
+./config
+./config/docker-group.json
+./config/docker-hosted.json
+./config/docker-proxy.json
+./config/epel-yum-proxy.json
+./config/ius-yum-proxy.json
+./config/maven-proxy.json
+./config/nexus.yaml
+./config/pypi-proxy.json
+./config/yum-proxy.json
+./main.py
+```
+
 
 
 ## 1.1 定义nexus仓库的配置文件
