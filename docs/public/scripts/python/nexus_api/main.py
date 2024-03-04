@@ -72,6 +72,17 @@ class Nexus:
         api = '/v1/blobstores/file'
         self.curl(api=api, method='POST', payload=payload)
 
+    def set_active_realm(self):
+        """设置激活的Realm"""
+        logger.info('设置激活的Realm')
+        payload = [
+            "NexusAuthenticatingRealm",
+            "NexusAuthorizingRealm",
+            "DockerToken"
+        ]
+        api = '/v1/security/realms/active'
+        self.curl(api=api, method='PUT', payload=payload)
+
     def create_repositories(self):
         """创建仓库"""
         for repo in self._repositories:
@@ -85,6 +96,7 @@ class Nexus:
 if __name__ == '__main__':
     n = Nexus()
     n.create_docker_blob()
+    n.set_active_realm()
     n.create_repositories()
 
 
