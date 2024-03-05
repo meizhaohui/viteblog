@@ -4,7 +4,7 @@ nexus_info:
   # echo -n 'admin:admin123'|base64
   base64_info: YWRtaW46YWRtaW4xMjM=
   Repositories:
-    - file: yum-proxy.json
+    - name: yum-proxy.json
       type: proxy
       format: yum
 

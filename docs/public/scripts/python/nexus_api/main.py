@@ -1,3 +1,9 @@
+# filename: main.py
+# author: Zhaohui Mei <mzh.whut@gmail.com>
+# date: 2024-3-5 22:51:31
+# python: Python 3.8.5
+# description: 使用Nexus API快速创建常用仓库
+import sys
 import json
 import os
 
@@ -61,6 +67,7 @@ class Nexus:
                 logger.info(response.json)
         except:
             logger.error('发生异常')
+            sys.exit(1)
 
     def create_docker_blob(self):
         """创建docker blob块对象"""
@@ -83,14 +90,30 @@ class Nexus:
         api = '/v1/security/realms/active'
         self.curl(api=api, method='PUT', payload=payload)
 
+    def create_repository(self, repo_format=None, repo_type=None, json_file=None):
+        """创建单个仓库"""
+        logger.info('创建仓库')
+        with open(json_file) as file:
+            payload = json.load(file)
+        api = f'/v1/repositories/{repo_format}/{repo_type}'
+        self.curl(api=api, method='POST', payload=payload)
+        logger.success(f'成功创建仓库格式:{repo_format}，类型:{repo_type}')
+
     def create_repositories(self):
-        """创建仓库"""
+        """创建多个仓库"""
+        logger.info('根据配置文件定义创建多个仓库')
         for repo in self._repositories:
+            logger.info(f'当前处理的仓库repo: {repo}')
             filename = repo.get('name')
+            logger.info(f'仓库配置文件名: {filename}')
+            json_file = f'{CONFIG_DIR}/{filename}'
+            logger.info(f'仓库配置文件绝对路径: {json_file}')
             repo_type = repo.get('type')
             repo_format = repo.get('format')
             logger.info(
-                f'待创建的仓库的配置文件：{filename}, 仓库类型: {repo_type}, 仓库格式：{repo_format}')
+                f'待创建的仓库的配置文件：{json_file}, 仓库类型: {repo_type}, 仓库格式：{repo_format}')
+            self.create_repository(
+                repo_format=repo_format, repo_type=repo_type, json_file=json_file)
 
 
 if __name__ == '__main__':
@@ -98,265 +121,3 @@ if __name__ == '__main__':
     n.create_docker_blob()
     n.set_active_realm()
     n.create_repositories()
-
-
-######################################################################
-# 获取所有Blob对象存储
-# import requests
-
-# url = "http://nexusapi.com:8081/service/rest/v1/blobstores"
-
-# headers = {
-#     "Accept": "application/json",
-#     "Authorization": "Basic YWRtaW46YWRtaW4xMjM="
-# }
-
-# response = requests.request("GET", url, headers=headers)
-
-# print(response.text)
-
-######################################################################
-# 创建Blob对象存储
-# import requests
-
-# url = "http://nexusapi.com:8081/service/rest/v1/blobstores/file"
-
-# payload = {
-#     "path": "blobpath",
-#     "name": "blobname"
-# }
-# headers = {
-#     "Accept": "application/json",
-#     "Content-Type": "application/json",
-#     "content-type": "application/json",
-#     "Authorization": "Basic YWRtaW46YWRtaW4xMjM="
-# }
-
-# response = requests.request("POST", url, json=payload, headers=headers)
-
-# print(response.text)
-
-######################################################################
-# 创建yum-proxy代理仓库
-# import requests
-
-# url = "http://nexusapi.com:8081/service/rest/v1/repositories/yum/proxy"
-
-# payload = {
-#     "name": "yum-proxy",
-#     "online": True,
-#     "storage": {
-#         "blobStoreName": "default",
-#         "strictContentTypeValidation": True
-#     },
-#     "proxy": {
-#         "remoteUrl": "https://mirrors.tuna.tsinghua.edu.cn/centos",
-#         "contentMaxAge": 1440,
-#         "metadataMaxAge": 1440
-#     },
-#     "negativeCache": {
-#         "enabled": True,
-#         "timeToLive": 1440
-#     },
-#     "httpClient": {
-#         "blocked": False,
-#         "autoBlock": True,
-#         "connection": {
-#             "retries": 0,
-#             "userAgentSuffix": "Email: yourname@email.com",
-#             "timeout": 60,
-#             "enableCircularRedirects": False,
-#             "enableCookies": False,
-#             "useTrustStore": False
-#         }
-#     }
-# }
-# headers = {
-#     "Accept": "application/json",
-#     "Content-Type": "application/json",
-#     "content-type": "application/json",
-#     "Authorization": "Basic YWRtaW46YWRtaW4xMjM="
-# }
-
-# response = requests.request("POST", url, json=payload, headers=headers)
-
-# print(response.text)
-
-
-# ######################################################################
-# # 创建pypi-proxy代理仓库
-# import requests
-
-# url = "http://nexusapi.com:8081/service/rest/v1/repositories/pypi/proxy"
-
-# payload = {
-#     "name": "pypi-proxy",
-#     "online": True,
-#     "storage": {
-#         "blobStoreName": "default",
-#         "strictContentTypeValidation": True
-#     },
-#     "proxy": {
-#         "remoteUrl": "https://pypi.tuna.tsinghua.edu.cn",
-#         "contentMaxAge": 1440,
-#         "metadataMaxAge": 1440
-#     },
-#     "negativeCache": {
-#         "enabled": True,
-#         "timeToLive": 1440
-#     },
-#     "httpClient": {
-#         "blocked": False,
-#         "autoBlock": True,
-#         "connection": {
-#             "retries": 0,
-#             "userAgentSuffix": "Email: yourname@email.com",
-#             "timeout": 60,
-#             "enableCircularRedirects": False,
-#             "enableCookies": False,
-#             "useTrustStore": False
-#         }
-#     }
-# }
-# headers = {
-#     "Accept": "application/json",
-#     "Content-Type": "application/json",
-#     "content-type": "application/json",
-#     "Authorization": "Basic YWRtaW46YWRtaW4xMjM="
-# }
-
-# response = requests.request("POST", url, json=payload, headers=headers)
-
-# print(response.text)
-# print(response.status_code)
-
-
-# ######################################################################
-# # 创建maven-proxy代理仓库
-# import requests
-
-# url = "http://nexusapi.com:8081/service/rest/v1/repositories/maven/proxy"
-
-# payload = {
-#     "name": "maven-proxy",
-#     "online": True,
-#     "storage": {
-#         "blobStoreName": "default",
-#         "strictContentTypeValidation": True
-#     },
-#     "proxy": {
-#         "remoteUrl": "https://maven.aliyun.com/repository/public",
-#         "contentMaxAge": 1440,
-#         "metadataMaxAge": 1440
-#     },
-#     "negativeCache": {
-#         "enabled": True,
-#         "timeToLive": 1440
-#     },
-#     "httpClient": {
-#         "blocked": False,
-#         "autoBlock": True,
-#         "connection": {
-#             "retries": 0,
-#             "userAgentSuffix": "Email: yourname@email.com",
-#             "timeout": 60,
-#             "enableCircularRedirects": False,
-#             "enableCookies": False,
-#             "useTrustStore": False
-#         }
-#     },
-#     "maven": {
-#         "versionPolicy": "RELEASE",
-#         "layoutPolicy": "STRICT",
-#         "contentDisposition": "ATTACHMENT"
-#     }
-# }
-# headers = {
-#     "Accept": "application/json",
-#     "Content-Type": "application/json",
-#     "content-type": "application/json",
-#     "Authorization": "Basic YWRtaW46YWRtaW4xMjM="
-# }
-
-# response = requests.request("POST", url, json=payload, headers=headers)
-
-# print(response.text)
-# print(response.status_code)
-
-
-# ######################################################################
-# # 创建docker-proxy代理仓库
-# import os
-
-# import requests
-# import json
-
-# url = "http://nexusapi.com:8081/service/rest/v1/repositories/docker/proxy"
-# script_path = os.path.abspath(__file__)
-# parent_dir = os.path.join(script_path, '..')
-# filename = f"{parent_dir}/nexus_api/docker-proxy.json"
-
-# with open(filename) as file:
-#     payload = json.load(file)
-# headers = {
-#     "Accept": "application/json",
-#     "Content-Type": "application/json",
-#     "content-type": "application/json",
-#     "Authorization": "Basic YWRtaW46YWRtaW4xMjM="
-# }
-
-# response = requests.request("POST", url, json=payload, headers=headers)
-
-# print(response.text)
-# print(response.status_code)
-
-
-# ######################################################################
-# # 创建docker-hosted本地仓库
-# import os
-
-# import requests
-# import json
-
-# url = "http://nexusapi.com:8081/service/rest/v1/repositories/docker/hosted"
-# script_path = os.path.abspath(__file__)
-# parent_dir = os.path.join(script_path, '..')
-# filename = f"{parent_dir}/nexus_api/docker-hosted.json"
-
-# with open(filename) as file:
-#     payload = json.load(file)
-# headers = {
-#     "Accept": "application/json",
-#     "Content-Type": "application/json",
-#     "content-type": "application/json",
-#     "Authorization": "Basic YWRtaW46YWRtaW4xMjM="
-# }
-
-# response = requests.request("POST", url, json=payload, headers=headers)
-
-# print(response.text)
-# print(response.status_code)
-
-
-######################################################################
-# 创建docker-group聚合仓库
-
-
-# url = "http://nexusapi.com:8081/service/rest/v1/repositories/docker/group"
-# script_path = os.path.abspath(__file__)
-# parent_dir = os.path.join(script_path, '..')
-# filename = f"{parent_dir}/nexus_api/docker-group.json"
-
-# with open(filename) as file:
-#     payload = json.load(file)
-# headers = {
-#     "Accept": "application/json",
-#     "Content-Type": "application/json",
-#     "content-type": "application/json",
-#     "Authorization": "Basic YWRtaW46YWRtaW4xMjM="
-# }
-
-# response = requests.request("POST", url, json=payload, headers=headers)
-
-# print(response.text)
-# print(response.status_code)
