@@ -2,11 +2,10 @@
 ##################################################
 #      Filename: bashrc.sh
 #        Author: Zhaohui Mei<mzh.whut@gmail.com>
-#   Description: 记录.bashrc配置  
+#   Description: 记录.bashrc配置
 #   Create Time: 2022-05-22 17:12:19
 # Last Modified: 2022-09-17 20:40:05
 ##################################################
-
 
 ###########################################################
 # Environments
@@ -25,13 +24,12 @@ export PIPENV_PYPI_MIRROR=https://mirrors.aliyun.com/pypi/simple
 
 # Golang environment settings
 export GOROOT=/usr/lib/golang # golang install path
-export GOPATH=~/data/go_data # golang workspace
-export GOBIN=${GOPATH}/bin # golang exe files
+export GOPATH=~/data/go_data  # golang workspace
+export GOBIN=${GOPATH}/bin    # golang exe files
 export PATH=${GOBIN}:${PATH}
 export GOPROXY=https://goproxy.cn
 export GO111MODULE=on
 ###########################################################
-
 
 ###########################################################
 # 常用快捷命令
@@ -78,19 +76,18 @@ function change_login_mode() {
 
 # 快速杀掉登陆用户进程
 alias fastkill='kill_pts_login'
-function kill_pts_login()
-{
-    sudo kill -9 $(sudo ps -ef|grep "pts/$1$"|grep -v 'grep'|awk '{print $2}') && echo "killed the pts/$1 login"
+function kill_pts_login() {
+    sudo kill -9 $(sudo ps -ef | grep "pts/$1$" | grep -v 'grep' | awk '{print $2}') && echo "killed the pts/$1 login"
 }
 
 # 代码部署
 alias run='pushd ~/vueblog && sh deploy.sh'
 alias autodeploy='auto_deploy'
-function auto_deploy(){
+function auto_deploy() {
     pushd ~/vueblog && pwd
-    current=$( git log --pretty=oneline -n 1|head )
+    current=$(git log --pretty=oneline -n 1 | head)
     git pull
-    new=$( git log --pretty=oneline -n 1|head )
+    new=$(git log --pretty=oneline -n 1 | head)
     if [[ "${current}" != "${new}" ]]; then
         echo "远程仓库有更新，开始自动部署"
         sh deploy.sh && echo "自动部署完成！"
@@ -98,7 +95,6 @@ function auto_deploy(){
     popd
 }
 ###########################################################
-
 
 ###########################################################
 # 防火墙相关
@@ -121,14 +117,13 @@ function remove_firewall_port() {
 }
 ###########################################################
 
-
 ###########################################################
 # 代码编译
 alias gcco='compile_c_code'
 function compile_c_code() {
     filename="$1"
-    outfile=$(basename "${filename}"|awk '{print $0".out"}')
-    suffix=$(basename "${filename}"|awk -F'.' '{print $NF}')
+    outfile=$(basename "${filename}" | awk '{print $0".out"}')
+    suffix=$(basename "${filename}" | awk -F'.' '{print $NF}')
     if [[ "${suffix}" == "cpp" ]]; then
         # you can use two methods to compile cpp code
         # gcc -lstdc++ -o
@@ -139,27 +134,24 @@ function compile_c_code() {
 }
 ###########################################################
 
-
 ###########################################################
 # Docker commands
 # 进入到docker容器中
 alias dkin='dockerin'
-function dockerin()
-{
+function dockerin() {
     docker exec -it $1 /bin/bash
 }
 # 查看某个容器
 alias dkc='docker_check'
-function docker_check()
-{
+function docker_check() {
     container_name=$1
-    docker ps|head -n 1; docker ps|grep "${container_name}"
+    docker ps | head -n 1
+    docker ps | grep "${container_name}"
 }
 
 # 删除某个容器
 alias dkr='remove_docker_container'
-function remove_docker_container()
-{
+function remove_docker_container() {
     container_name=$1
     docker stop "${container_name}"
     docker rm "${container_name}"
@@ -172,11 +164,21 @@ alias di='docker images'
 
 # 博客快速设置提交内容
 alias gfc='git_fast_commit'
-function git_fast_commit(){
+function git_fast_commit() {
     message=$1
-    folder_info=$(git status --show-stash|grep modified|sed 's/ //g'|grep -o 'docs/.*/'|sort|uniq|head -n 1|awk -F"/" '{print $2"("$3"):"}')
+    folder_info=$(git status --show-stash | grep modified | sed 's/ //g' | grep -o 'docs/.*/' | sort | uniq | head -n 1 | awk -F"/" '{print $2"("$3"):"}')
     git commit -m"${folder_info}${message}"
     git --no-pager log -n 1
 }
 
-
+# 自动提交markdown相关的修改，避免typora异常
+alias autopush='auto_commit_to_github'
+function auto_commit_to_github() {
+    pushd /drives/e/data/viteblog || exit 1
+    now=$(date +"%Y%m%d_%H:%M:%S")
+    folder_info=$(git status --show-stash | grep modified | grep -v 'docs/public' | sed 's/ //g' | grep -o 'docs/.*/' | sort | uniq | head -n 1 | awk -F"/" '{print $2"("$3"):"}')
+    message="${folder_info} Automatically submit code on ${now}"
+    git add .
+    git commit -m "${message}"
+    git push && rc "=" 30 && git push gitee main
+}
