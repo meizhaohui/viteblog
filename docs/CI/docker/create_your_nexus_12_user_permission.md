@@ -147,3 +147,140 @@ nexus系列课程第9-11篇详细讲解了通过Python调用Nexus API接口创�
 ![Snipaste_2024-03-09_20-55-22.png](/img/Snipaste_2024-03-09_20-55-22.png)
 
 ![Snipaste_2024-03-09_20-58-53.png](/img/Snipaste_2024-03-09_20-58-53.png)
+
+
+
+### 2.2 创建测试用户
+
+配置测试用户test相关信息：
+
+- ID: test
+- First Name: test
+- Last Name: User
+- Email: test@example.org
+- Status: Active
+- Roles: nx-test
+
+![Snipaste_2024-03-09_21-03-00.png](/img/Snipaste_2024-03-09_21-03-00.png)
+
+
+
+### 2.3 测试推送
+
+本地打镜像测试推送到docker-hosted仓库：
+
+```sh
+[root@nexus-test ~]# cat /etc/docker/daemon.json|jq
+{
+  "insecure-registries": [
+    "nexusapi.com:8001",
+    "nexusapi.com:8002"
+  ],
+  "registry-mirrors": [
+    "http://nexusapi.com:8001",
+    "http://nexusapi.com:8002"
+  ],
+  "data-root": "/data/docker"
+}
+[root@nexus-test ~]# systemctl start docker
+[root@nexus-test ~]# cat /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+# Nexus API
+192.168.56.130 nexusapi.com
+106.2.45.242 hub-mirror.c.163.com
+[root@nexus-test ~]# ping nexusapi.com
+PING nexusapi.com (192.168.56.130) 56(84) bytes of data.
+64 bytes from nexusapi.com (192.168.56.130): icmp_seq=1 ttl=64 time=0.269 ms
+64 bytes from nexusapi.com (192.168.56.130): icmp_seq=2 ttl=64 time=0.234 ms
+64 bytes from nexusapi.com (192.168.56.130): icmp_seq=3 ttl=64 time=0.248 ms
+^C
+--- nexusapi.com ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 1999ms
+rtt min/avg/max/mdev = 0.234/0.250/0.269/0.019 ms
+[root@nexus-test ~]# docker images
+REPOSITORY    TAG       IMAGE ID       CREATED         SIZE
+nginx         latest    e4720093a3c1   3 weeks ago     187MB
+alpine        3.17      eaba187917cc   6 weeks ago     7.06MB
+alpine        3.18      d3782b16ccc9   6 weeks ago     7.34MB
+alpine        latest    05455a08881e   6 weeks ago     7.38MB
+hello-world   latest    d2c94e258dcb   10 months ago   13.3kB
+[root@nexus-test ~]# mkdir mysql
+[root@nexus-test ~]# cd mysql
+[root@nexus-test mysql]# ls
+[root@nexus-test mysql]# vi Dockerfile
+[root@nexus-test mysql]# vi Dockerfile
+[root@nexus-test mysql]# docker build --tag mysql-client:hosted .
+Sending build context to Docker daemon  2.048kB
+Step 1/3 : FROM alpine:3.18
+ ---> d3782b16ccc9
+Step 2/3 : RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories     && apk add --update mysql-client     && rm -rf /var/cache/apk/*
+ ---> Running in 4c84802949a8
+fetch https://mirrors.tuna.tsinghua.edu.cn/alpine/v3.18/main/x86_64/APKINDEX.tar.gz
+fetch https://mirrors.tuna.tsinghua.edu.cn/alpine/v3.18/community/x86_64/APKINDEX.tar.gz
+(1/9) Installing mariadb-common (10.11.6-r0)
+(2/9) Installing libbz2 (1.0.8-r5)
+(3/9) Installing perl (5.36.2-r0)
+(4/9) Installing libgcc (12.2.1_git20220924-r10)
+(5/9) Installing ncurses-terminfo-base (6.4_p20230506-r0)
+(6/9) Installing libncursesw (6.4_p20230506-r0)
+(7/9) Installing libstdc++ (12.2.1_git20220924-r10)
+(8/9) Installing mariadb-client (10.11.6-r0)
+(9/9) Installing mysql-client (10.11.6-r0)
+Executing busybox-1.36.1-r5.trigger
+OK: 86 MiB in 24 packages
+Removing intermediate container 4c84802949a8
+ ---> 3ace44d722b6
+Step 3/3 : ENTRYPOINT ["mysql"]
+ ---> Running in 29018676974a
+Removing intermediate container 29018676974a
+ ---> c688e7a0c3cb
+Successfully built c688e7a0c3cb
+Successfully tagged mysql-client:hosted
+[root@nexus-test mysql]# docker login http://nexusapi.com:8002
+Username: test
+Password:
+WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+
+Login Succeeded
+[root@nexus-test mysql]# docker images
+REPOSITORY     TAG       IMAGE ID       CREATED          SIZE
+mysql-client   hosted    c688e7a0c3cb   40 seconds ago   84.6MB
+nginx          latest    e4720093a3c1   3 weeks ago      187MB
+alpine         3.17      eaba187917cc   6 weeks ago      7.06MB
+alpine         3.18      d3782b16ccc9   6 weeks ago      7.34MB
+alpine         latest    05455a08881e   6 weeks ago      7.38MB
+hello-world    latest    d2c94e258dcb   10 months ago    13.3kB
+[root@nexus-test mysql]# docker tag mysql-client:hosted nexusapi.com:8002/mysql-client:hosted
+[root@nexus-test mysql]# docker images
+REPOSITORY                       TAG       IMAGE ID       CREATED              SIZE
+nexusapi.com:8002/mysql-client   hosted    c688e7a0c3cb   About a minute ago   84.6MB
+mysql-client                     hosted    c688e7a0c3cb   About a minute ago   84.6MB
+nginx                            latest    e4720093a3c1   3 weeks ago          187MB
+alpine                           3.17      eaba187917cc   6 weeks ago          7.06MB
+alpine                           3.18      d3782b16ccc9   6 weeks ago          7.34MB
+alpine                           latest    05455a08881e   6 weeks ago          7.38MB
+hello-world                      latest    d2c94e258dcb   10 months ago        13.3kB
+[root@nexus-test mysql]# docker push nexusapi.com:8002/mysql-client:hosted
+The push refers to repository [nexusapi.com:8002/mysql-client]
+5105853d04b3: Pushing [==================================================>]  78.61MB
+aedc3bda2944: Pushing [==================================================>]   7.63MB
+unauthorized: access to the requested resource is not authorized
+[root@nexus-test mysql]# docker push nexusapi.com:8002/mysql-client:hosted
+The push refers to repository [nexusapi.com:8002/mysql-client]
+5105853d04b3: Pushing [==================================================>]  78.61MB
+aedc3bda2944: Pushing [==================================================>]   7.63MB
+unauthorized: access to the requested resource is not authorized
+[root@nexus-test mysql]# docker push nexusapi.com:8002/mysql-client:hosted
+The push refers to repository [nexusapi.com:8002/mysql-client]
+5105853d04b3: Pushed
+aedc3bda2944: Pushed
+hosted: digest: sha256:8b3a001c64f35982d758bb41788e77b603490e073c8cc09142f6f580b91b35f3 size: 740
+[root@nexus-test mysql]#
+
+```
+
+![Snipaste_2024-03-09_21-07-29.png](/img/Snipaste_2024-03-09_21-07-29.png)
