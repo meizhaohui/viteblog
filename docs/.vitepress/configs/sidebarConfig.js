@@ -366,6 +366,7 @@ module.exports = {
         { text: '搭建自己的nexus私有仓库9-Nexus API接口的使用1', link: '/CI/docker/create_your_nexus_9_nexus_api' },
         { text: '搭建自己的nexus私有仓库10-Nexus API接口的使用2', link: '/CI/docker/create_your_nexus_10_nexus_api_2' },
         { text: '搭建自己的nexus私有仓库11-Nexus API接口的使用3', link: '/CI/docker/create_your_nexus_11_nexus_api_3_code_optimization' },
+        { text: '搭建自己的nexus私有仓库12-Nexus权限配置', link: '/CI/docker/create_your_nexus_12_user_permission' },
       ]
     },
     {
