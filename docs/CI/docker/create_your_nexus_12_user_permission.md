@@ -170,6 +170,7 @@ nexus系列课程第9-11篇详细讲解了通过Python调用Nexus API接口创�
 本地打镜像测试推送到docker-hosted仓库：
 
 ```sh
+# 修改docker配置
 [root@nexus-test ~]# cat /etc/docker/daemon.json|jq
 {
   "insecure-registries": [
@@ -182,7 +183,11 @@ nexus系列课程第9-11篇详细讲解了通过Python调用Nexus API接口创�
   ],
   "data-root": "/data/docker"
 }
+
+# 启动docker服务
 [root@nexus-test ~]# systemctl start docker
+
+# 查看域名解析
 [root@nexus-test ~]# cat /etc/hosts
 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
 ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
@@ -190,6 +195,8 @@ nexus系列课程第9-11篇详细讲解了通过Python调用Nexus API接口创�
 # Nexus API
 192.168.56.130 nexusapi.com
 106.2.45.242 hub-mirror.c.163.com
+
+# 尝试能不能正常ping通自定义域名
 [root@nexus-test ~]# ping nexusapi.com
 PING nexusapi.com (192.168.56.130) 56(84) bytes of data.
 64 bytes from nexusapi.com (192.168.56.130): icmp_seq=1 ttl=64 time=0.269 ms
@@ -199,6 +206,8 @@ PING nexusapi.com (192.168.56.130) 56(84) bytes of data.
 --- nexusapi.com ping statistics ---
 3 packets transmitted, 3 received, 0% packet loss, time 1999ms
 rtt min/avg/max/mdev = 0.234/0.250/0.269/0.019 ms
+
+# 查看当前存在的镜像
 [root@nexus-test ~]# docker images
 REPOSITORY    TAG       IMAGE ID       CREATED         SIZE
 nginx         latest    e4720093a3c1   3 weeks ago     187MB
@@ -206,11 +215,21 @@ alpine        3.17      eaba187917cc   6 weeks ago     7.06MB
 alpine        3.18      d3782b16ccc9   6 weeks ago     7.34MB
 alpine        latest    05455a08881e   6 weeks ago     7.38MB
 hello-world   latest    d2c94e258dcb   10 months ago   13.3kB
+
+# 创建本地镜像配置文件
 [root@nexus-test ~]# mkdir mysql
 [root@nexus-test ~]# cd mysql
 [root@nexus-test mysql]# ls
 [root@nexus-test mysql]# vi Dockerfile
-[root@nexus-test mysql]# vi Dockerfile
+[root@nexus-test mysql]# cat Dockerfile
+FROM alpine:3.18
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories \
+    && apk add --update mysql-client \
+    && rm -rf /var/cache/apk/*
+ENTRYPOINT ["mysql"]
+[root@nexus-test mysql]#
+
+# 构建镜像
 [root@nexus-test mysql]# docker build --tag mysql-client:hosted .
 Sending build context to Docker daemon  2.048kB
 Step 1/3 : FROM alpine:3.18
@@ -238,14 +257,18 @@ Removing intermediate container 29018676974a
  ---> c688e7a0c3cb
 Successfully built c688e7a0c3cb
 Successfully tagged mysql-client:hosted
+
+# 登陆docker-hosted本地仓库，登陆成功了
 [root@nexus-test mysql]# docker login http://nexusapi.com:8002
 Username: test
-Password:
+Password:  #<------ 此处输入密码
 WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
 Configure a credential helper to remove this warning. See
 https://docs.docker.com/engine/reference/commandline/login/#credentials-store
 
 Login Succeeded
+
+# 查看镜像
 [root@nexus-test mysql]# docker images
 REPOSITORY     TAG       IMAGE ID       CREATED          SIZE
 mysql-client   hosted    c688e7a0c3cb   40 seconds ago   84.6MB
@@ -254,6 +277,8 @@ alpine         3.17      eaba187917cc   6 weeks ago      7.06MB
 alpine         3.18      d3782b16ccc9   6 weeks ago      7.34MB
 alpine         latest    05455a08881e   6 weeks ago      7.38MB
 hello-world    latest    d2c94e258dcb   10 months ago    13.3kB
+
+# 重新打标签
 [root@nexus-test mysql]# docker tag mysql-client:hosted nexusapi.com:8002/mysql-client:hosted
 [root@nexus-test mysql]# docker images
 REPOSITORY                       TAG       IMAGE ID       CREATED              SIZE
@@ -264,6 +289,9 @@ alpine                           3.17      eaba187917cc   6 weeks ago          7
 alpine                           3.18      d3782b16ccc9   6 weeks ago          7.34MB
 alpine                           latest    05455a08881e   6 weeks ago          7.38MB
 hello-world                      latest    d2c94e258dcb   10 months ago        13.3kB
+
+# nx-test角色未配置nx-repository-view-docker-docker-hosted-edit权限时，尝试推送镜像到远程仓库
+# 可以看到两次都失败了
 [root@nexus-test mysql]# docker push nexusapi.com:8002/mysql-client:hosted
 The push refers to repository [nexusapi.com:8002/mysql-client]
 5105853d04b3: Pushing [==================================================>]  78.61MB
@@ -274,6 +302,9 @@ The push refers to repository [nexusapi.com:8002/mysql-client]
 5105853d04b3: Pushing [==================================================>]  78.61MB
 aedc3bda2944: Pushing [==================================================>]   7.63MB
 unauthorized: access to the requested resource is not authorized
+
+# nx-test角色配置nx-repository-view-docker-docker-hosted-edit权限后，尝试推送镜像到远程仓库
+# 可以正常推送到远程仓库
 [root@nexus-test mysql]# docker push nexusapi.com:8002/mysql-client:hosted
 The push refers to repository [nexusapi.com:8002/mysql-client]
 5105853d04b3: Pushed
@@ -284,3 +315,19 @@ hosted: digest: sha256:8b3a001c64f35982d758bb41788e77b603490e073c8cc09142f6f580b
 ```
 
 ![Snipaste_2024-03-09_21-07-29.png](/img/Snipaste_2024-03-09_21-07-29.png)
+
+
+
+## 3. 通过API接口创建用户
+
+通过前两节分析可知：
+
+快速创建一个用户账号，如账号名为`devops`，并将给其授权能够朝docker-hosted仓库推送镜像这一个需求，可以分解成以下事项：
+
+- 创建`nx-devops`角色，并分配`nx-repository-view-docker-docker-hosted-add`和`nx-repository-view-docker-docker-hosted-edit`权限，并且包含`nx-anonymous`角色。需要使用`/v1/security/roles` 接口，发送POST请求。
+- 创建`devops`用户，并授予`nx-devops`角色。需要使用`/v1/security/users`接口，发送POST请求。
+
+![Snipaste_2024-03-09_21-29-37.png](/img/Snipaste_2024-03-09_21-29-37.png)
+
+![Snipaste_2024-03-09_21-31-21.png](/img/Snipaste_2024-03-09_21-31-21.png)
+
