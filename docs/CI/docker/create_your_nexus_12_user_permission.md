@@ -79,5 +79,51 @@ nexus系列课程第9-11篇详细讲解了通过Python调用Nexus API接口创�
 
 ### 1.2 角色分析
 
+在Nexus管理页面，依次点击【Security】-【Roles】:
+
+![Snipaste_2024-03-09_20-08-16.png](/img/Snipaste_2024-03-09_20-08-16.png)
+
+可以看到，有`nx-admin`和`nx-anonymous`两个角色。
+
+`nx-admin`角色详情如下：
+
+![Snipaste_2024-03-09_20-09-26.png](/img/Snipaste_2024-03-09_20-09-26.png)
+
+即：
+
+- Role ID: nx-admin
+
+- Role Name: nx-admin
+
+- Role Description:  Administrator Role 
+
+- Privileges: nx-all
+
+而`nx-anonymous`角色详情如下：
+
+![Snipaste_2024-03-09_20-12-08.png](/img/Snipaste_2024-03-09_20-12-08.png)
+
+即：
+
+- Role ID:  nx-anonymous 
+- Role Name:  nx-anonymous 
+- Role Description:   Anonymous Role 
+- Privileges: 
+  - nx-healthcheck-read
+  - nx-search-read
+  - nx-repository-view-*-*-read
+  - nx-repository-view-*-*-browse
+
+通过分析匿名用户的权限可以知道，在未登陆Nexus系统时，匿名用户是可以搜索仓库和在Browse浏览器中浏览仓库信息的。我们要创建的devops用户，只需要比匿名用户新增朝`docker-hosted`本地仓库推送镜像的权限即可。
 
 
+
+### 1.3 权限分析
+
+在Nexus管理页面，依次点击【Security】-【Privileges】，并搜索docker关键字，查看docker查看的权限：
+
+![Snipaste_2024-03-09_20-24-06.png](/img/Snipaste_2024-03-09_20-24-06.png)
+
+为了让devops这个普通用户能够上传docker镜像，我们需要增加`nx-repository-view-docker-docker-hosted-add`权限。
+
+我们先来创建一个测试
