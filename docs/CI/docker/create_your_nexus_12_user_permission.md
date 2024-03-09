@@ -39,7 +39,7 @@ nexus系列课程第9-11篇详细讲解了通过Python调用Nexus API接口创�
 
 
 
-## 1.1 本地账号分析
+### 1.1 本地账号分析
 
 在Nexus管理页面，依次点击【Security】-【Users】:
 
@@ -124,6 +124,26 @@ nexus系列课程第9-11篇详细讲解了通过Python调用Nexus API接口创�
 
 ![Snipaste_2024-03-09_20-24-06.png](/img/Snipaste_2024-03-09_20-24-06.png)
 
-为了让devops这个普通用户能够上传docker镜像，我们需要增加`nx-repository-view-docker-docker-hosted-add`权限。
+为了让devops这个普通用户能够上传docker镜像，我们需要增加`nx-repository-view-docker-docker-hosted-add`权限，还需要增加`nx-repository-view-docker-docker-hosted-edit`权限。
 
-我们先来创建一个测试
+## 2. 用户权限测试
+
+我们先来创建一个测试一下，创建一个`test`账号。
+
+### 2.1 创建测试角色
+
+创建`nx-test`角色：
+
+- Role ID: nx-test
+- Role Name: nx-test
+- Role Description:  test Role 
+- Privileges: 
+
+  - `nx-repository-view-docker-docker-hosted-add`权限，如果只增加这个权限，推送时会提示`unauthorized: access to the requested resource is not authorized`异常
+  - **`nx-repository-view-docker-docker-hosted-edit`权限，注意，这个权限也要配置。**
+- Roles：
+  - nx-anonymous， 将匿名用户的角色包含到`nx-test`角色当中，这样`nx-test`角色就拥有了匿名用户相关的权限。
+
+![Snipaste_2024-03-09_20-55-22.png](/img/Snipaste_2024-03-09_20-55-22.png)
+
+![Snipaste_2024-03-09_20-58-53.png](/img/Snipaste_2024-03-09_20-58-53.png)
