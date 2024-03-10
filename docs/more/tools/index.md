@@ -359,3 +359,9 @@ Geek Uninstaller，官网[https://geekuninstaller.com/](https://geekuninstaller.
 在搜索框中输入任何颜色格式 。 这可以是十六进制值，RGB，CMYK，HSL甚至是颜色的名称。 几乎每种格式都受支持。
 
 ![Snipaste_2024-02-08_23-13-12.png](/img/Snipaste_2024-02-08_23-13-12.png)
+
+## 31.  在线工具集
+
+[https://amd794.com/](https://amd794.com/) 一个涵盖各种工具的在线平台，覆盖广泛主题，助力你高效完成各种任务，提升工作效率。
+
+![Snipaste_2024-03-10_22-09-49.png](/img/Snipaste_2024-03-10_22-09-49.png)
