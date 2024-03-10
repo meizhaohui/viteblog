@@ -1,0 +1,12 @@
+{
+  "id": "nx-devops",
+  "name": "nx-devops",
+  "description": "Devops Role",
+  "privileges": [
+      "nx-repository-view-docker-docker-hosted-add",
+      "nx-repository-view-docker-docker-hosted-edit"
+  ],
+  "roles": [
+    "nx-anonymous"
+  ]
+}

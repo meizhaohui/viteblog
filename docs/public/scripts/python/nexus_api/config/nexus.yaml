@@ -35,3 +35,4 @@ nexus_info:
     - name: docker-group.json
       type: group
       format: docker
+

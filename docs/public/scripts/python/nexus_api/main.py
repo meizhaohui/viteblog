@@ -90,11 +90,17 @@ class Nexus:
         api = '/v1/security/realms/active'
         self.curl(api=api, method='PUT', payload=payload)
 
+    def load_json_config_file(self, json_file=None):
+        """加载json配置文件"""
+        logger.info('加载json配置文件')
+        with open(json_file) as file:
+            payload = json.load(file)
+        return payload
+
     def create_repository(self, repo_format=None, repo_type=None, json_file=None):
         """创建单个仓库"""
         logger.info('创建仓库')
-        with open(json_file) as file:
-            payload = json.load(file)
+        payload = self.load_json_config_file(json_file=json_file)
         api = f'/v1/repositories/{repo_format}/{repo_type}'
         self.curl(api=api, method='POST', payload=payload)
         logger.success(f'成功创建仓库格式:{repo_format}，类型:{repo_type}')
@@ -115,9 +121,29 @@ class Nexus:
             self.create_repository(
                 repo_format=repo_format, repo_type=repo_type, json_file=json_file)
 
+    def create_role(self):
+        """创建普通用户角色"""
+        logger.info('创建普通用户角色')
+        role_file = f'{CONFIG_DIR}/role.json'
+        payload = self.load_json_config_file(json_file=role_file)
+        api = f'/v1/security/roles'
+        self.curl(api=api, method='POST', payload=payload)
+        logger.success(f'成功创建用户角色')
+
+    def create_user(self):
+        """创建用户"""
+        logger.info('创建用户')
+        user_file = f'{CONFIG_DIR}/user.json'
+        payload = self.load_json_config_file(json_file=user_file)
+        api = f'/v1/security/users'
+        self.curl(api=api, method='POST', payload=payload)
+        logger.success(f'成功创建用户')
+
 
 if __name__ == '__main__':
     n = Nexus()
-    n.create_docker_blob()
-    n.set_active_realm()
-    n.create_repositories()
+    # n.create_docker_blob()
+    # n.set_active_realm()
+    # n.create_repositories()
+    n.create_role()
+    n.create_user()

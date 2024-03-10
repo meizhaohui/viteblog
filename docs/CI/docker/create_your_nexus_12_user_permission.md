@@ -331,3 +331,165 @@ hosted: digest: sha256:8b3a001c64f35982d758bb41788e77b603490e073c8cc09142f6f580b
 
 ![Snipaste_2024-03-09_21-31-21.png](/img/Snipaste_2024-03-09_21-31-21.png)
 
+### 3.1 使用角色api接口
+
+先在Nexus API页面获取所有角色的相关信息：
+
+- `GET`请求`/v1/security/roles`接口。
+
+![Snipaste_2024-03-10_10-35-36.png](/img/Snipaste_2024-03-10_10-35-36.png)
+
+请求的返回信息如下：
+
+```json
+[
+  {
+    "id": "nx-admin",
+    "source": "default",
+    "name": "nx-admin",
+    "description": "Administrator Role",
+    "readOnly": true,
+    "privileges": [
+      "nx-all"
+    ],
+    "roles": []
+  },
+  {
+    "id": "nx-anonymous",
+    "source": "default",
+    "name": "nx-anonymous",
+    "description": "Anonymous Role",
+    "readOnly": true,
+    "privileges": [
+      "nx-healthcheck-read",
+      "nx-search-read",
+      "nx-repository-view-*-*-read",
+      "nx-repository-view-*-*-browse"
+    ],
+    "roles": []
+  },
+  {
+    "id": "nx-test",
+    "source": "default",
+    "name": "nx-test",
+    "description": "test Role",
+    "readOnly": false,
+    "privileges": [
+      "nx-repository-view-docker-docker-hosted-add",
+      "nx-repository-view-docker-docker-hosted-edit"
+    ],
+    "roles": [
+      "nx-anonymous"
+    ]
+  }
+]
+```
+
+我们只需要将`nx-test`角色相关的内容中`test`修改成我们需要通过api创建的用户devops即可。
+
+在` nexus_api/config`文件夹下创建`role.json`配置文件，其内容如下：
+
+```json
+{
+  "id": "nx-devops",
+  "name": "nx-devops",
+  "description": "Devops Role",
+  "privileges": [
+      "nx-repository-view-docker-docker-hosted-add",
+      "nx-repository-view-docker-docker-hosted-edit"
+  ],
+  "roles": [
+    "nx-anonymous"
+  ]
+}
+
+```
+
+Python代码优化过程，详见 nexus系列课程第11篇，请参考 [搭建自己的nexus私有仓库11--Nexus API接口的使用优化](./create_your_nexus_11_nexus_api_3_code_optimization.md)， 此处不再详细解释。
+
+创建角色主要是增加了以下代码：
+
+```python
+    def create_role(self):
+        """创建普通用户角色"""
+        logger.info('创建普通用户角色')
+        role_file = f'{CONFIG_DIR}/role.json'
+        payload = self.load_json_config_file(json_file=role_file)
+        api = f'/v1/security/roles'
+        self.curl(api=api, method='POST', payload=payload)
+        logger.success(f'成功创建用户角色')
+```
+
+### 3.2 使用用户api接口
+
+先在Nexus API页面获取`test`用户的相关信息：
+
+- `GET`请求`/v1/security/users`接口，并将`userid`参数设置`test`。
+
+![Snipaste_2024-03-10_11-03-28.png](/img/Snipaste_2024-03-10_11-03-28.png)
+
+请求的返回信息如下：
+
+```json
+[
+  {
+    "userId": "test",
+    "firstName": "test",
+    "lastName": "User",
+    "emailAddress": "test@example.org",
+    "source": "default",
+    "status": "active",
+    "readOnly": false,
+    "roles": [
+      "nx-test"
+    ],
+    "externalRoles": []
+  }
+]
+```
+
+在` nexus_api/config`文件夹下创建`user.json`配置文件，其内容如下：
+
+```json
+{
+  "userId": "devops",
+  "firstName": "devops",
+  "lastName": "User",
+  "emailAddress": "devops@example.org",
+  "password": "123456",
+  "status": "active",
+  "roles": [
+    "nx-devops"
+  ]
+}
+
+```
+
+创建用户主要是增加了以下代码：
+
+```python
+    def create_user(self):
+        """创建用户"""
+        logger.info('创建用户')
+        user_file = f'{CONFIG_DIR}/user.json'
+        payload = self.load_json_config_file(json_file=user_file)
+        api = f'/v1/security/users'
+        self.curl(api=api, method='POST', payload=payload)
+        logger.success(f'成功创建用户')
+```
+
+### 3.3 创建角色和用户
+
+创建角色和用户时，执行Python脚本效果图：
+
+![Snipaste_2024-03-10_11-25-43.png](/img/Snipaste_2024-03-10_11-25-43.png)
+
+刚创建的`nx-devops`角色:
+
+![Snipaste_2024-03-10_11-26-46.png](/img/Snipaste_2024-03-10_11-26-46.png)
+
+刚创建的`devops`角色：
+
+![Snipaste_2024-03-10_11-27-49.png](/img/Snipaste_2024-03-10_11-27-49.png)
+
+![Snipaste_2024-03-10_11-28-13.png](/img/Snipaste_2024-03-10_11-28-13.png)

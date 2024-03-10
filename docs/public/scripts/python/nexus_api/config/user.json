@@ -1,0 +1,11 @@
+{
+  "userId": "devops",
+  "firstName": "devops",
+  "lastName": "User",
+  "emailAddress": "devops@example.org",
+  "password": "123456",
+  "status": "active",
+  "roles": [
+    "nx-devops"
+  ]
+}
