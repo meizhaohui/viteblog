@@ -465,6 +465,14 @@ Python代码优化过程，详见 nexus系列课程第11篇，请参考 [搭建�
 
 ```
 
+ ::: warning 注意 
+
+`user.json`配置文件中定义的`"password": "123456",`密码信息并不需要做加密，是原始密码信息，不要将你的密码推送到github上去了！！
+
+:::
+
+
+
 创建用户主要是增加了以下代码：
 
 ```python
@@ -652,4 +660,89 @@ if __name__ == '__main__':
 
 **说明：创建仓库、角色或者用户时，以上代码并没有去判断系统中是否已经存在，原因是Nexus中刚创建的，并没有手动去添加相关的信息。如果你创建的时候，提示400异常的话，有可能是系统中已经存在重复数据。**
 
+#### 3.4 测试推送
+
+```sh
+# 测试虚拟机启动docker服务
+[root@nexus-test ~]# systemctl start docker
+
+# 查看当前镜像
+[root@nexus-test ~]# docker images
+REPOSITORY                       TAG       IMAGE ID       CREATED         SIZE
+mysql-client                     hosted    c688e7a0c3cb   15 hours ago    84.6MB
+nexusapi.com:8002/mysql-client   hosted    c688e7a0c3cb   15 hours ago    84.6MB
+nginx                            latest    e4720093a3c1   3 weeks ago     187MB
+alpine                           3.17      eaba187917cc   6 weeks ago     7.06MB
+alpine                           3.18      d3782b16ccc9   6 weeks ago     7.34MB
+alpine                           latest    05455a08881e   6 weeks ago     7.38MB
+hello-world                      latest    d2c94e258dcb   10 months ago   13.3kB
+
+# 对镜像打标签
+[root@nexus-test ~]# docker tag nexusapi.com:8002/mysql-client:hosted nexusapi.com:8002/mysql-client:devops
+
+# 再次查看镜像信息
+[root@nexus-test ~]# docker images
+REPOSITORY                       TAG       IMAGE ID       CREATED         SIZE
+mysql-client                     hosted    c688e7a0c3cb   15 hours ago    84.6MB
+nexusapi.com:8002/mysql-client   devops    c688e7a0c3cb   15 hours ago    84.6MB
+nexusapi.com:8002/mysql-client   hosted    c688e7a0c3cb   15 hours ago    84.6MB
+nginx                            latest    e4720093a3c1   3 weeks ago     187MB
+alpine                           3.17      eaba187917cc   6 weeks ago     7.06MB
+alpine                           3.18      d3782b16ccc9   6 weeks ago     7.34MB
+alpine                           latest    05455a08881e   6 weeks ago     7.38MB
+hello-world                      latest    d2c94e258dcb   10 months ago   13.3kB
+
+# 登陆到远程docker-hosted仓库，如果不指定用户名，则会用之前保存的test账号登陆
+[root@nexus-test ~]# docker login http://nexusapi.com:8002
+Authenticating with existing credentials...
+WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+
+Login Succeeded
+
+# 指定用户名为devops，再次登陆到远程docker-hosted仓库
+# 可以看到登陆成功了
+[root@nexus-test ~]# docker login http://nexusapi.com:8002 --username devops
+Password:
+WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+
+Login Succeeded
+
+# 查看保存下来的认证信息
+[root@nexus-test ~]# cat ~/.docker/config.json
+{
+        "auths": {
+                "nexusapi.com:8002": {
+                        "auth": "ZGV2b3BzOjEyMzQ1Ng=="
+                }
+        }
+}[root@nexus-test ~]#
+
+# 解密加密后的用户名和密码信息，可以看到是devops账号
+[root@nexus-test ~]# echo -n "ZGV2b3BzOjEyMzQ1Ng=="|base64 -d
+devops:123456[root@nexus-test ~]#
+
+# 推送镜像到远程仓库中，可以看到，推送成功！
+[root@nexus-test ~]# docker push nexusapi.com:8002/mysql-client:devops
+The push refers to repository [nexusapi.com:8002/mysql-client]
+5105853d04b3: Layer already exists
+aedc3bda2944: Layer already exists
+devops: digest: sha256:8b3a001c64f35982d758bb41788e77b603490e073c8cc09142f6f580b91b35f3 size: 740
+[root@nexus-test ~]#
+```
+
+推送效果：
+
+![Snipaste_2024-03-10_12-03-27.png](/img/Snipaste_2024-03-10_12-03-27.png)
+
+在Nexus Browse浏览器中，可以看到刚才推送的镜像，也可以看到推送人是`devops`，说明我们通过API接口创建的用户能够正常使用：
+
+![Snipaste_2024-03-10_11-56-22.png](/img/Snipaste_2024-03-10_11-56-22.png)
+
+
+
 到此，通过Nexus API接口快速创建常用仓库并配置用户角色和权限工作已经完成了。后续如果需要快速初始化一个Nexus私有镜像系统，则可以使用以上Python脚本来完成该项工作了。
+
