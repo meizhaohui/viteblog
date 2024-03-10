@@ -90,7 +90,8 @@ class Nexus:
         api = '/v1/security/realms/active'
         self.curl(api=api, method='PUT', payload=payload)
 
-    def load_json_config_file(self, json_file=None):
+    @staticmethod
+    def load_json_config_file(json_file=None):
         """加载json配置文件"""
         logger.info('加载json配置文件')
         with open(json_file) as file:
@@ -142,8 +143,8 @@ class Nexus:
 
 if __name__ == '__main__':
     n = Nexus()
-    # n.create_docker_blob()
-    # n.set_active_realm()
-    # n.create_repositories()
+    n.create_docker_blob()
+    n.set_active_realm()
+    n.create_repositories()
     n.create_role()
     n.create_user()
