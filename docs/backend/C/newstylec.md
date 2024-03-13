@@ -672,3 +672,57 @@ PS D:\BC101\Examples\build>
 
 - `HelloWorld_p.asm`是程序转换成汇编语言程序以后的代码，可以用编辑器打开查看。
 - `HelloWorld_p.obj`是根据汇编语言程序生成的二进制的代码（目标文件）。
+
+
+
+#### 3.3.3 链接
+
+`HelloWorld_p.obj`是根据由源代码生成的二进制的代码，但目前它还不能运行，原因是在程序中使用了标准库函数`printf`，而`printf`函数的二进制代码并没有包含在这个`HelloWorld_p.obj`文件中。
+
+将函数库的二进制代码与目标文件合并到一起，生成1个可执行文件，被称为【链接】，有的也称为【连接】，链接使用`link`命令，在命令行继续执行以下命令：
+
+```powershell
+link HelloWorld_p.obj
+```
+
+执行：
+
+```powershell
+PS D:\BC101\Examples\build> link HelloWorld_p.obj
+Microsoft (R) Incremental Linker Version 14.30.30705.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+PS D:\BC101\Examples\build> ls
+
+
+    目录: D:\BC101\Examples\build
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         2024/3/13     23:27          17160 cl.help.txt
+-a----         2024/3/13     23:07            137 HelloWorld.cpp
+-a----         2024/3/13     23:47           3253 HelloWorld_p.asm
+-a----         2024/3/13     23:32         319996 HelloWorld_p.cpp
+-a----         2024/3/13     23:55         101888 HelloWorld_p.exe
+-a----         2024/3/13     23:47           1624 HelloWorld_p.obj
+-a----         2024/3/13     23:28           6384 link.help.txt
+
+
+PS D:\BC101\Examples\build>
+```
+
+此时，可以看到生成了`HelloWorld_p.exe`文件。
+
+在命令行执行：
+
+```powershell
+PS D:\BC101\Examples\build> .\HelloWorld_p
+Hello,World
+```
+
+可以看到正常输出结果。
+
+对比之前用Visual Studio自动生成的可执行文件，以及我们自己编译生成的文件，可以看到两者大小不一样：
+
+![Snipaste_2024-03-13_23-59-22.png](/img/Snipaste_2024-03-13_23-59-22.png)
