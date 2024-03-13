@@ -537,3 +537,138 @@ Visual Studio提供的标准函数库文件都是被编译过的，无法看到�
 > 在C语言中，`#include`指令后面的文件名两端是引号还是尖括号，决定了C预处理程序到哪里去查找这个文件。如果文件名两端是尖括号，如`#include <stdio.h>`，则预处理程序会在项目设置的【包含目录】下去寻找这个头文件，也就是我们上面说的头文件通常存储在`C:\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\ucrt` 目录。
 >
 > 如果文件名两端是引号，则会首先在源程序所在的目录下查找这个文件。如果没有找到，就会再到包含目录下面去找。
+
+##### 3.2.3.2 printf函数的基本使用
+
+参考之前的方法在解决方案中新增C++项目【L03_01_PRINTF】，注意项目保存位置是`D:\BC101\Examples\L03`,并创建源文件`main.cpp`，其内容如下：
+
+```cpp
+#include <stdio.h>
+int main()
+{
+    int a = 255;
+    int b = 255;
+    printf("a is:%d\nb is:%x\n", a, b);
+
+    return 0;
+}
+```
+
+由于我们在解决方案中加入了两个项目，直接运行的话，还是会运行之前项目的代码。要解决这个问题，可以按如下方法操作：
+
+- 在【解决方案资源管理器】窗口中右击【L03_01_PRINTF】项目，然后在弹出的快捷菜单中选择：
+  - 【设为启动项目】，将当前项目设置为启动项目后，每次单击【本地Windows调试器】后，都会启动该项目。这种的话，相当于改变解决方案的默认启动项目。
+  - 【调试】--【启动新实例】，这种的话，不会改变默认启动项目，只是一次性启动。
+
+![Snipaste_2024-03-13_22-59-38.png](/img/Snipaste_2024-03-13_22-59-38.png)
+
+我使用第一种方式。
+
+运行程序：
+
+![Snipaste_2024-03-13_23-10-02.png](/img/Snipaste_2024-03-13_23-10-02.png)
+
+### 3.3 源程序如何变成可执行文件
+
+除了让Visual Studio自动完成编译，程序员也可以用手工操作的方式逐步编译源代码。接下来我们将使用命令行逐步处理源程序，将其编译成可执行文件。
+
+在操作之前，请先请第2课的源程序文件`HelloWorld.cpp`复制到计算机某个磁盘的某个目录下，例如`D:\BC101\Examples\build`目录。
+
+![Snipaste_2024-03-13_23-17-18.png](/img/Snipaste_2024-03-13_23-17-18.png)
+
+
+
+我用的系统是Windows 11，上面用的PowerShell命令行工具。
+
+![Snipaste_2024-03-13_23-26-09.png](/img/Snipaste_2024-03-13_23-26-09.png)
+
+切换目录，并查看帮助信息：
+
+执行以下三个命令：
+
+```powershell
+cd D:\BC101\Examples\build
+cl /? > cl.help.txt
+link /? > link.help.txt
+```
+
+![Snipaste_2024-03-13_23-31-38.png](/img/Snipaste_2024-03-13_23-31-38.png)
+
+#### 3.3.1 预处理
+
+预处理不是将源代码生成二进制文件，而是将源程序文件进行初步处理。例如将头文件中的内容与`HelloWorld.cpp`按顺序合并到一起以及处理各种编译条件等。
+
+执行`cl`命令时使用`/EP`参数即可对源程序进行预处理，执行以下命令：
+
+```powershell
+cl /EP HelloWorld.cpp > HelloWorld_p.cpp
+```
+
+参数说明：
+
+-  /EP 选项禁止编译。
+
+```powershell
+PS D:\BC101\Examples\build> cl /EP HelloWorld.cpp > HelloWorld_p.cpp
+用于 x86 的 Microsoft (R) C/C++ 优化编译器 19.30.30705 版
+版权所有(C) Microsoft Corporation。保留所有权利。
+
+HelloWorld.cpp
+```
+
+
+
+此时，会在当前目录生成`HelloWorld_p.cpp`文件。该文件比源文件大很多。
+
+![Snipaste_2024-03-13_23-38-41.png](/img/Snipaste_2024-03-13_23-38-41.png)
+
+对比两个文件内容：
+
+![Snipaste_2024-03-13_23-36-52.png](/img/Snipaste_2024-03-13_23-36-52.png)
+
+可以看到，最后的几行代码保留了，前面增加了很多其他的内容。
+
+
+
+#### 3.3.2 编译
+
+接下来，可以将预处理后的程序文件`HelloWorld_p.cpp`编译成【目标文件】，这个过程是先依据程序文件`HelloWorld_p.cpp`生成汇编语言代码，再将其生成机器码。执行以下命令：
+
+```powershell
+cl /FAs /c HelloWorld_p.cpp
+```
+
+参数说明：
+
+- /FA[scu] 配置程序集列表。s是可选的， 表示将源代码包括在此列表中。 
+- /c 只编译，不链接。
+
+```powershell
+PS D:\BC101\Examples\build> cl /FAs /c HelloWorld_p.cpp
+用于 x86 的 Microsoft (R) C/C++ 优化编译器 19.30.30705 版
+版权所有(C) Microsoft Corporation。保留所有权利。
+
+HelloWorld_p.cpp
+PS D:\BC101\Examples\build> ls
+
+
+    目录: D:\BC101\Examples\build
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         2024/3/13     23:27          17160 cl.help.txt
+-a----         2024/3/13     23:07            137 HelloWorld.cpp
+-a----         2024/3/13     23:47           3253 HelloWorld_p.asm
+-a----         2024/3/13     23:32         319996 HelloWorld_p.cpp
+-a----         2024/3/13     23:47           1624 HelloWorld_p.obj
+-a----         2024/3/13     23:28           6384 link.help.txt
+
+
+PS D:\BC101\Examples\build>
+```
+
+可以看到，目录中多出了`HelloWorld_p.asm`和`HelloWorld_p.obj`文件。
+
+- `HelloWorld_p.asm`是程序转换成汇编语言程序以后的代码，可以用编辑器打开查看。
+- `HelloWorld_p.obj`是根据汇编语言程序生成的二进制的代码（目标文件）。
