@@ -1,0 +1,17 @@
+---
+- name: Sync time at every 10 minutes
+  ansible.builtin.cron:
+    name: "Sync time"
+    minute: "*/10"
+    # 与阿里云NTP时间源服务器同步
+    job: "/usr/sbin/ntpdate ntp1.aliyun.com > /dev/null 2>&1"
+    state: present
+
+- name: Sync time at 2:30 am
+  ansible.builtin.cron:
+    name: "Set hardware clock time"
+    minute: "30"
+    hour: "2"
+    # --systohc 将硬件时钟调整为与目前的系统时钟一致
+    job: "/usr/sbin/hwclock --systohc > /dev/null 2>&1"
+    state: present

@@ -1,0 +1,8 @@
+---
+- name: Show hostname
+  ansible.builtin.debug:
+    msg: "{{ hostname }}"
+
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: "{{ ansible_hostname }}"

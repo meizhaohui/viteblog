@@ -1,0 +1,15 @@
+---
+- name: ensure a list of packages installed
+  ansible.builtin.yum:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - vim
+    - telnet
+    - python3
+    - ntpdate
+    - wget
+    - lrzsz
+    - git
+    - java-1.8.0-openjdk
+    - java-1.8.0-openjdk-devel

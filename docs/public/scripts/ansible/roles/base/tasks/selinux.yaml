@@ -1,0 +1,22 @@
+---
+- name: Get SELinux value
+  ansible.builtin.command:
+    cmd: getenforce
+  register: selinux_result
+  changed_when: false
+
+- name: Set SELinux prints warnings instead of enforcing
+  ansible.builtin.command:
+    cmd: setenforce 0
+  when: "'Disabled' not in selinux_result.stdout"
+
+- name: Ensure SELinux is set to disable mode
+  ansible.builtin.lineinfile:
+    path: /etc/selinux/config
+    regexp: '^SELINUX='
+    line: SELINUX=disabled
+
+- name: Get SELinux value
+  ansible.builtin.command:
+    cmd: getenforce
+  changed_when: false

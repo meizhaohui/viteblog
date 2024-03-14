@@ -1,0 +1,12 @@
+---
+# 注意，默认python3.6.8自带的pip版本较低，如果不升级的话，下一步的trash-cli包安装就会报异常
+- name: Update pip command
+  ansible.builtin.command:
+    cmd: python3 -m pip install --upgrade pip
+
+- name: Install python package
+  ansible.builtin.pip:
+    name: trash-cli
+    executable: pip3
+  vars:
+    ansible_python_interpreter: /usr/bin/python3

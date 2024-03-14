@@ -1,0 +1,31 @@
+---
+- name: create base folder
+  ansible.builtin.file:
+    path: /srv/safe-rm
+    state: directory
+
+- name: Extract safe-rm-0.12.tar.gz into /srv/safe-rm
+  ansible.builtin.unarchive:
+    src: safe-rm-0.12.tar.gz
+    # dest目标目录必须是存在的目录
+    dest: /srv/safe-rm
+    owner: root
+    group: root
+
+- name: Move safe-rm to /usr/bin
+  ansible.builtin.copy:
+    dest: /usr/bin/safe-rm
+    src: /srv/safe-rm/safe-rm-0.12/safe-rm
+    remote_src: yes
+    mode: '0755'
+
+- name: Delete temp folder
+  ansible.builtin.file:
+    path: /srv/safe-rm
+    state: absent
+
+- name: Copy safe-rm config
+  ansible.builtin.copy:
+    src: safe-rm.conf
+    dest: /etc/safe-rm.conf
+    remote_src: no

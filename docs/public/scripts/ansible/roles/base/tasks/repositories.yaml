@@ -1,0 +1,36 @@
+---
+- name: Create a directory if it does not exist
+  ansible.builtin.file:
+    path: ~/.pip
+    state: directory
+    mode: '0755'
+
+- name: Create backup directory
+  ansible.builtin.file:
+    path: /etc/yum.repos.d.bak
+    state: directory
+    mode: '0755'
+
+- name: Backup old repo config
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    remote_src: yes
+  with_items:
+    - { src: '/etc/yum.repos.d', dest: '/etc/yum.repos.d.bak'}
+
+- name: Create repositories directory
+  ansible.builtin.file:
+    path: /etc/yum.repos.d
+    state: directory
+    mode: '0755'
+
+- name: Copy repo and pypi config
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    remote_src: no
+  with_items:
+    - { src: 'Centos-7.repo', dest: '/etc/yum.repos.d/Centos-7.repo'}
+    - { src: 'epel-7.repo', dest: '/etc/yum.repos.d/epel-7.repo'}
+    - { src: 'pip.conf', dest: '~/.pip/pip.conf'}
