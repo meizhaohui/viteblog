@@ -33,7 +33,7 @@ name: Nginx
   -  [ansible role角色(1)](./role.md)，role角色概述与相关功能概述。
   -  [ansible role角色(2)--创建第一个role角色](./role_2.md)，创建第一个测试role角色。
   -  [ansible role角色(3)--一步一步学role角色](./role_3.md)，base基础角色配置。
-
+  -  [ansible role角色(4)--include的使用](./role_4_include.md)，base基础角色配置优化，拆分任务功能，引入include关键字。
 
 Ansible内置模块：
 
@@ -158,6 +158,7 @@ Ansible内置模块：
 46. [ansible role角色(1)--role角色概述与相关功能概述 ](./role.md)
 47. [ansible role角色(2)--创建第一个role角色](./role_2.md)
 48. [ansible role角色(3)--一步一步学role角色](./role_3.md)
+49. [ansible role角色(4)--include的使用](./role_4_include.md)
 
 
 

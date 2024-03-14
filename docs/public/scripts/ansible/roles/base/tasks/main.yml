@@ -7,3 +7,4 @@
 - include: trash-cli.yaml
 - include: crontab.yaml
 - include: ssh-keygen.yaml
+- include: alias.yaml
