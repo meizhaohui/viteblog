@@ -938,7 +938,7 @@ node2 | SUCCESS => {
 
 ![](/img/Snipaste_2022-09-21_23-15-03.png)
 
-此时，因为`shell.fact`没有可执行权限，Ansible认为该文件是一个静态事实文件，但这个文件既不是`ini`格式的文件，也是`json`格式的文件，此时Ansible就报解析文件内容异常了。
+此时，因为`shell.fact`没有可执行权限，Ansible认为该文件是一个静态事实文件，但这个文件既不是`ini`格式的文件，也不是`json`格式的文件，此时Ansible就报解析文件内容异常了。
 
 
 
