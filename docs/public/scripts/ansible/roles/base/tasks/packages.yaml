@@ -14,5 +14,9 @@
     - java-1.8.0-openjdk
     - java-1.8.0-openjdk-devel
     - colordiff
+    # net-tools套件，提供netstat/ifconfig/route等工具
     - net-tools
-    
+    # psmisc套件，提供fuser/killall/pstree等工具
+    - psmisc
+    # dsniff网络流量分析和密码嗅探工具，提供tcpkill等工具
+    - dsniff
