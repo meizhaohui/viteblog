@@ -841,3 +841,40 @@ sys     0m4.177s
 - pipelining也是OpenSSH的一个特性。
 - 如果开启了pipelining功能，Ansible会改变默认的执行过程，默认情况下，Ansible有一个流程是把生成好的本地Python脚本PUT到远程服务器，开启pipelining功能后，这个过程将会在SSH的会话中进行，这样可以大大提高整个执行效率。
 - 但开启pipelining,需要被控主机`/etc/sudoers`文件编辑当前Ansible SSH用户为`requiretty`，否则在执行时会报异常。
+
+修改`/etc/ansible/ansible.cfg`后，查看配置情况：
+
+```sh
+[root@ansible ansible_playbooks]# grep pipelining /etc/ansible/ansible.cfg
+# Enabling pipelining reduces the number of SSH operations required to
+#pipelining = False
+pipelining = True
+# The -tt argument is passed to ssh when pipelining is not enabled because sudo
+[root@ansible ansible_playbooks]#
+```
+
+
+
+此时执行剧本：
+
+```sh
+[root@ansible ansible_playbooks]# time ansible-playbook -i base_hosts.ini base.yml
+...过程输出省略
+real    0m12.928s
+user    0m7.716s
+sys     0m2.435s
+[root@ansible ansible_playbooks]#
+```
+
+可以看到，用时减少了，再执行一次：
+
+```sh
+[root@ansible ansible_playbooks]# time ansible-playbook -i base_hosts.ini base.yml
+...过程输出省略
+real    0m12.877s
+user    0m7.510s
+sys     0m2.749s
+[root@ansible ansible_playbooks]#
+```
+
+可以看到，开启了pipelining功能后，总用时约为13秒，相当于默认情况下约快了3秒钟。
