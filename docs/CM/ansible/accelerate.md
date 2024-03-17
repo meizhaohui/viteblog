@@ -878,3 +878,64 @@ sys     0m2.749s
 ```
 
 可以看到，开启了pipelining功能后，总用时约为13秒，相当于默认情况下约快了3秒钟。
+
+如果开启`-vvvv`详细日志参数，可以看到日志中会出现很多`Pipelining is enabled`的信息:
+
+![Snipaste_2024-03-17_22-28-44.png](/img/Snipaste_2024-03-17_22-28-44.png)
+
+我们将配置文件中新增加的`pipelining = True`删除掉:
+
+```sh
+# 关闭pipelining功能
+[root@ansible ansible_playbooks]# grep pipelining /etc/ansible/ansible.cfg
+# Enabling pipelining reduces the number of SSH operations required to
+#pipelining = False
+# The -tt argument is passed to ssh when pipelining is not enabled because sudo
+[root@ansible ansible_playbooks]#
+```
+
+再执行剧本：
+
+![Snipaste_2024-03-17_22-33-12.png](/img/Snipaste_2024-03-17_22-33-12.png)
+
+日志中没有出现`Pipelining is enabled`的信息。
+
+注意，开启`-vvvv`详细日志参数时，剧本执行时间会增加。
+
+按我们测试的剧本来算，默认情况下用时是16秒，开启pipelining功能后用时13秒，速度优化3秒，优化百分比为`3/16*100%=18.75%`，提升还是不错的。
+
+
+
+### 2.3 开启accelerate模式
+
+> Ansible还有一个accelerate加速模式，这与前面SSH的Multiplexing有点类似，因为都依赖Ansible中控机跟远程机器有一个长连接。
+>
+> 但是accelerate是使用Python程序在远程主机上运行一个守护进程，然后Ansible会通过这个守护进程监控的端口进行通信，开启accelerate模式很简单，只需要在Ansible playbook中配置`accelerate: true`即可。
+>
+> 需要注意的是，如果开启accelerate加速模式，则需要在Ansible中控机和远端机器都安装python-keyczar软件包。
+
+下面是在`/etc/ansible/ansible.cfg`中配置的accelerate加速模式相关的参数：
+
+```sh
+[root@ansible ansible_playbooks]# grep -n -C2  accelerate  /etc/ansible/ansible.cfg
+444-#command_timeout = 30
+445-
+446:[accelerate]
+447:#accelerate_port = 5099
+448:#accelerate_timeout = 30
+449:#accelerate_connect_timeout = 5.0
+450-
+451-# The daemon timeout is measured in minutes. This time is measured
+452:# from the last activity to the accelerate daemon.
+453:#accelerate_daemon_timeout = 30
+454-
+455:# If set to yes, accelerate_multi_key will allow multiple
+456-# private keys to be uploaded to it, though each user must
+457-# have access to the system via SSH to add a new key. The default
+458-# is "no".
+459:#accelerate_multi_key = yes
+460-
+461-[selinux]
+[root@ansible ansible_playbooks]#
+```
+
