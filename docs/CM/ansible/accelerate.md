@@ -255,9 +255,9 @@ sys     0m3.725s
 
 可以看到，后面3次实际用时差不多都是16秒钟。我们后面测试就来对比这个时间。
 
+## 2. 优化策略
 
-
-## 2. 开启SSH长连接
+### 2.1 开启SSH长连接
 
 在OpenSSH 5.6版本以后SSH就支持了Multiplexing。如果Ansible控制节点SSH版本高于5.6就可以开启SSH长连接。
 
@@ -589,6 +589,20 @@ srw-------. 1 root root 0 Mar 17 12:18 f59c3dce9d
 
 可以看到，长连接建立了，对立socket文件也生成了。
 
+也可以通过以下命令判断`~/.ansible/cp`目录下的文件是`socket`文件：
+
+```sh
+[root@ansible ansible_playbooks]# file ~/.ansible/cp/6e835d9f0e
+/root/.ansible/cp/6e835d9f0e: socket
+[root@ansible ansible_playbooks]# file ~/.ansible/cp/a734bde817
+/root/.ansible/cp/a734bde817: socket
+[root@ansible ansible_playbooks]# file ~/.ansible/cp/f59c3dce9d
+/root/.ansible/cp/f59c3dce9d: socket
+[root@ansible ansible_playbooks]#
+```
+
+
+
 在工作节点上面检查一下：
 
 ```sh
@@ -802,3 +816,20 @@ sys     0m4.031s
 ![Snipaste_2024-03-17_12-29-59.png](/img/Snipaste_2024-03-17_12-29-59.png)
 
 奇怪了，用时还超了，变成了20.6秒！！
+
+
+
+再执行一次，用时还是变多了：
+
+```sh
+[root@ansible ansible_playbooks]# time ansible-playbook -i base_hosts.ini base.yml
+...过程输出省略
+real    0m21.651s
+user    0m9.436s
+sys     0m4.177s
+[root@ansible ansible_playbooks]#
+```
+
+通过以上实验可以看到：
+
+- 开启长连接后，Ansible会保持和目标主机的持续连接，减少了连接的建立和断开时间，但是在执行剧本时，由于要维持这种长连接，可能会增加一些额外的网络开销和系统资源的消耗，导致执行剧本的时间变长。此外，可能还会受到网络延迟等因素的影响，进一步增加执行剧本的时间。因此，尽管长连接可以提高效率，但在某些情况下也可能导致执行时间变长。
