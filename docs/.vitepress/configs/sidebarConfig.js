@@ -308,6 +308,7 @@ module.exports = {
         { text: 'ansible fiter过滤器', link: '/CM/ansible/filter' },
         { text: 'lookups插件', link: '/CM/ansible/lookups' },
         { text: '编写facts模块', link: '/CM/ansible/facts_module' },
+        { text: '优化Ansible速度', link: '/CM/ansible/accelerate' },
         { text: 'ansible role角色(1)--role角色概述与相关功能概述 ', link: '/CM/ansible/role' },
         { text: 'ansible role角色(2)--创建第一个role角色', link: '/CM/ansible/role_2' },
         { text: 'ansible role角色(3)--一步一步学role角色', link: '/CM/ansible/role_3' },

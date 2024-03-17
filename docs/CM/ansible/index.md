@@ -12,7 +12,7 @@
 - 等幂性是指如果系统已经处于期望的状态，则对系统什么也不操作。
 - Ansible命令都是并发执行的，我们可以针对目标主机执行任何命令。
 - 默认的并发数目由`/etc/ansible/ansible.cfg`中的`forks`值来控制的。也可以在运行Ansible命令的时候通过`-f`/`--forks`参数指定并发数。默认值是`5`。**单台主机的性能始终有限，大家根据自己机器的硬件配置做调整，建议并发数配置为CPU核数偶数倍就好。如4CPU 8GB的服务器，建议最多并发20个线程。**
-- 除了增加并发数，也可以通过以下方式优化Ansible速度：
+- 除了增加并发数，也可以通过以下方式优化Ansible速度，详细可参考[优化Ansible速度](./accelerate.md)：
   - 开启SSH长连接。
   - 开启pipelining。
   - 开启accelerate模式。
@@ -160,10 +160,11 @@ Ansible内置模块：
 43. [ansible fiter过滤器](./filter.md)
 44. [lookups插件](./lookups.md)
 45. [编写facts模块](./facts_module.md)
-46. [ansible role角色(1)--role角色概述与相关功能概述 ](./role.md)
-47. [ansible role角色(2)--创建第一个role角色](./role_2.md)
-48. [ansible role角色(3)--一步一步学role角色](./role_3.md)
-49. [ansible role角色(4)--include的使用](./role_4_include.md)
+46. [优化Ansible速度](./accelerate.md)
+47. [ansible role角色(1)--role角色概述与相关功能概述 ](./role.md)
+48. [ansible role角色(2)--创建第一个role角色](./role_2.md)
+49. [ansible role角色(3)--一步一步学role角色](./role_3.md)
+50. [ansible role角色(4)--include的使用](./role_4_include.md)
 
 
 
