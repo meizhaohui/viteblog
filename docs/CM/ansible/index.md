@@ -35,7 +35,7 @@ name: Nginx
 - 编写facts模块，可参考 [编写facts模块](./facts_module.md)。
 - 从外部数据拉取信息存放到变量中，可以使用lookups插件，可参考 [lookups插件](./lookups.md)。
 - Ansible角色，可参考以下Role角色系列教程：
-  -  [ansible role角色(1)](./role.md)，role角色概述与相关功能概述。
+  -  [ansible role角色(1)](./role.md)，role角色概述与相关功能概述。使用Ansible Galaxy https://galaxy.ansible.com/ui/ 分享你的角色等。
   -  [ansible role角色(2)--创建第一个role角色](./role_2.md)，创建第一个测试role角色。
   -  [ansible role角色(3)--一步一步学role角色](./role_3.md)，base基础角色配置。
   -  [ansible role角色(4)--include的使用](./role_4_include.md)，base基础角色配置优化，拆分任务功能，引入include关键字。

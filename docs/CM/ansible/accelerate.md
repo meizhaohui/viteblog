@@ -939,3 +939,40 @@ sys     0m2.749s
 [root@ansible ansible_playbooks]#
 ```
 
+我们先不安装包，直接修改剧本文件`base.yml`，增加`accelerate: true`配置，修改后，查看`base.yml`内容：
+
+```sh
+[root@ansible ansible_playbooks]# cat base.yml
+---
+- hosts: basehosts
+  accelerate: true
+  roles:
+    - base
+```
+
+然后执行剧本，直接报错了：
+
+```sh
+[root@ansible ansible_playbooks]# time ansible-playbook -i base_hosts.ini base.yml
+ERROR! 'accelerate' is not a valid attribute for a Play
+
+The error appears to be in '/root/ansible_playbooks/base.yml': line 2, column 3, but may
+be elsewhere in the file depending on the exact syntax problem.
+
+The offending line appears to be:
+
+---
+- hosts: basehosts
+  ^ here
+
+real    0m0.499s
+user    0m0.420s
+sys     0m0.079s
+[root@ansible ansible_playbooks]#
+```
+
+提示`'accelerate' is not a valid attribute for a Play`，即accelerate不是剧本的有效属性。
+
+这里可以找到10年前accelerate.py的源码：[accelerate.py](https://github.com/mpdehaan/ansible/blob/devel/lib/ansible/runner/connection_plugins/accelerate.py)
+
+我用Python 3.6.8版本，pip安装ansible 4.10.0也报相同的异常，因此暂时忽略此加速方案。
