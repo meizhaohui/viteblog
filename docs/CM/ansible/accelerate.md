@@ -1657,3 +1657,64 @@ python-memcached             1.62
 [root@ansible ~]#
 ```
 
+修改`/etc/ansible/ansible.cfg`配置文件中以下几个参数：
+
+```ini
+gathering = smart
+fact_caching = memcached
+fact_caching_timeout = 300
+fact_caching_connection = 127.0.0.1:11211
+```
+
+
+
+由于python 2.7的一些语法限制，执行剧本时会报错：
+
+```sh
+[root@ansible ansible_playbooks]# time ansible-playbook -i base_hosts.ini base.yml -vvv
+ansible-playbook 2.9.27
+  config file = /etc/ansible/ansible.cfg
+  configured module search path = [u'/root/.ansible/plugins/modules', u'/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/lib/python2.7/site-packages/ansible
+  executable location = /usr/bin/ansible-playbook
+  python version = 2.7.5 (default, Oct 14 2020, 14:45:30) [GCC 4.8.5 20150623 (Red Hat 4.8.5-44)]
+Using /etc/ansible/ansible.cfg as config file
+host_list declined parsing /root/ansible_playbooks/base_hosts.ini as it did not pass its verify_file() method
+script declined parsing /root/ansible_playbooks/base_hosts.ini as it did not pass its verify_file() method
+auto declined parsing /root/ansible_playbooks/base_hosts.ini as it did not pass its verify_file() method
+yaml declined parsing /root/ansible_playbooks/base_hosts.ini as it did not pass its verify_file() method
+Parsed /root/ansible_playbooks/base_hosts.ini inventory source with ini plugin
+ERROR! Unexpected Exception, this is probably a bug: invalid syntax (memcache.py, line 374)
+the full traceback was:
+
+Traceback (most recent call last):
+  File "/usr/bin/ansible-playbook", line 123, in <module>
+    exit_code = cli.run()
+  File "/usr/lib/python2.7/site-packages/ansible/cli/playbook.py", line 109, in run
+    loader, inventory, variable_manager = self._play_prereqs()
+  File "/usr/lib/python2.7/site-packages/ansible/cli/__init__.py", line 473, in _play_prereqs
+    variable_manager = VariableManager(loader=loader, inventory=inventory, version_info=CLI.version_info(gitinfo=False))
+  File "/usr/lib/python2.7/site-packages/ansible/vars/manager.py", line 102, in __init__
+    self._fact_cache = FactCache()
+  File "/usr/lib/python2.7/site-packages/ansible/vars/fact_cache.py", line 24, in __init__
+    self._plugin = cache_loader.get(C.CACHE_PLUGIN)
+  File "/usr/lib/python2.7/site-packages/ansible/plugins/loader.py", line 552, in get
+    self._module_cache[path] = self._load_module_source(name, path)
+  File "/usr/lib/python2.7/site-packages/ansible/plugins/loader.py", line 530, in _load_module_source
+    module = imp.load_source(to_native(full_name), to_native(path), module_file)
+  File "/usr/lib/python2.7/site-packages/ansible/plugins/cache/memcached.py", line 59, in <module>
+    import memcache
+  File "/usr/lib/python2.7/site-packages/memcache.py", line 374
+    def quit_all(self) -> None:
+                       ^
+SyntaxError: invalid syntax
+
+real    0m0.344s
+user    0m0.298s
+sys     0m0.046s
+[root@ansible ansible_playbooks]#
+```
+
+ 在Python 2.7中，`quit_all`函数的定义可能出现了一些问题。Python 2.7不支持类型注释，即`-> None`部分。这是导致错误的直接原因。 
+
+建议升级Python版本和Ansible版本后再进行测试。
