@@ -981,3 +981,397 @@ sys     0m0.079s
 
 - Ansible在执行剧本时，默认第一个task是`TASK [Gathering Facts] `，这个任务就是Ansible收集每台主机的facts信息。方便我们在剧本中直接引用facts里面的信息。
 - 如果你的剧本里面不需要facts信息，可以在playbook中设置`gather_facts: False`来提高playbook效率。
+- 如果我们既要在每次执行playbook时都能收集facts，又想加速这个收集过程，那么就需要配置facts缓存了。
+
+为了测试是否能够正常缓存facts事实变量，我们增加一个自定义的fact配置，详细可参考[setup事实变量模块](./setup.md)。
+
+在三个节点上面创建目录`/etc/ansible/facts.d`，并创建文件`/etc/ansible/facts.d/myself.fact`，创建完成后查看配置内容：
+
+```sh
+[root@ansible-node1 ~]# mkdir -p /etc/ansible/facts.d
+[root@ansible-node1 ~]# echo -e "[myfacts]\nmyself_fact=1" > /etc/ansible/facts.d/myself.fact
+[root@ansible-node1 ~]# cat /etc/ansible/facts.d/myself.fact
+[myfacts]
+myself_fact=1
+[root@ansible-node1 ~]#
+```
+
+然后在Ansible控制节点查看自定义fact信息：
+
+```sh
+[root@ansible ansible_playbooks]# ansible -i base_hosts.ini all -m ansible.builtin.setup -a "filter=ansible_local" -o
+192.168.56.123 | SUCCESS => {"ansible_facts": {"ansible_local": {"myself": {"myfacts": {"myself_fact": "1"}}}, "discovered_interpreter_python": "/usr/bin/python"}, "changed": false}
+192.168.56.121 | SUCCESS => {"ansible_facts": {"ansible_local": {"myself": {"myfacts": {"myself_fact": "1"}}}, "discovered_interpreter_python": "/usr/bin/python"}, "changed": false}
+192.168.56.122 | SUCCESS => {"ansible_facts": {"ansible_local": {"myself": {"myfacts": {"myself_fact": "1"}}}, "discovered_interpreter_python": "/usr/bin/python"}, "changed": false}
+[root@ansible ansible_playbooks]#
+```
+
+可以看到，正常获取到了我自定义的fact事实变量。
+
+在测试前，再次执行两次剧本：
+
+```sh
+[root@ansible ansible_playbooks]# time ansible-playbook -i base_hosts.ini base.yml
+...过程输出省略
+real    0m15.347s
+user    0m9.214s
+sys     0m3.838s
+[root@ansible ansible_playbooks]#
+
+[root@ansible ansible_playbooks]# time ansible-playbook -i base_hosts.ini base.yml
+...过程输出省略
+real    0m15.472s
+user    0m8.931s
+sys     0m4.202s
+[root@ansible ansible_playbooks]#
+```
+
+执行剧本用时差不多还是16秒钟。
+
+查看现有配置：
+
+```sh
+[root@ansible ~]# grep -nE -C5 'fact_cach|gathering' /etc/ansible/ansible.cfg
+31-# the remote system.
+32-#
+33-# smart - gather by default, but don't regather if already gathered
+34-# implicit - gather by default, turn off with gather_facts: False
+35-# explicit - do not gather by default, must say gather_facts: True
+36:#gathering = implicit
+37-
+38:# This only affects the gathering done by a play's gather_facts directive,
+39:# by default gathering retrieves all facts subsets
+40-# all - gather all subsets
+41-# network - gather min and network facts
+42-# hardware - gather hardware facts (longest facts to retrieve)
+43-# virtual - gather min and virtual facts
+44-# facter - import facts from facter
+--
+238-# if set to a persistent type (not 'memory', for example 'redis') fact values
+239-# from previous runs in Ansible will be stored.  This may be useful when
+240-# wanting to use, for example, IP information from one group of servers
+241-# without having to talk to them in the same playbook run to get their
+242-# current IP information.
+243:#fact_caching = memory
+244-
+245-#This option tells Ansible where to cache facts. The value is plugin dependent.
+246-#For the jsonfile plugin, it should be a path to a local directory.
+247:#For the redis plugin, the value is a host:port:database triplet: fact_caching_connection = localhost:6379:0
+248-
+249:#fact_caching_connection=/tmp
+250-
+251-
+252-
+253-# retry files
+254-# When a playbook fails a .retry file can be created that will be placed in ~/
+[root@ansible ~]#
+```
+
+#### 2.4.1 使用json文件进行缓存
+
+修改`/etc/ansible/ansible.cfg`配置文件中以下三个参数：
+
+```ini
+gathering = smart
+fact_caching = jsonfile
+fact_caching_connection = /tmp
+```
+
+修改配置，使用json文件缓存：
+
+```sh
+[root@ansible ~]# grep -nE -C5 'fact_cach|gathering' /etc/ansible/ansible.cfg
+31-# the remote system.
+32-#
+33-# smart - gather by default, but don't regather if already gathered
+34-# implicit - gather by default, turn off with gather_facts: False
+35-# explicit - do not gather by default, must say gather_facts: True
+36:#gathering = implicit
+37:gathering = smart
+38-
+39:# This only affects the gathering done by a play's gather_facts directive,
+40:# by default gathering retrieves all facts subsets
+41-# all - gather all subsets
+42-# network - gather min and network facts
+43-# hardware - gather hardware facts (longest facts to retrieve)
+44-# virtual - gather min and virtual facts
+45-# facter - import facts from facter
+--
+239-# if set to a persistent type (not 'memory', for example 'redis') fact values
+240-# from previous runs in Ansible will be stored.  This may be useful when
+241-# wanting to use, for example, IP information from one group of servers
+242-# without having to talk to them in the same playbook run to get their
+243-# current IP information.
+244:#fact_caching = memory
+245:fact_caching = jsonfile
+246-
+247-#This option tells Ansible where to cache facts. The value is plugin dependent.
+248-#For the jsonfile plugin, it should be a path to a local directory.
+249:#For the redis plugin, the value is a host:port:database triplet: fact_caching_connection = localhost:6379:0
+250-
+251:fact_caching_connection=/tmp
+252-
+253-
+254-
+255-# retry files
+256-# When a playbook fails a .retry file can be created that will be placed in ~/
+[root@ansible ~]#
+```
+
+注意，`fact_caching_connection=/tmp`这个配置一定要打开，要不然后执行剧本时会报以下警告：
+
+```sh
+[root@ansible ansible_playbooks]# time ansible-playbook -i base_hosts.ini base.yml -v
+Using /etc/ansible/ansible.cfg as config file
+[WARNING]: No setting was provided for required configuration plugin_type: cache plugin: jsonfile setting: _uri
+
+PLAY [basehosts] *****************************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.123]
+ok: [192.168.56.121]
+ok: [192.168.56.122]
+...过程输出省略
+[root@ansible ansible_playbooks]#
+```
+
+此时不会生成缓存文件。
+
+
+
+为了验证是否正常收集fact，开启`-v`参数：
+
+```sh
+[root@ansible ansible_playbooks]# time ansible-playbook -i base_hosts.ini base.yml -v
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [basehosts] *****************************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+ok: [192.168.56.122]
+ok: [192.168.56.123]
+
+TASK [base : Show hostname] ******************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {
+    "msg": "ansible-node1"
+}
+ok: [192.168.56.122] => {
+    "msg": "ansible-node2"
+}
+ok: [192.168.56.123] => {
+    "msg": "ansible-node3"
+}
+...过程输出省略
+
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=26   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+192.168.56.122             : ok=26   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+192.168.56.123             : ok=26   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+
+real    0m15.348s
+user    0m9.233s
+sys     0m3.940s
+[root@ansible ansible_playbooks]# 
+```
+
+此时，查看`/tmp`目录下文件：
+
+```sh
+[root@ansible ansible_playbooks]# cat /tmp/192.168.56.121|jq '.ansible_local'
+{
+  "myself": {
+    "myfacts": {
+      "myself_fact": "1"
+    }
+  }
+}
+[root@ansible ansible_playbooks]# cat /tmp/192.168.56.122|jq '.ansible_local'
+{
+  "myself": {
+    "myfacts": {
+      "myself_fact": "1"
+    }
+  }
+}
+[root@ansible ansible_playbooks]# cat /tmp/192.168.56.123|jq '.ansible_local'
+{
+  "myself": {
+    "myfacts": {
+      "myself_fact": "1"
+    }
+  }
+}
+[root@ansible ansible_playbooks]#
+```
+
+可以看到，生成的缓存文件。再次执行一次剧本：
+
+```sh
+[root@ansible ansible_playbooks]# time ansible-playbook -i base_hosts.ini base.yml -v
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [basehosts] *****************************************************************************************************************************************************************************************************************************************************************************
+
+TASK [base : Show hostname] ******************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {
+    "msg": "ansible-node1"
+}
+ok: [192.168.56.122] => {
+    "msg": "ansible-node2"
+}
+ok: [192.168.56.123] => {
+    "msg": "ansible-node3"
+}
+
+TASK [base : Set hostname] **************
+...过程输出省略
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=25   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+192.168.56.122             : ok=25   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+192.168.56.123             : ok=25   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+
+real    0m16.801s
+user    0m9.292s
+sys     0m4.170s
+[root@ansible ansible_playbooks]#
+```
+
+此时，可以看到，此时已经没有`TASK [Gathering Facts] `这一步任务了，但最后执行任务用时16.8秒，用时还变多了。
+
+再执行一次剧本，用时15.889秒。可以看到，并没有节省多少时间。
+
+如果我们此时更新三个节点上面的自定义变量：
+
+```sh
+[root@ansible-node1 ~]# echo -e "[myfacts]\nmyself_fact=2" > /etc/ansible/facts.d/myself.fact
+[root@ansible-node1 ~]# cat /etc/ansible/facts.d/myself.fact
+[myfacts]
+myself_fact=2
+[root@ansible-node1 ~]#
+```
+
+然后再执行剧本：
+
+```sh
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [basehosts] *****************************************************************************************************************************************************************************************************************************************************************************
+
+TASK [base : Show hostname] ******************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {
+    "msg": "ansible-node1"
+}
+ok: [192.168.56.122] => {
+    "msg": "ansible-node2"
+}
+ok: [192.168.56.123] => {
+    "msg": "ansible-node3"
+}
+
+TASK [base : Set hostname] *****
+...过程输出省略
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=25   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+192.168.56.122             : ok=25   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+192.168.56.123             : ok=25   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+
+real    0m14.830s
+user    0m8.939s
+sys     0m3.983s
+[root@ansible ansible_playbooks]# 
+```
+
+此时，执行时间降低了！
+
+查看自定义事实缓存文件和配置文件：
+
+```sh
+[root@ansible ansible_playbooks]# ll /tmp
+total 84
+-rw-r--r--. 1 root root 27350 Mar 18 19:59 192.168.56.121
+-rw-r--r--. 1 root root 27685 Mar 18 19:59 192.168.56.122
+-rw-r--r--. 1 root root 27727 Mar 18 19:59 192.168.56.123
+[root@ansible ansible_playbooks]# cat /tmp/192.168.56.121|jq  '.ansible_local'
+{
+  "myself": {
+    "myfacts": {
+      "myself_fact": "1"
+    }
+  }
+}
+[root@ansible ansible_playbooks]# cat /tmp/192.168.56.122|jq  '.ansible_local'
+{
+  "myself": {
+    "myfacts": {
+      "myself_fact": "1"
+    }
+  }
+}
+[root@ansible ansible_playbooks]# cat /tmp/192.168.56.123|jq  '.ansible_local'
+{
+  "myself": {
+    "myfacts": {
+      "myself_fact": "1"
+    }
+  }
+}
+[root@ansible ansible_playbooks]#
+```
+
+可以看到，缓存后，当远程主机上面自定义的变量更新后，在缓存文件中并不会马上更新。
+
+
+
+手动执行一次获取事实变量：
+
+```sh
+# 手动获取事实变量，可以看到已经获取到远程事实变量myself_fact新值2
+[root@ansible ansible_playbooks]# ansible -i base_hosts.ini all -m ansible.builtin.setup -a "filter=ansible_local" -o
+192.168.56.123 | SUCCESS => {"ansible_facts": {"ansible_local": {"myself": {"myfacts": {"myself_fact": "2"}}}}, "changed": false}
+192.168.56.121 | SUCCESS => {"ansible_facts": {"ansible_local": {"myself": {"myfacts": {"myself_fact": "2"}}}}, "changed": false}
+192.168.56.122 | SUCCESS => {"ansible_facts": {"ansible_local": {"myself": {"myfacts": {"myself_fact": "2"}}}}, "changed": false}
+
+# 缓存文件也更新了
+[root@ansible ansible_playbooks]# cat /tmp/192.168.56.123|jq  '.ansible_local'
+{
+  "myself": {
+    "myfacts": {
+      "myself_fact": "2"
+    }
+  }
+}
+[root@ansible ansible_playbooks]# cat /tmp/192.168.56.122|jq  '.ansible_local'
+{
+  "myself": {
+    "myfacts": {
+      "myself_fact": "2"
+    }
+  }
+}
+[root@ansible ansible_playbooks]# cat /tmp/192.168.56.121|jq  '.ansible_local'
+{
+  "myself": {
+    "myfacts": {
+      "myself_fact": "2"
+    }
+  }
+}
+[root@ansible ansible_playbooks]# ll /tmp
+total 84
+-rw-r--r--. 1 root root 27350 Mar 18 20:05 192.168.56.121
+-rw-r--r--. 1 root root 27685 Mar 18 20:05 192.168.56.122
+-rw-r--r--. 1 root root 27727 Mar 18 20:05 192.168.56.123
+[root@ansible ansible_playbooks]#
+```
+
+
+
+#### 2.4.2 使用redis进行缓存
+
+
+
+#### 2.4.3 使用memcached进行缓存
