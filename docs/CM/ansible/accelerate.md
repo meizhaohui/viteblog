@@ -976,3 +976,8 @@ sys     0m0.079s
 这里可以找到10年前accelerate.py的源码：[accelerate.py](https://github.com/mpdehaan/ansible/blob/devel/lib/ansible/runner/connection_plugins/accelerate.py)
 
 我用Python 3.6.8版本，pip安装ansible 4.10.0也报相同的异常，因此暂时忽略此加速方案。
+
+### 2.4 设置fact缓存
+
+- Ansible在执行剧本时，默认第一个task是`TASK [Gathering Facts] `，这个任务就是Ansible收集每台主机的facts信息。方便我们在剧本中直接引用facts里面的信息。
+- 如果你的剧本里面不需要facts信息，可以在playbook中设置`gather_facts: False`来提高playbook效率。
