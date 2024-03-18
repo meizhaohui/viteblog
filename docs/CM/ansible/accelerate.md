@@ -1372,6 +1372,288 @@ total 84
 
 #### 2.4.2 使用redis进行缓存
 
+首先在Ansible控制节点安装redis服务并修改配置文件，设置redis密码，并后台启动：
+
+```sh
+# 安装redis
+[root@ansible ~]# yum install redis -y
+# 安装后，修改配置文件，设置后台启动并设置密码
+[root@ansible ~]# grep -E '^requirepass|^daemon' /etc/redis.conf
+daemonize yes
+requirepass foobared
+[root@ansible ~]# 
+# 启动redis服务
+[root@ansible ~]# systemctl status redis
+# 测试redis命令行
+[root@ansible ~]# /usr/bin/redis-cli -h 127.0.0.1 -p 6379 -a foobared
+127.0.0.1:6379> ping
+PONG
+127.0.0.1:6379> keys *
+(empty list or set)
+127.0.0.1:6379> exit
+[root@ansible ~]#
+```
+
+可以看到redis缓存能够正常使用，并且此时没有缓存任何键值。
+
+修改`/etc/ansible/ansible.cfg`配置文件中以下几个参数：
+
+```ini
+gathering = smart
+fact_caching = redis
+# 缓存时间300秒
+fact_caching_timeout = 300
+# 带密码的redis配置方式，不带密码时，直接配置成localhost:6379:0
+fact_caching_connection = localhost:6379:0:foobared
+```
+
+修改后查看配置：
+
+```sh
+[root@ansible ansible_playbooks]# grep -nE -C5 'fact_cach|gathering' /etc/ansible/ansible.cfg
+31-# the remote system.
+32-#
+33-# smart - gather by default, but don't regather if already gathered
+34-# implicit - gather by default, turn off with gather_facts: False
+35-# explicit - do not gather by default, must say gather_facts: True
+36:#gathering = implicit
+37:gathering = smart
+38-
+39:# This only affects the gathering done by a play's gather_facts directive,
+40:# by default gathering retrieves all facts subsets
+41-# all - gather all subsets
+42-# network - gather min and network facts
+43-# hardware - gather hardware facts (longest facts to retrieve)
+44-# virtual - gather min and virtual facts
+45-# facter - import facts from facter
+--
+239-# if set to a persistent type (not 'memory', for example 'redis') fact values
+240-# from previous runs in Ansible will be stored.  This may be useful when
+241-# wanting to use, for example, IP information from one group of servers
+242-# without having to talk to them in the same playbook run to get their
+243-# current IP information.
+244:#fact_caching = memory
+245:fact_caching = redis
+246-
+247-#This option tells Ansible where to cache facts. The value is plugin dependent.
+248-#For the jsonfile plugin, it should be a path to a local directory.
+249:#For the redis plugin, the value is a host:port:database triplet: fact_caching_connection = localhost:6379:0
+250-
+251:fact_caching_connection = localhost:6379:0:foobared
+252:fact_caching_timeout = 300
+253-
+254-
+255-# retry files
+256-# When a playbook fails a .retry file can be created that will be placed in ~/
+257-# You can enable this feature by setting retry_files_enabled to True
+[root@ansible ansible_playbooks]#
+```
+
+
+
+执行剧本：
+
+```sh
+[root@ansible ansible_playbooks]# time ansible-playbook -i base_hosts.ini base.yml -v
+Using /etc/ansible/ansible.cfg as config file
+[WARNING]: The 'redis' python module (version 2.4.5 or newer) is required for the redis fact cache, 'pip install redis'
+...过程输出省略
+```
+
+可以看到，redis fact缓存需要安装python redis依赖包。
+
+```sh
+# 查看ansible版本
+[root@ansible ansible_playbooks]# ansible --version
+ansible 2.9.27
+  config file = /etc/ansible/ansible.cfg
+  configured module search path = [u'/root/.ansible/plugins/modules', u'/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/lib/python2.7/site-packages/ansible
+  executable location = /usr/bin/ansible
+  python version = 2.7.5 (default, Oct 14 2020, 14:45:30) [GCC 4.8.5 20150623 (Red Hat 4.8.5-44)]
+[root@ansible ansible_playbooks]#
+```
+
+对应用的Python是2.7.5。
+
+由于python版本较低，由没有pip命令，在[pip-20.2.4.tar.gz](https://files.pythonhosted.org/packages/0b/f5/be8e741434a4bf4ce5dbc235aa28ed0666178ea8986ddc10d035023744e6/pip-20.2.4.tar.gz)下载安装文件pip-20.2.4.tar.gz，并解压安装：
+
+我们安装对应的依赖包：
+
+```sh
+[root@ansible softs]# cd pip-20.2.4
+[root@ansible pip-20.2.4]# python setup.py build
+[root@ansible pip-20.2.4]# python setup.py install
+[root@ansible pip-20.2.4]# pip install redis
+[root@ansible pip-20.2.4]# pip list|grep redis
+DEPRECATION: Python 2.7 reached the end of its life on January 1st, 2020. Please upgrade your Python as Python 2.7 is no longer maintained. pip 21.0 will drop support for Python 2.7 in January 2021. More details about Python 2 support in pip can be found at https://pip.pypa.io/en/latest/development/release-process/#python-2-support pip 21.0 will remove support for this functionality.
+redis                        3.5.3
+[root@ansible cd]# 
+[root@ansible ~]# python
+Python 2.7.5 (default, Oct 14 2020, 14:45:30)
+[GCC 4.8.5 20150623 (Red Hat 4.8.5-44)] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import redis
+>>> r = redis.Redis(host='localhost', port=6379, db=0, password='foobared')
+>>> r.set('foo', 'bar')
+True
+>>> r.get('foo')
+'bar'
+>>> exit()
+[root@ansible redis-2.4.5]#
+```
+
+检查redis缓存：
+
+```sh
+[root@ansible ansible_playbooks]# /usr/bin/redis-cli -h localhost -p 6379 -a foobared
+localhost:6379> keys *
+1) "foo"
+localhost:6379> get foo
+"bar"
+localhost:6379> exit
+[root@ansible ansible_playbooks]#
+```
+
+可以看到能正常查询到键`foo`的值是`bar`。
+
+
+
+此时再执行剧本：
+
+```sh
+[root@ansible ~]# cd ansible_playbooks/
+[root@ansible ansible_playbooks]# time ansible-playbook -i base_hosts.ini base.yml -v
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [basehosts] *****************************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.123]
+ok: [192.168.56.121]
+ok: [192.168.56.122]
+
+TASK [base : Show hostname] ******************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {
+    "msg": "ansible-node1"
+}
+ok: [192.168.56.123] => {
+    "msg": "ansible-node3"
+}
+ok: [192.168.56.122] => {
+    "msg": "ansible-node2"
+}
+...过程输出省略
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=26   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+192.168.56.122             : ok=26   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+192.168.56.123             : ok=26   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+
+real    0m24.150s
+user    0m10.202s
+sys     0m3.894s
+[root@ansible ansible_playbooks]# 
+```
+
+此时登陆redis命令行查看缓存信息：
+
+```sh
+[root@ansible ansible_playbooks]# /usr/bin/redis-cli -h localhost -p 6379 -a foobared
+localhost:6379> keys *
+1) "foo"
+2) "ansible_facts192.168.56.121"
+3) "ansible_facts192.168.56.123"
+4) "ansible_facts192.168.56.122"
+5) "ansible_cache_keys"
+localhost:6379>
+```
+
+再次执行剧本：
+
+```sh
+[root@ansible ansible_playbooks]# time ansible-playbook -i base_hosts.ini base.yml -v
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [basehosts] *****************************************************************************************************************************************************************************************************************************************************************************
+
+TASK [base : Show hostname] ******************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {
+    "msg": "ansible-node1"
+}
+ok: [192.168.56.122] => {
+    "msg": "ansible-node2"
+}
+ok: [192.168.56.123] => {
+    "msg": "ansible-node3"
+}
+...过程输出省略
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=25   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+192.168.56.122             : ok=25   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+192.168.56.123             : ok=25   changed=6    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+
+real    0m14.807s
+user    0m9.492s
+sys     0m3.406s
+[root@ansible ansible_playbooks]# 
+```
+
+可以看到，此时使用了缓存！没有执行`TASK [Gathering Facts]`任务。此时执行任务快了1秒钟。
+
 
 
 #### 2.4.3 使用memcached进行缓存
+
+使用memcached配置缓存，与redis类似。
+
+安装memcached服务并启动：
+
+```sh
+[root@ansible ~]# yum install memcached -y
+[root@ansible ~]# systemctl start memcached
+[root@ansible ~]# ps -ef|grep memcached
+memcach+ 16596     1  0 22:19 ?        00:00:00 /usr/bin/memcached -u memcached -p 11211 -m 64 -c 1024
+root     16603  1525  0 22:19 pts/0    00:00:00 grep --color=auto memcached
+[root@ansible ~]#
+```
+
+连接memcached：
+
+```sh
+[root@ansible ~]# telnet 127.0.0.1 11211
+Trying 127.0.0.1...
+Connected to 127.0.0.1.
+Escape character is '^]'.
+set foo 0 0 3                       
+bar
+STORED
+get foo
+VALUE foo 0 3
+bar
+END
+quit
+Connection closed by foreign host.
+[root@ansible ~]#
+```
+
+可以看到memcached服务可以使用。
+
+再安装python-memcached包：
+
+```sh
+[root@ansible ~]# pip install python-memcached
+DEPRECATION: Python 2.7 reached the end of its life on January 1st, 2020. Please upgrade your Python as Python 2.7 is no longer maintained. pip 21.0 will drop support for Python 2.7 in January 2021. More details about Python 2 support in pip can be found at https://pip.pypa.io/en/latest/development/release-process/#python-2-support pip 21.0 will remove support for this functionality.
+Looking in indexes: http://mirrors.aliyun.com/pypi/simple/
+Collecting python-memcached
+  Downloading http://mirrors.aliyun.com/pypi/packages/8f/1b/3b15a37831ae34a264d7d5b71f3ae9fe74a81251453a3ec2135e76888ef1/python_memcached-1.62-py2.py3-none-any.whl (15 kB)
+Installing collected packages: python-memcached
+Successfully installed python-memcached-1.62
+[root@ansible ~]# pip list|grep memcached
+DEPRECATION: Python 2.7 reached the end of its life on January 1st, 2020. Please upgrade your Python as Python 2.7 is no longer maintained. pip 21.0 will drop support for Python 2.7 in January 2021. More details about Python 2 support in pip can be found at https://pip.pypa.io/en/latest/development/release-process/#python-2-support pip 21.0 will remove support for this functionality.
+python-memcached             1.62
+[root@ansible ~]#
+```
+
