@@ -414,5 +414,9 @@ localhost                  : ok=3    changed=1    unreachable=0    failed=0    s
 
 可以看到，剧本成功执行！！
 
+注意，最后输出的`msg`中多出的`"failed": false,`是在使用`register: testout`注册变量时，Ansible自动加入的信息。 Ansible 中的 `register` 关键字用于注册任务的输出，以便后续的任务可以使用这些输出。当你在 Ansible 中使用 `register` 关键字时，输出通常包含 `failed`、`changed`、`end` 等字段，以表示任务的状态。 
 
+
+
+调试通了官方示例代码，下一步就是改变测试逻辑，弄清示例代码每行代码的含义，然后再来写自己的模块。
 
