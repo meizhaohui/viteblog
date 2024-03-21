@@ -10,6 +10,17 @@
 - 官方文档 ansible 2.9版本 [Ansible module development: getting started](https://docs.ansible.com/ansible/2.9/dev_guide/developing_modules_general.html)。
 - 官方文档ansible 9版本 [Developing modules](https://docs.ansible.com/ansible/latest/dev_guide/developing_modules_general.html) 
 
+### 1.1 VirtualBox虚拟机信息记录
+
+我使用以下虚拟机进行测试。详细可参考 [一步一步学role角色-base基础角色配置](./role_3.md)
+
+| 序号 | 虚拟机         | 主机名  | IP             | CPU  | 内存 | 说明             |
+| ---- | -------------- | ------- | -------------- | ---- | ---- | ---------------- |
+| 1    | ansible-master | ansible | 192.168.56.120 | 2核  | 4G   | Ansible控制节点  |
+| 2    | ansible-node1  | node1   | 192.168.56.121 | 2核  | 2G   | Ansible工作节点1 |
+| 3    | ansible-node2  | node2   | 192.168.56.122 | 2核  | 2G   | Ansible工作节点2 |
+| 4    | ansible-node3  | node3   | 192.168.56.123 | 2核  | 2G   | Ansible工作节点3 |
+
 ## 2. 创建一个模块的步骤
 
 ### 2.1 官方示例
@@ -182,8 +193,7 @@ if __name__ == '__main__':
 > Modules that query/return general information (and not `ansible_facts`) should be named `_info`. General information is non-host specific information, for example  information on online/cloud services (you can access different accounts  for the same online service from the same host), or information on VMs  and containers accessible from the machine, or information on individual files or programs.
 >
 > Info and facts modules, are just like any other Ansible Module, with a few minor requirements:
->
-> 1. They MUST be named `_info` or `_facts`, where <something> is singular.
+> 1. They MUST be named `something_info`  or `something_facts`, where`something`  is singular.
 > 2. Info `*_info` modules MUST return in the form of the [result dictionary](https://docs.ansible.com/ansible/latest/reference_appendices/common_return_values.html#common-return-values) so other modules can access them.
 > 3. Fact `*_facts` modules MUST return in the `ansible_facts` field of the [result dictionary](https://docs.ansible.com/ansible/latest/reference_appendices/common_return_values.html#common-return-values) so other modules can access them.
 > 4. They MUST support [check_mode](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_checkmode.html#check-mode-dry).
@@ -200,6 +210,209 @@ if __name__ == '__main__':
 - 它们要支持检查模式；不能对系统产生变更；必须包含返回值。
 
 我们先不管上面这些，直接看官方文档后面的内容。
+
+
+
+### 2.2 校验模块
+
+校验模块大致可分为以下几个步骤：
+
+- 使用远程工作节点校验你的模块。
+- 使用Ansible控制节点校验你的模块。
+- 不通过Ansible来校验模块使用的Python文件。
+- 通过playbook剧本文件来校验模块。
+
+
+
+#### 2.2.1 使用Ad-hoc命令测试-使用远程工作节点校验模块
+
+
+最简单的测试方法是使用ansible 的Ad-hoc命令：
+
+```sh
+ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name=hello new=true' remotehost
+```
+
+我们来测试一下。
+
+先看一下相关的文件：
+
+```sh
+# 查看主机清单文件
+[root@ansible ansible_playbooks]# cat base_hosts.ini
+[basehosts]
+192.168.56.121 hostname=ansible-node1
+192.168.56.122 hostname=ansible-node2
+192.168.56.123 hostname=ansible-node3
+
+# 查看自定义库目录下的文件
+[root@ansible ansible_playbooks]# ll library/
+total 8
+-rw-r--r--. 1 root root 4173 Mar 21 21:23 my_test.py
+[root@ansible ansible_playbooks]#
+```
+
+`library/my_test.py`目录的文件内容就是官方示例的内容。我未作任务修改。
+
+直接按官方给定的命令来执行，注意，执行时，将`remotehost`换成`-i base_hosts.ini all`:
+
+```sh
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a "name=hello new=true" -i base_hosts.ini all
+192.168.56.121 | CHANGED => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python"
+    },
+    "changed": true,
+    "message": "goodbye",
+    "original_message": "hello"
+}
+192.168.56.122 | CHANGED => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python"
+    },
+    "changed": true,
+    "message": "goodbye",
+    "original_message": "hello"
+}
+192.168.56.123 | CHANGED => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python"
+    },
+    "changed": true,
+    "message": "goodbye",
+    "original_message": "hello"
+}
+[root@ansible ansible_playbooks]#
+```
+
+可以看到，剧本正常执行了，且有输出。三个工作节点输出结果是一样的。
+
+#### 2.2.2 使用Ad-hoc命令测试-使用Ansible控制节点校验模块
+
+直接使用Ansible控制节点校验：
+
+执行下面这个命令即可：
+
+```sh
+ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name=hello new=true' localhost
+```
+
+我实际测试下：
+
+```sh
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a "name=hello new=true" localhost
+localhost | CHANGED => {
+    "changed": true,
+    "message": "goodbye",
+    "original_message": "hello"
+}
+[root@ansible ansible_playbooks]#
+```
+
+可以看到， 除了没有`ansible_facts`信息，其他信息和使用工作节点测试是一样的。
+
+
+
+#### 2.2.3 不通过Ansible命令直接校验python文件
+
+创建参数json配置文件，然后查看其内容：
+
+```sh
+[root@ansible ansible_playbooks]# cat /tmp/args.json
+{
+    "ANSIBLE_MODULE_ARGS": {
+        "name": "hello",
+        "new": true
+    }
+}
+```
+
+![Snipaste_2024-03-21_23-05-09.png](/img/Snipaste_2024-03-21_23-05-09.png)
+
+然后直接执行python脚本：
+
+```sh
+python library/my_test.py /tmp/args.json
+```
+
+实际执行下：
+
+```sh
+[root@ansible ansible_playbooks]# python library/my_test.py /tmp/args.json
+
+{"invocation": {"module_args": {"new": true, "name": "hello"}}, "message": "goodbye", "changed": true, "original_message": "hello"}
+[root@ansible ansible_playbooks]#
+```
+
+可以看到，输出与官方示例稍微有些差异。但也能正常输入。
+
+
+
+#### 2.2.4 使用剧本测试模块
+
+创建`testmod.yml`剧本文件 ，并加入以下内容：
+
+```yaml
+- name: test my new module
+  hosts: localhost
+  tasks:
+  - name: run the new module
+    my_test:
+      name: 'hello'
+      new: true
+    register: testout
+  - name: dump test output
+    debug:
+      msg: '{{ testout }}'
+
+```
+
+查看并执行剧本：
+
+```sh
+[root@ansible ansible_playbooks]# cat testmod.yml
+- name: test my new module
+  hosts: localhost
+  tasks:
+  - name: run the new module
+    my_test:
+      name: 'hello'
+      new: true
+    register: testout
+  - name: dump test output
+    debug:
+      msg: '{{ testout }}'
+
+[root@ansible ansible_playbooks]# ansible-playbook testmod.yml
+[WARNING]: provided hosts list is empty, only localhost is available. Note that the implicit localhost does not match 'all'
+
+PLAY [test my new module] ********************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [run the new module] ********************************************************************************************************************************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [dump test output] **********************************************************************************************************************************************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": {
+        "changed": true,
+        "failed": false,
+        "message": "goodbye",
+        "original_message": "hello"
+    }
+}
+
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+localhost                  : ok=3    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+[root@ansible ansible_playbooks]#
+```
+
+![Snipaste_2024-03-21_23-14-56.png](/img/Snipaste_2024-03-21_23-14-56.png)
+
+可以看到，剧本成功执行！！
 
 
 
