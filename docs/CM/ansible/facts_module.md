@@ -604,3 +604,156 @@ if __name__ == '__main__':
 
 ```
 
+
+
+#### 2.3.1 获取模板帮助信息
+
+主要使用`ansible-doc`命令，先看一下这个使用的帮助信息：
+
+```sh
+[root@ansible ~]# ansible-doc --help
+usage: ansible-doc [-h] [--version] [-v] [-M MODULE_PATH]
+                   [--playbook-dir BASEDIR]
+                   [-t {become,cache,callback,cliconf,connection,httpapi,inventory,lookup,netconf,shell,module,strategy,vars}]
+                   [-j] [-F | -l | -s | --metadata-dump]
+                   [plugin [plugin ...]]
+
+plugin documentation tool
+
+positional arguments:
+  plugin                Plugin
+
+optional arguments:
+  --metadata-dump       **For internal testing only** Dump json metadata for
+                        all plugins.
+  --playbook-dir BASEDIR
+                        Since this tool does not use playbooks, use this as a
+                        substitute playbook directory.This sets the relative
+                        path for many features including roles/ group_vars/
+                        etc.
+  --version             show program's version number, config file location,
+                        configured module search path, module location,
+                        executable location and exit
+  -F, --list_files      Show plugin names and their source files without
+                        summaries (implies --list)
+  -M MODULE_PATH, --module-path MODULE_PATH
+                        prepend colon-separated path(s) to module library (def
+                        ault=~/.ansible/plugins/modules:/usr/share/ansible/plu
+                        gins/modules)
+  -h, --help            show this help message and exit
+  -j, --json            Change output into json format.
+  -l, --list            List available plugins
+  -s, --snippet         Show playbook snippet for specified plugin(s)
+  -t {become,cache,callback,cliconf,connection,httpapi,inventory,lookup,netconf,shell,module,strategy,vars}, --type {become,cache,callback,cliconf,connection,httpapi,inventory,lookup,netconf,shell,module,strategy,vars}
+                        Choose which plugin type (defaults to "module").
+                        Available plugin types are : ('become', 'cache',
+                        'callback', 'cliconf', 'connection', 'httpapi',
+                        'inventory', 'lookup', 'netconf', 'shell', 'module',
+                        'strategy', 'vars')
+  -v, --verbose         verbose mode (-vvv for more, -vvvv to enable
+                        connection debugging)
+
+See man pages for Ansible CLI options or website for tutorials
+https://docs.ansible.com
+[root@ansible ~]#
+```
+
+我们主要关注以下几个参数：
+
+- `-M MODULE_PATH, --module-path MODULE_PATH`，指定模块路径。
+- `-s, --snippet`,  显示指定插件的剧本片段。
+- `-j, --json`，以json格式输出。
+
+##### 2.3.1.1  获取模块剧本片段
+
+我们来测试一下：
+
+```sh
+[root@ansible ansible_playbooks]# ansible-doc -M library -s my_test
+- name: This is my test module
+  my_test:
+      name:                  # (required) This is the message to send to the test module.
+      new:                   # Control to demo if the result of this module is changed or not. Parameter description can be a list as well.
+[root@ansible ansible_playbooks]#
+```
+
+可以看到，在`-M library`指定了模块路径为`libraray`，并指定`-s`获取剧本版本后，能够正常输出剧本版本信息。
+
+##### 2.3.1.2 获取json格式输出
+
+增加`-j`参数，则会以json格式输出：
+
+```sh
+[root@ansible ansible_playbooks]# ansible-doc -M library -j -s my_test 
+{
+    "my_test": {
+        "doc": {
+            "author": [
+                "Your Name (@yourGitHubHandle)"
+            ],
+            "description": "This is my longer description explaining my test module.",
+            "filename": "/root/ansible_playbooks/library/my_test.py",
+            "has_action": false,
+            "module": "my_test",
+            "options": {
+                "name": {
+                    "description": "This is the message to send to the test module.",
+                    "required": true,
+                    "type": "str"
+                },
+                "new": {
+                    "description": [
+                        "Control to demo if the result of this module is changed or not.",
+                        "Parameter description can be a list as well."
+                    ],
+                    "required": false,
+                    "type": "bool"
+                }
+            },
+            "short_description": "This is my test module",
+            "version_added": "1.0.0"
+        },
+        "examples": "\n# Pass in a message\n- name: Test with a message\n  my_namespace.my_collection.my_test:\n    name: hello world\n\n# pass in a message and have changed true\n- name: Test with a message and changed output\n  my_namespace.my_collection.my_test:\n    name: hello world\n    new: true\n\n# fail the module\n- name: Test failure of the module\n  my_namespace.my_collection.my_test:\n    name: fail me\n",
+        "metadata": {
+            "status": [
+                "preview"
+            ],
+            "supported_by": "community"
+        },
+        "return": {
+            "message": {
+                "description": "The output message that the test module generates.",
+                "returned": "always",
+                "sample": "goodbye",
+                "type": "str"
+            },
+            "original_message": {
+                "description": "The original name param that was passed in.",
+                "returned": "always",
+                "sample": "hello world",
+                "type": "str"
+            }
+        }
+    }
+}
+[root@ansible ansible_playbooks]#
+```
+
+使用`jq`命令会使json字符串更美观，效果如下：
+
+![Snipaste_2024-03-24_17-28-04.png](/img/Snipaste_2024-03-24_17-28-04.png)
+
+可以看到，以json格式输出，可以获取到更详细的帮助信息。而这些信息则是从我们模块源文件的`DOCUMENTATION`、`EXAMPLES`和`RETURN`这几个关键定义中获取的。
+
+#### 2.3.2 测试模块传参
+
+由以下代码：
+
+```python
+	module_args = dict(
+        name=dict(type='str', required=True),
+        new=dict(type='bool', required=False, default=False)
+    )
+```
+
+可以知道，模块支持两个参数：`name`和`new`。
