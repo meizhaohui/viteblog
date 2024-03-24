@@ -757,3 +757,100 @@ https://docs.ansible.com
 ```
 
 可以知道，模块支持两个参数：`name`和`new`。
+
+在2.2小节中，我们用了几种方法来测试模块是否能够正常使用。此处为了方便测试，我们使用2.2.2中Ad-hoc命令来测试。
+
+```sh
+ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name=hello new=true' localhost
+```
+
+此时不需要与远程工作节点交换。
+
+
+
+我伙来对比传递不同的参数的输出结果：
+
+```sh
+# 由于有new=true参数，代码中result['changed'] = True将变更设置为`True`
+# 此时满足变更条件，最终变更输出为`true`
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name=hello new=true' localhost
+localhost | CHANGED => {
+    "changed": true,
+    "message": "goodbye",
+    "original_message": "hello"
+}
+
+# 由于没有设置new参数，则使用了`default=False`默认值False
+# 此时不满足变更条件，最终变更输出为`false`
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name=hello' localhost
+localhost | SUCCESS => {
+    "changed": false,
+    "message": "goodbye",
+    "original_message": "hello"
+}
+
+# 传输一个不存在的参数notexist，提示该参数不支持，应使用name或new参数
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a 'notexist=hello' localhost
+localhost | FAILED! => {
+    "changed": false,
+    "msg": "Unsupported parameters for (my_test) module: notexist Supported parameters include: name, new"
+}
+
+# 只传输name参数，new参数则会使用默认的False
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name=true' localhost
+localhost | SUCCESS => {
+    "changed": false,
+    "message": "goodbye",
+    "original_message": "true"
+}
+
+# 只传输name参数，new参数则会使用默认的False
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name=1' localhost
+localhost | SUCCESS => {
+    "changed": false,
+    "message": "goodbye",
+    "original_message": "1"
+}
+
+# 一个参数也不提供，则会提示需要提供name参数
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test  localhost
+localhost | FAILED! => {
+    "changed": false,
+    "msg": "missing required arguments: name"
+}
+
+# 可以使用多种方式表示布尔值
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name=test new=false' localhost
+localhost | SUCCESS => {
+    "changed": false,
+    "message": "goodbye",
+    "original_message": "test"
+}
+
+# 可以使用多种方式表示布尔值
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name=test new=True' localhost
+localhost | CHANGED => {
+    "changed": true,
+    "message": "goodbye",
+    "original_message": "test"
+}
+
+# 可以使用多种方式表示布尔值
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name=test new=1' localhost
+localhost | CHANGED => {
+    "changed": true,
+    "message": "goodbye",
+    "original_message": "test"
+}
+
+# 传输异常布尔值，提示异常
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name=test new="a"' localhost
+localhost | FAILED! => {
+    "changed": false,
+    "msg": "argument new is of type <type 'str'> and we were unable to convert to bool: The value 'a' is not a valid boolean.  Valid booleans include: 0, 'on', 'f', 'false', 1, 'no', 'n', '1', '0', 't', 'y', 'off', 'yes', 'true'"
+}
+[root@ansible ansible_playbooks]#
+```
+
+![Snipaste_2024-03-24_17-51-32.png](/img/Snipaste_2024-03-24_17-51-32.png)
+
