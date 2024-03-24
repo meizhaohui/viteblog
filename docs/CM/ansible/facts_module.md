@@ -758,7 +758,7 @@ https://docs.ansible.com
 
 可以知道，模块支持两个参数：`name`和`new`。
 
-在2.2小节中，我们用了几种方法来测试模块是否能够正常使用。此处为了方便测试，我们使用2.2.2中Ad-hoc命令来测试。
+在2.2小节中，用了几种方法来测试模块是否能够正常使用。此处为了方便测试，此处使用2.2.2中Ad-hoc命令来测试。
 
 ```sh
 ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name=hello new=true' localhost
@@ -766,9 +766,9 @@ ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name=hello new=true' localhost
 
 此时不需要与远程工作节点交换。
 
+##### 2.3.2.1 传参测试
 
-
-我伙来对比传递不同的参数的输出结果：
+现在来对比传递不同的参数的输出结果：
 
 ```sh
 # 由于有new=true参数，代码中result['changed'] = True将变更设置为`True`
@@ -854,3 +854,53 @@ localhost | FAILED! => {
 
 ![Snipaste_2024-03-24_17-51-32.png](/img/Snipaste_2024-03-24_17-51-32.png)
 
+
+
+##### 2.3.2.2 异常测试
+
+测试异常：
+
+```sh
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name="fail me" new=y' localhost
+localhost | FAILED! => {
+    "changed": true,
+    "message": "goodbye",
+    "msg": "You requested this to fail",
+    "original_message": "fail me"
+}
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name="fail me" new=n' localhost
+localhost | FAILED! => {
+    "changed": false,
+    "message": "goodbye",
+    "msg": "You requested this to fail",
+    "original_message": "fail me"
+}
+[root@ansible ansible_playbooks]#
+```
+
+![Snipaste_2024-03-24_22-37-00.png](/img/Snipaste_2024-03-24_22-37-00.png)
+
+此时可以看到，当传输`name="fail me"`参数后，任务执行失败。
+
+##### 2.3.2.3 检查模式测试
+
+测试检查模式，只用在命令后加上`-C`参数：
+
+```sh
+
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name="fail me" new=n' localhost -C
+localhost | SUCCESS => {
+    "changed": false,
+    "message": "",
+    "original_message": ""
+}
+[root@ansible ansible_playbooks]# ANSIBLE_LIBRARY=./library ansible -m my_test -a 'name="hello" new=true' localhost -C
+localhost | SUCCESS => {
+    "changed": false,
+    "message": "",
+    "original_message": ""
+}
+[root@ansible ansible_playbooks]#
+```
+
+可以看到，此时模块并没有获取我们传输的参数，直接输出了`changed`为`false`。
