@@ -177,6 +177,7 @@ module.exports = {
       collapsed: true, // 是否可折叠，默认可折叠true 
       items: [
         { text: 'C程序设计语言总结', link: '/backend/C/the_c_programming_language_second_edition' },
+        { text: '换个姿势学C语言', link: '/backend/C/newstylec' },
       ]
     },
   ],
