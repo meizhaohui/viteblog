@@ -765,7 +765,7 @@ int main()
 
 ![Snipaste_2024-03-25_22-48-57.png](/img/Snipaste_2024-03-25_22-48-57.png)
 
-为这不这样，这时就可使用循环，这个时候就可以使用`for`循环。
+为了不这样，这时就可使用循环，这个时候就可以使用`for`循环。
 
 方案2，使用for循环来重复输出：
 
@@ -790,3 +790,43 @@ int main()
 ```
 
 此时可以得到相同的结果。
+
+如果我想要通过用户输入一个数字来确认输出几次sayHello则可以这样：
+
+```c++
+// 以下代码禁用scanf不安全提示
+#define _CRT_SECURE_NO_WARNINGS 1
+// 以下代码用于关闭 "返回值被忽略 scanf"警告
+#pragma warning(disable : 6031)
+#include <stdio.h>
+
+int sayHello()
+{
+    printf("Hello,World\n");
+
+    return 0;
+}
+
+int sayHelloManyTimes(int time)
+{
+    for (int i = 0; i < time; i++) {
+        sayHello();
+    }
+
+    return time;
+}
+
+int main()
+{
+    printf("请输入一个整数：");
+    int time = 0;
+    scanf("%d", &time);
+    sayHelloManyTimes(time);
+
+    return 0;
+}
+```
+
+运行后，如果我输入数字7，则会输出7次"Hello,World":
+
+![Snipaste_2024-03-25_23-02-11.png](/img/Snipaste_2024-03-25_23-02-11.png)
