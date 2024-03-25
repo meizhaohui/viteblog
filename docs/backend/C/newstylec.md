@@ -726,3 +726,67 @@ Hello,World
 对比之前用Visual Studio自动生成的可执行文件，以及我们自己编译生成的文件，可以看到两者大小不一样：
 
 ![Snipaste_2024-03-13_23-59-22.png](/img/Snipaste_2024-03-13_23-59-22.png)
+
+### 3.4 重复地sayHello
+
+- 亲自动手实践最能帮助我们理解晦涩的定义和概念。
+
+以下来重复地sayHello。
+
+方案1，使用复制粘贴重复调用sayHello函数：
+
+```c++
+#include <stdio.h>
+
+int sayHello()
+{
+    printf("Hello,World\n");
+
+    return 0;
+}
+
+int main()
+{
+    sayHello();
+    sayHello();
+    sayHello();
+    sayHello();
+    sayHello();
+
+    return 0;
+}
+```
+
+![Snipaste_2024-03-25_22-45-32.png](/img/Snipaste_2024-03-25_22-45-32.png)
+
+可以看到，使用了复制粘贴的方式调用了5次`sayHello`函数。
+
+运行结果：
+
+![Snipaste_2024-03-25_22-48-57.png](/img/Snipaste_2024-03-25_22-48-57.png)
+
+为这不这样，这时就可使用循环，这个时候就可以使用`for`循环。
+
+方案2，使用for循环来重复输出：
+
+```sh
+#include <stdio.h>
+
+int sayHello()
+{
+    printf("Hello,World\n");
+
+    return 0;
+}
+
+int main()
+{
+    for (int i = 0; i < 5; i++) {
+        sayHello();
+    }
+
+    return 0;
+}
+```
+
+此时可以得到相同的结果。
