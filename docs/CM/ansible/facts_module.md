@@ -313,6 +313,22 @@ localhost | CHANGED => {
 
 
 
+除了使用`ANSIBLE_LIBRARY=./library`来指定模块目录，也可以通过`-M`参数来指定模块目录，示例如下：
+
+```sh
+[root@ansible ansible_playbooks]# ansible -M library -m my_test -a 'name=hello new=true' localhost
+localhost | CHANGED => {
+    "changed": true,
+    "message": "goodbye",
+    "original_message": "hello"
+}
+[root@ansible ansible_playbooks]#
+```
+
+和上面使用`ANSIBLE_LIBRARY=./library`来指定模块目录结果是一样的。
+
+
+
 #### 2.2.3 不通过Ansible命令直接校验python文件
 
 创建参数json配置文件，然后查看其内容：
