@@ -1,0 +1,21 @@
+- hosts: basehosts
+  tasks:
+    - name: Use custom facts module 1
+      my_facts:
+        name: Python,Java,C++
+        flag: false
+
+    - name: Test my custom facts module 1
+      ansible.builtin.template:
+        src: facts_module.j2
+        dest: /tmp/facts_module_1.txt
+
+    - name: Use custom facts module 2
+      my_facts:
+        name: nothing
+        flag: false
+
+    - name: Test my custom facts module 2
+      ansible.builtin.template:
+        src: facts_module.j2
+        dest: /tmp/facts_module_2.txt

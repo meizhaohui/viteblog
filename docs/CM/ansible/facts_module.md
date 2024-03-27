@@ -923,6 +923,8 @@ localhost | SUCCESS => {
 
 ## 3. 创建facts模块
 
+### 3.1 编写自定义facts模块
+
 facts模块是在普通模块的基础上，有以下要求：
 
 - 模块命名为`*_facts`。
@@ -1192,3 +1194,108 @@ localhost | SUCCESS => {
 ![Snipaste_2024-03-24_23-56-17.png](/img/Snipaste_2024-03-24_23-56-17.png)
 
 可以看到，有事实变量输出。能正常执行我定义的模块里面的逻辑判断。说明自定义模块能正常工作。
+
+### 3.2 在剧本中使用自定义facts模块
+
+编写剧本文件`test_my_module.yml`：
+
+```yaml
+- hosts: basehosts
+  tasks:
+    - name: Use custom facts module 1
+      my_facts:
+        name: Python,Java,C++
+        flag: false
+
+    - name: Test my custom facts module 1
+      ansible.builtin.template:
+        src: facts_module.j2
+        dest: /tmp/facts_module_1.txt
+
+    - name: Use custom facts module 2
+      my_facts:
+        name: nothing
+        flag: false
+
+    - name: Test my custom facts module 2
+      ansible.builtin.template:
+        src: facts_module.j2
+        dest: /tmp/facts_module_2.txt
+```
+
+并在templates目录下创建模板文件`facts_module.j2`：
+
+```jinja2
+{% if lang %}
+    {% for i in lang -%}
+        你会使用{{ i }} 编程语言
+    {%- endfor %}
+{% else -%}
+    你不会任何编程语言
+{%- endif %}
+```
+
+检查这两个文件：
+
+```sh
+[root@ansible ansible_playbooks]# ll test_my_module.yml templates/facts_module.j2
+-rw-r--r--. 1 root root 156 Mar 27 22:39 templates/facts_module.j2
+-rw-r--r--. 1 root root 514 Mar 27 22:35 test_my_module.yml
+[root@ansible ansible_playbooks]#
+```
+
+执行剧本：
+
+```sh
+
+[root@ansible ansible_playbooks]# ansible-playbook -i base_hosts.ini -M library test_my_module.yml -v
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [basehosts] *****************************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+ok: [192.168.56.122]
+ok: [192.168.56.123]
+
+TASK [Use custom facts module 1] *************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"ansible_facts": {"lang": ["Python", "Java", "C++"]}, "changed": false, "message": "你会使用Python,Java,C++等程序语言", "original_message": "Python,Java,C++"}
+ok: [192.168.56.122] => {"ansible_facts": {"lang": ["Python", "Java", "C++"]}, "changed": false, "message": "你会使用Python,Java,C++等程序语言", "original_message": "Python,Java,C++"}
+ok: [192.168.56.123] => {"ansible_facts": {"lang": ["Python", "Java", "C++"]}, "changed": false, "message": "你会使用Python,Java,C++等程序语言", "original_message": "Python,Java,C++"}
+
+TASK [Test my custom facts module 1] *********************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.122] => {"changed": true, "checksum": "7da6659c8fbb19c09f7220525b64066fc775e0c2", "dest": "/tmp/facts_module_1.txt", "gid": 0, "group": "root", "md5sum": "f86b2cc9eda465f9f22acbfc3ba71c38", "mode": "0644", "owner": "root", "size": 94, "src": "/root/.ansible/tmp/ansible-tmp-1711550474.91-3013-119894515489497/source", "state": "file", "uid": 0}
+changed: [192.168.56.123] => {"changed": true, "checksum": "7da6659c8fbb19c09f7220525b64066fc775e0c2", "dest": "/tmp/facts_module_1.txt", "gid": 0, "group": "root", "md5sum": "f86b2cc9eda465f9f22acbfc3ba71c38", "mode": "0644", "owner": "root", "size": 94, "src": "/root/.ansible/tmp/ansible-tmp-1711550474.92-3015-162673818034960/source", "state": "file", "uid": 0}
+changed: [192.168.56.121] => {"changed": true, "checksum": "7da6659c8fbb19c09f7220525b64066fc775e0c2", "dest": "/tmp/facts_module_1.txt", "gid": 0, "group": "root", "md5sum": "f86b2cc9eda465f9f22acbfc3ba71c38", "mode": "0644", "owner": "root", "size": 94, "src": "/root/.ansible/tmp/ansible-tmp-1711550474.9-3011-213481204124868/source", "state": "file", "uid": 0}
+
+TASK [Use custom facts module 2] *************************************************************************************************************************************************************************************************************************************************************
+fatal: [192.168.56.121]: FAILED! => {"ansible_facts": {"lang": ["nothing"]}, "changed": false, "message": "", "msg": "你不会任何编程语言", "original_message": "nothing"}
+fatal: [192.168.56.122]: FAILED! => {"ansible_facts": {"lang": ["nothing"]}, "changed": false, "message": "", "msg": "你不会任何编程语言", "original_message": "nothing"}
+fatal: [192.168.56.123]: FAILED! => {"ansible_facts": {"lang": ["nothing"]}, "changed": false, "message": "", "msg": "你不会任何编程语言", "original_message": "nothing"}
+
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=3    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+192.168.56.122             : ok=3    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+192.168.56.123             : ok=3    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+
+[root@ansible ansible_playbooks]#
+```
+
+效果图如下：
+
+![Snipaste_2024-03-27_22-41-54.png](/img/Snipaste_2024-03-27_22-41-54.png)
+
+在节点上面查看文件信息：
+
+```sh
+[root@ansible-node1 ~]# ll /tmp/facts_module_1.txt
+-rw-r--r-- 1 root root 93 Mar 27 22:51 /tmp/facts_module_1.txt
+[root@ansible-node1 ~]# cat /tmp/facts_module_1.txt
+    你会使用Python 编程语言你会使用Java 编程语言你会使用C++ 编程语言
+[root@ansible-node1 ~]#
+```
+
+可以看到，正常将我们通过自定义facts模块指定的事实变量渲染到远程工作节点了。说明我们的自定义模块能够正常工作。
+
+注意，此处不在乎Jinja2渲染细节，详细可参考官方文档 [欢迎来到 Jinja2](https://docs.jinkan.org/docs/jinja2/index.html)
+

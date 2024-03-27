@@ -1,0 +1,7 @@
+{% if lang %}
+    {% for i in lang -%}
+        你会使用{{ i }} 编程语言
+    {% endfor %}
+{% else -%}
+    你不会任何编程语言
+{%- endif %}
