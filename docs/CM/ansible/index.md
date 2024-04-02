@@ -33,6 +33,7 @@ name: Nginx
 - 如果要对数据进行某些过滤处理，可以使用过滤器`filter`来完成，详细可参考 [过滤器](./filter.md) 。
 - 自定义fact事实变量，可参考 [setup事实变量模块](./setup.md)。
 - 编写facts模块，可参考 [编写facts模块](./facts_module.md)。
+- 在剧本执行失败时，如果你想Ansible给你发邮件，可以参考[callback回调插件](./callback.md) 。
 - 从外部数据拉取信息存放到变量中，可以使用lookups插件，可参考 [lookups插件](./lookups.md)。
 - Ansible角色，可参考以下Role角色系列教程：
   -  [ansible role角色(1)](./role.md)，role角色概述与相关功能概述。使用Ansible Galaxy https://galaxy.ansible.com/ui/ 分享你的角色等。
