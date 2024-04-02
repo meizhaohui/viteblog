@@ -1225,7 +1225,7 @@ localhost | SUCCESS => {
 
 并在templates目录下创建模板文件`facts_module.j2`：
 
-```jinja2
+```sh
 {% if lang %}
     {% for i in lang -%}
         你会使用{{ i }} 编程语言
