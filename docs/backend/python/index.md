@@ -51,4 +51,5 @@
 50. [读取yaml配置文件](./yaml.md)
 51. [python批量telnet检测IP地址的端口是否开放](./mytelnet.md)
 52. [自动启动代理程序](./auto_start_proxy.md)
+53. [miniconda的使用](./miniconda.md)
 

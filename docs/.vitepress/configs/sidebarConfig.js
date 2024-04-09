@@ -140,6 +140,7 @@ module.exports = {
         { text: "读取yaml配置文件", link: "/backend/python/yaml" },
         { text: "python批量telnet检测IP地址的端口是否开放", link: "/backend/python/mytelnet" },
         { text: "自动启动代理程序", link: "/backend/python/auto_start_proxy" },
+        { text: "miniconda的使用", link: "/backend/python/miniconda" },
       ]
     },
     {
