@@ -40,7 +40,7 @@ name: Nginx
   -  [ansible role角色(2)--创建第一个role角色](./role_2.md)，创建第一个测试role角色。
   -  [ansible role角色(3)--一步一步学role角色](./role_3.md)，base基础角色配置。
   -  [ansible role角色(4)--include的使用](./role_4_include.md)，base基础角色配置优化，拆分任务功能，引入include关键字。
-
+  -  [ansible role角色(5)--使用ansible配置supervisor进程管理角色](./role_5_supervisor.md)，使用miniconda配置Python环境，对应Python版本为 3.10.13，并设置supervisor进程管理工具环境。
 
 Ansible内置模块：
 

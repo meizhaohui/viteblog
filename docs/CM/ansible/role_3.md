@@ -1106,7 +1106,13 @@ $
     - java-1.8.0-openjdk-devel
 ```
 
+::: warning  警告
 
+通过yum安装的python版本是Python 3.6.8，版本较低，官方已经不再支持该版本。因此，不建议安装该版本。
+
+可以参考 [使用ansible配置supervisor进程管理角色](./role_5_supervisor.md) 安装高版本的Python。
+
+:::
 
 检查并执行剧本：
 
