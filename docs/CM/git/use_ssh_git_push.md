@@ -265,3 +265,99 @@ Date:   Mon Mar 14 00:23:22 2022 +0800
 [root@hellogitlab test.git]#
 ```
 
+
+
+## 5. 迁移git仓库到新的服务器
+
+### 5.1 克隆祼仓库到新服务器
+
+如果我们想将之前创建的`ssh://git@hellogitlab.com:10000/git-server/test.git`仓库迁移到一台新的主机上，比如新主机的域名是`newhellogitlab.com`，端口还是10000，则可以这么处理：
+
+```sh
+# 创建存放仓库文件的目录
+[root@newhellogitlab ~]# mkdir /git-server
+
+# 创建git用户
+[root@newhellogitlab ~]# useradd git
+
+# 修改/git-server目录所有者和所属组
+[root@newhellogitlab ~]# chown git:git /git-server/
+
+# 切换到git账号
+[root@newhellogitlab ~]# su - git
+
+# 创建私钥对
+[git@newhellogitlab ~]$ ssh-keygen -C git@newhellogitlab.com
+
+# 查看git账号公钥信息
+# 并将查询出的结果追加到原来git服务器git仓库的.ssh/authorized_keys 文件中
+[git@newhellogitlab ~]$ cat ~/.ssh/id_rsa.pub
+
+# 切换目录
+[git@newhellogitlab ~]$ cd /git-server/
+```
+
+以上准备工作完成后，则需要克隆原来的git仓库到新服务器上。此时不是直接使用`git clone ssh://git@hellogitlab.com:10000/git-server/test.git`命令，而是使用以下命令：
+
+```sh
+# 克隆裸仓库到新的服务器上
+[git@newhellogitlab git-server]$ git clone --bare ssh://git@hellogitlab.com:10000/git-server/test.git
+
+# 查看克隆下来的文件夹
+[git@newhellogitlab git-server]# ls
+test.git
+# 切换到test.git目录下
+[git@newhellogitlab git-server]# cd test.git/
+
+# 查看日志记录，可以看到历史记录还在，说明迁移成功
+[git@newhellogitlab test.git]# git log -n 2|awk NF
+commit c85486bba05a2702573a6eee5c602f3a6eae077a
+Author: Zhaohui Mei <mzh.whut@gmail.com>
+Date:   Mon Mar 14 00:41:30 2022 +0800
+    test use git-shell
+commit 46d5adf7387bce84ec9f39b074ae823df5e8129e
+Author: Zhaohui Mei <mzh.whut@gmail.com>
+Date:   Mon Mar 14 00:23:22 2022 +0800
+    test git push
+[git@newhellogitlab test.git]#
+```
+
+到此仓库已经完成迁移。但仍然有些事情待处理。
+
+- 原来git仓库`.ssh/authorized_keys`配置文件中的内容需要复制到新主机git仓库的`.ssh/authorized_keys`文件。
+- 原来个人电脑设置的git远程URL地址需要更新。
+
+### 5.2 迁移原来git仓库`.ssh/authorized_keys`配置
+
+在原来git仓库主机执行命令，复制输出的内容：
+
+```sh
+[root@hellogitlab ~]# cat /home/git/.ssh/authorized_keys
+```
+
+将复制的内容直接写入到新主机git仓库的`.ssh/authorized_keys`文件中。
+
+### 5.3 更新原来个人电脑设置的git远程URL地址
+
+查看当前配置的远程URL地址：
+
+```sh
+[mzh@MacBookPro test (master)]$ git remote -v
+origin	ssh://git@hellogitlab.com:10000/git-server/test.git (fetch)
+origin	ssh://git@hellogitlab.com:10000/git-server/test.git (push)
+```
+
+修改远程URL地址：
+
+```sh
+[mzh@MacBookPro test (master)]$ git remote set-url ssh://git@newhellogitlab.com:10000/git-server/test.git
+```
+
+再次查看当前配置的远程URL地址：
+
+```sh
+[mzh@MacBookPro test (master)]$ git remote -v
+origin	ssh://git@newhellogitlab.com:10000/git-server/test.git (fetch)
+origin	ssh://git@newhellogitlab.com:10000/git-server/test.git (push)
+```
+
