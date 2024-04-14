@@ -854,3 +854,109 @@ int main()
 | 6    | say'Hello           | 不能包含引号    |
 
 当函数名中有多个单词时，函数名全部使用大写字母或者小写字母会增加阅读难度，有很多不同的习惯用法来区别它们。如驼峰命名法是指函数名的第一个字母小写，其后每一个单词的首字母大写，如`sayHelloManyTimes`。还有一种是下画线命名法，是所有字母都采用小写，但单词之间用下画线分开，如`say_hello_many_times`。实际编程中使用哪一种命名法取决于开发团队的规定，在本书中使用驼峰命名法。
+
+#### 3.4.4 函数的声明和定义的区别
+
+在3.4.2节点，如果不做别的变更，则`sayHelloManyTimes`函数必须在`sayHello`函数之后并在`main`函数之前。
+
+这是为什么呢？
+
+- 因为编译器是编译程序时是从前到后逐行进行的。
+
+我们测试一下，将`main`函数向前移动，移动到`sayHello`函数前面：
+
+```c++
+// 以下代码禁用scanf不安全提示
+#define _CRT_SECURE_NO_WARNINGS 1
+// 以下代码用于关闭 "返回值被忽略 scanf"警告
+#pragma warning(disable : 6031)
+#include <stdio.h>
+
+int main()
+{
+    printf("请输入一个整数：");
+    int time = 0;
+    scanf("%d", &time);
+    sayHelloManyTimes(time);
+
+    return 0;
+}
+
+int sayHello()
+{
+    printf("Hello,World\n");
+
+    return 0;
+}
+
+int sayHelloManyTimes(int time)
+{
+    for (int i = 0; i < time; i++) {
+        sayHello();
+    }
+
+    return time;
+}
+```
+
+然后再次运行代码，提示异常：
+
+![Snipaste_2024-04-14_22-56-49.png](/img/Snipaste_2024-04-14_22-56-49.png)
+
+提示异常，错误代码`C3861`，错误说明`“sayHelloManyTimes”: 找不到标识符`，即找不到标识符。
+
+原因是编译到12行时编译器还不能识别`sayHelloManyTimes`函数。
+
+
+
+难道未来所有的程序都必须要按函数出现的次序写吗？不是的，答案是，先【声明】函数。
+
+
+
+什么是声明？譬如在开会时，领导说“我先说一下，这个外汇牌价看板的模块交给新来的小白做。”即使其他与会者不认识、没见过小白，也知道小白是个新人，不会再问“小白是谁”这样的问题。
+
+
+
+因此，在引用函数前，我们可以先声明函数。修改代码：
+
+```c++
+// 以下代码禁用scanf不安全提示
+#define _CRT_SECURE_NO_WARNINGS 1
+// 以下代码用于关闭 "返回值被忽略 scanf"警告
+#pragma warning(disable : 6031)
+#include <stdio.h>
+
+// 函数声明
+int sayHello();
+int sayHelloManyTimes(int time);
+
+int main()
+{
+    printf("请输入一个整数：");
+    int time = 0;
+    scanf("%d", &time);
+    sayHelloManyTimes(time);
+
+    return 0;
+}
+
+int sayHello()
+{
+    printf("Hello,World\n");
+
+    return 0;
+}
+
+int sayHelloManyTimes(int time)
+{
+    for (int i = 0; i < time; i++) {
+        sayHello();
+    }
+
+    return time;
+}
+```
+
+其中，第7-9行是新增的，第8-9行代码就是函数的声明。
+
+可以看到，所谓函数的声明就是函数头(函数返回值类型、函数名和函数参数)加是分号，但不包含实现功能的函数代码。有了函数声明编译器就“认识”了这两个函数，程序就可以正常编译。
