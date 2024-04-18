@@ -1,0 +1,16 @@
+---
+- name: Copy alias config
+  ansible.builtin.copy:
+    src: alias.sh
+    dest: /root/.alias.sh
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Insert block to .bashrc
+  ansible.builtin.blockinfile:
+    path: /root/.bashrc
+    block: |
+      # meizhaohui add this start
+      source ~/.alias.sh
+      # meizhaohui add this end

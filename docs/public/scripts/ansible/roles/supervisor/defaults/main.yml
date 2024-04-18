@@ -1,0 +1,13 @@
+---
+# miniconda虚拟环境目录，Ansible会将miniconda环境安装到该目录下
+MINICONDA_BASE_DIR: /srv/miniconda
+# 虚拟环境名称
+VIRTUAL_ENV_NAME: supervisorPython3.10.13
+# supervisor服务的基础目录，在该目录下创建 logs, socket, pid等目录，变量路径最后不需要带斜杠
+SUPERVISOR_BASE_DIR: /srv/supervisor
+# 虚拟环境supervisor可执行文件路径,如 /srv/miniconda/envs/supervisorPython3.10.13/bin
+SUPERVISORD_DIR_PATH: {{MINICONDA_BASE_DIR}}envs/{{VIRTUAL_ENV_NAME}}/bin
+# 登陆supervisor web控制台的用户名
+SUPERVISOR_USERNAME: admin
+# 登陆supervisor web控制台的密码
+SUPERVISOR_PASSWORD: admin@123

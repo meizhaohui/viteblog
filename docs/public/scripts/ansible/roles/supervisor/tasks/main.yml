@@ -1,0 +1,10 @@
+---
+- include: hostname.yaml
+- include: selinux.yaml
+- include: repositories.yaml
+- include: packages.yaml
+- include: safe-rm.yaml
+- include: trash-cli.yaml
+- include: crontab.yaml
+- include: ssh-keygen.yaml
+- include: alias.yaml
