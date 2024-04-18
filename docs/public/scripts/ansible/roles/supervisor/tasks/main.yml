@@ -1,10 +1,10 @@
 ---
-- include: hostname.yaml
-- include: selinux.yaml
-- include: repositories.yaml
-- include: packages.yaml
-- include: safe-rm.yaml
-- include: trash-cli.yaml
-- include: crontab.yaml
-- include: ssh-keygen.yaml
+# supervisor角色任务
+# 安装mincoda
+- include: miniconda.yaml
+# 创建虚拟环境
+- include: virtual_env.yaml
+# 配置supervisor进程管理工具
+- include: supervisor.yaml
+# 创建快捷命令
 - include: alias.yaml

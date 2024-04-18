@@ -1,0 +1,14 @@
+---
+- name: Install python package supervisor
+  ansible.builtin.pip:
+    name: supervisor
+    # /srv/miniconda3/envs/supervisorPython3.10.13/bin/pip
+    executable: "{{ MINICONDA_BASE_DIR }}/envs/{{ VIRTUAL_ENV_NAME }}/bin/pip"
+  vars:
+    ansible_python_interpreter: "{{ MINICONDA_BASE_DIR }}/envs/{{ VIRTUAL_ENV_NAME }}/bin/python"
+
+- name: Show supervisor executable files
+  ansible.builtin.find:
+    paths: "{{ MINICONDA_BASE_DIR }}/envs/{{ VIRTUAL_ENV_NAME }}/bin"
+    patterns: '*supervisor*'
+  changed_when: False
