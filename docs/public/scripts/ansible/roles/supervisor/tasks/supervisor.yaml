@@ -12,3 +12,32 @@
     paths: "{{ MINICONDA_BASE_DIR }}/envs/{{ VIRTUAL_ENV_NAME }}/bin"
     patterns: '*supervisor*'
   changed_when: False
+
+- name: Copy supervisord.conf file
+  ansible.builtin.template:
+    src: supervisord.conf.j2
+    dest: "/etc/supervisord.conf"
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Create a directory if it does not exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  with_items:
+    - /etc/supervisord.d
+    - "{{ SUPERVISOR_BASE_DIR }}"
+    - "{{ SUPERVISOR_BASE_DIR }}/pid"
+    - "{{ SUPERVISOR_BASE_DIR }}/logs"
+    - "{{ SUPERVISOR_BASE_DIR }}/socket"
+    
+
+- name: Copy supervisor test app config
+  ansible.builtin.copy:
+    src: app.ini
+    dest: /etc/supervisord.d/app.ini
+    force: yes
+    backup: yes
+    remote_src: no

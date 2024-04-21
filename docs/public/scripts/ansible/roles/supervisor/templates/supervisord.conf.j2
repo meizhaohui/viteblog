@@ -46,11 +46,11 @@ username={{ SUPERVISOR_USERNAME }}              ; default is no username (open s
 password={{ SUPERVISOR_PASSWORD }}              ; default is no password (open server)
 
 [supervisord]
-logfile==/srv/supervisor/logs/supervisord.log ; main log file; default $CWD/supervisord.log
+logfile={{ SUPERVISOR_BASE_DIR }}/logs/supervisord.log ; main log file; default $CWD/supervisord.log
 logfile_maxbytes=50MB        ; max main logfile bytes b4 rotation; default 50MB
 logfile_backups=10           ; # of main logfile backups; 0 means none, default 10
 loglevel=info                ; log level; default info; others: debug,warn,trace
-pidfile==/srv/supervisor/pid/supervisord.pid ; supervisord pidfile; default supervisord.pid
+pidfile={{ SUPERVISOR_BASE_DIR }}/pid/supervisord.pid ; supervisord pidfile; default supervisord.pid
 nodaemon=false               ; start in foreground if true; default false
 silent=false                 ; no logs to stdout if true; default false
 minfds=1024                  ; min. avail startup file descriptors; default 1024
