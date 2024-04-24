@@ -9,6 +9,8 @@ VIRTUAL_ENV_NAME: supervisorPython3.10.13
 VIRTUAL_PYTHON_VERSION: 3.10.13
 # supervisor服务的基础目录，在该目录下创建 logs, socket, pid等目录，变量路径最后不需要带斜杠
 SUPERVISOR_BASE_DIR: /srv/supervisor
+# supervisor服务的配置文件
+SUPERVISORD_CONFIG_FILE: /etc/supervisord.conf
 # 虚拟环境supervisor可执行文件路径,如 /srv/miniconda3/envs/supervisorPython3.10.13/bin
 SUPERVISORD_DIR_PATH: "{{ MINICONDA_BASE_DIR }}/envs/{{ VIRTUAL_ENV_NAME }}/bin"
 # 登陆supervisor web控制台的用户名

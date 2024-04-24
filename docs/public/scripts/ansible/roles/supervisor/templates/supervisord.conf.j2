@@ -20,7 +20,7 @@
 ;  is deleted, supervisorctl will be unable to connect to supervisord.
 
 [unix_http_server]
-file=/tmp/supervisor.sock   ; the path to the socket file
+file={{ SUPERVISOR_BASE_DIR }}/socket/supervisor.sock   ; the path to the socket file
 ;chmod=0700                 ; socket file mode (default 0700)
 ;chown=nobody:nogroup       ; socket file uid:gid owner
 ;username=user              ; default is no username (open server)
@@ -57,6 +57,7 @@ minfds=1024                  ; min. avail startup file descriptors; default 1024
 minprocs=200                 ; min. avail process descriptors;default 200
 ;umask=022                   ; process file creation umask; default 022
 ;user=supervisord            ; setuid to this UNIX account at startup; recommended if root
+user=root
 ;identifier=supervisor       ; supervisord identifier, default is 'supervisor'
 ;directory=/tmp              ; default is not to cd during start
 ;nocleanup=true              ; don't clean up tempfiles at start; default false

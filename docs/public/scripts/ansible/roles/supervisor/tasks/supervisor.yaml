@@ -16,7 +16,8 @@
 - name: Copy supervisord.conf file
   ansible.builtin.template:
     src: supervisord.conf.j2
-    dest: "/etc/supervisord.conf"
+    dest: "{{ SUPERVISORD_CONFIG_FILE }}"
+    mode: '0600'
     force: yes
     backup: yes
     remote_src: no
@@ -32,7 +33,6 @@
     - "{{ SUPERVISOR_BASE_DIR }}/pid"
     - "{{ SUPERVISOR_BASE_DIR }}/logs"
     - "{{ SUPERVISOR_BASE_DIR }}/socket"
-    
 
 - name: Copy supervisor test app config
   ansible.builtin.copy:
@@ -41,3 +41,16 @@
     force: yes
     backup: yes
     remote_src: no
+
+- name: Copy supervisor service file
+  ansible.builtin.template:
+    src: supervisord.service.j2
+    dest: /usr/lib/systemd/system/supervisord.service
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Start service supervisord, if not started
+  ansible.builtin.service:
+    name: supervisord
+    state: restarted
