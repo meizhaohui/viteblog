@@ -1,6 +1,6 @@
 ---
 # supervisor角色任务
-# 安装mincoda
+# 安装minicoda
 - include: miniconda.yaml
 # 创建虚拟环境
 - include: virtual_env.yaml
