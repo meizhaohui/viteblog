@@ -8,6 +8,23 @@
     remote_src: no
     mode: u=rwx,g=r,o=r
 
+- name: Copy the sha256 info file
+  ansible.builtin.copy:
+    src: sha256info.txt
+    dest: /tmp/sha256info.txt
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Check the sha256 value of the shell file
+  # 在执行sha256sum校验前，先切换目录，避免因目录中找不到文件出现校验异常问题
+  ansible.builtin.command:
+    cmd: sha256sum -c sha256info.txt
+    chdir: /tmp
+  register: result
+  failed_when:
+    - result.rc != 0
+
 - name: Copy condarc config file
   ansible.builtin.template:
     src: condarc.j2
