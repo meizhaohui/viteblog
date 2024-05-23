@@ -172,3 +172,147 @@ roles/supervisor
 ```
 
 这样的话，就可以将精力集中在自己关心的任务上，等前面的任务配置验证无误后，再将后面的任务的注释去掉，测试下一个任务。
+
+
+
+### 2.4 任务1-安装mincoda
+
+这个任务，由`roles/supervisor/tasks/miniconda.yaml`定义，查看该文件内容：
+
+```yaml
+---
+- name: Copy install shell file
+  ansible.builtin.copy:
+    src: "{{ MINICONDA_SHELL_FILENAME }}"
+    dest: "/tmp/{{ MINICONDA_SHELL_FILENAME }}"
+    force: yes
+    backup: yes
+    remote_src: no
+    mode: u=rwx,g=r,o=r
+
+- name: Copy the sha256 info file
+  ansible.builtin.copy:
+    src: sha256info.txt
+    dest: /tmp/sha256info.txt
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Check the sha256 value of the shell file
+  ansible.builtin.command:
+    cmd: sha256sum -c sha256info.txt
+    chdir: /tmp
+  register: result
+  failed_when:
+    - result.rc != 0
+
+- name: Copy condarc config file
+  ansible.builtin.template:
+    src: condarc.j2
+    dest: "/root/.condarc"
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Install miniconda
+  ansible.builtin.command:
+    # cmd: "/tmp/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh -b -p /srv/miniconda3"
+    cmd: "/tmp/{{ MINICONDA_SHELL_FILENAME }} -b -p {{ MINICONDA_BASE_DIR }}"
+
+- name: Remove install shell file
+  ansible.builtin.file:
+    path: "/tmp/{{ MINICONDA_SHELL_FILENAME }}"
+    state: absent
+
+```
+
+可以看到，这个任务中，又分了6个子任务：
+
+- 任务1-`Copy install shell file`，复制从 https://docs.anaconda.com/free/miniconda/miniconda-other-installer-links/ 下载的miniconda shell安装文件到远程主机上。手动下载的安装文件保存到` roles/supervisor/files/`目录下。
+
+```sh
+[root@ansible ansible_playbooks]# ll roles/supervisor/files/
+total 131796
+-rw-r--r--. 1 root root        36 Apr 24 22:36 app.ini
+-rw-r--r--. 1 root root 134948792 Apr 18 23:00 Miniconda3-py310_24.1.2-0-Linux-x86_64.sh
+-rw-r--r--. 1 root root       108 May 22 22:17 sha256info.txt
+[root@ansible ansible_playbooks]# cd roles/supervisor/files/
+[root@ansible files]# cat sha256info.txt
+8eb5999c2f7ac6189690d95ae5ec911032fa6697ae4b34eb3235802086566d78  Miniconda3-py310_24.1.2-0-Linux-x86_64.sh
+[root@ansible files]# sha256sum -c sha256info.txt
+Miniconda3-py310_24.1.2-0-Linux-x86_64.sh: OK
+[root@ansible files]#
+```
+
+
+
+- 任务2-`Copy the sha256 info file`，复制散列校验文件`roles/supervisor/files/sha256info.txt`到远程主机上。
+
+这个文件可以通过下面的命令生成：
+
+```sh
+[root@ansible files]# sha256sum Miniconda3-py310_24.1.2-0-Linux-x86_64.sh
+8eb5999c2f7ac6189690d95ae5ec911032fa6697ae4b34eb3235802086566d78  Miniconda3-py310_24.1.2-0-Linux-x86_64.sh
+[root@ansible files]#
+```
+
+通过该命令查出的sha256散列值，刚好可以与miniconda官网上给出的散列值进行对比，散列值相同则说明文件是正常的。
+
+- 任务3-`Check the sha256 value of the shell file`，则会校验复制到远程主机上面的miniconda shell安装文件散列值对不对，不对的话，则会异常，不继续执行后续步骤。
+- 任务4-`Copy condarc config file`，复制condarc的配置文件到远程主机，加速miniconda的安装。
+- 任务5-`Install miniconda`，执行miniconda安装脚本来安装miniconda，并指定安装目录。
+- 任务6-`Remove install shell file`，安装完成后，删除掉复制到远程主机上面miniconda安装脚本，释放磁盘空间。
+
+
+
+在`roles/supervisor/tasks/miniconda.yaml`文件中，可以看到使用了一些双大括号包裹的配置，如<code  v-pre>"{{ MINICONDA_SHELL_FILENAME }}"</code>，这个是变量的引用。下面就来说明一下变量。
+
+
+
+### 2.5 默认变量
+
+在`roles/supervisor/defaults/main.yml`中定义了一些角色中使用的默认变量：
+
+- 变量名使用大写形式，如`MINICONDA_SHELL_FILENAME`。
+- 一行定义一个变量名。
+
+```yaml
+---
+# 从 https://docs.anaconda.com/free/miniconda/miniconda-other-installer-links/ 下载的miniconda shell安装文件的名称
+MINICONDA_SHELL_FILENAME: Miniconda3-py310_24.1.2-0-Linux-x86_64.sh
+# miniconda虚拟环境目录，Ansible会将miniconda环境安装到该目录下
+MINICONDA_BASE_DIR: /srv/miniconda3
+# 虚拟环境名称
+VIRTUAL_ENV_NAME: supervisorPython3.10.13
+# 虚拟环境Python版本
+VIRTUAL_PYTHON_VERSION: 3.10.13
+# supervisor服务的基础目录，在该目录下创建 logs, socket, pid等目录，变量路径最后不需要带斜杠
+SUPERVISOR_BASE_DIR: /srv/supervisor
+# supervisor服务的配置文件
+SUPERVISORD_CONFIG_FILE: /etc/supervisord.conf
+# 虚拟环境supervisor可执行文件路径,如 /srv/miniconda3/envs/supervisorPython3.10.13/bin
+SUPERVISORD_DIR_PATH: "{{ MINICONDA_BASE_DIR }}/envs/{{ VIRTUAL_ENV_NAME }}/bin"
+# 登陆supervisor web控制台的用户名
+SUPERVISOR_USERNAME: admin
+# 登陆supervisor web控制台的密码
+SUPERVISOR_PASSWORD: admin@123
+
+```
+
+这些变量可以直接在角色中的任务中使用，也可以在`roles/supervisor/templates/`模板文件夹下的模板中使用。
+
+### 2.6 与远程主机相关的变量
+
+可以将远程主机相关的变量，如`IP`信息等，定义在`roles/supervisor/vars/main.yml`变量配置文件中。如我定义了一个`HOST_IP`，来获取远程主机的IP值：
+
+```yaml
+---
+HOST_IP: "{{ hostvars[inventory_hostname]['inventory_hostname'] }}"
+
+```
+
+
+
+### 2.7 内容不动态渲染的文件
+
+在`roles/supervisor/files/`文件夹保存的文件，会原样从Ansible控制主机复制到远程主机上，其中没有使用定义的变量。在任务配置文件中应使用`ansible.builtin.copy`模块，而不是`ansible.builtin.template`模块。
