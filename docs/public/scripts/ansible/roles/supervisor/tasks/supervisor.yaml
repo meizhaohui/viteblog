@@ -50,7 +50,9 @@
     backup: yes
     remote_src: no
 
-- name: Start service supervisord, if not started
+- name: Start service supervisord, in all cases
   ansible.builtin.service:
     name: supervisord
     state: restarted
+    # 开机启动
+    enabled: yes

@@ -175,7 +175,7 @@ roles/supervisor
 
 
 
-### 2.4 任务1-安装mincoda
+### 2.4 任务一-安装mincoda
 
 这个任务，由`roles/supervisor/tasks/miniconda.yaml`定义，查看该文件内容：
 
@@ -392,3 +392,131 @@ WantedBy=multi-user.target
 [root@ansible ansible_playbooks]#
 ```
 
+### 2.9 尝试运行第一个任务-安装mincoda
+
+在运行任务前，再次确认一下剧本文件和主机清单配置：
+
+```sh
+[root@ansible ansible_playbooks]# cat supervisor.yml
+---
+- hosts: supervisorhosts
+  roles:
+    - supervisor
+
+[root@ansible ansible_playbooks]# cat hosts.ini
+[supervisorhosts]
+192.168.56.121 hostname=ansible-node1
+# 192.168.56.122 hostname=ansible-node2
+# 192.168.56.123 hostname=ansible-node3
+
+[root@ansible ansible_playbooks]#
+```
+
+由于我当前正在测试自己写的角色任务文件，只选择一个工作节点来测试，另外两个工作节点先注释掉，这样可以提升测试效率。
+
+
+
+执行命令`ansible-playbook -i hosts.ini supervisor.yml -v`来调用剧本：
+
+```sh
+[root@ansible ansible_playbooks]# ansible-playbook -i hosts.ini supervisor.yml -v
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [supervisorhosts] ***********************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+
+TASK [supervisor : Copy install shell file] **************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "d80c76dc3fa4af07900daf1dd628863f1f56a67c", "dest": "/tmp/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh", "gid": 0, "group": "root", "mode": "0744", "owner": "root", "path": "/tmp/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh", "size": 134948792, "state": "file", "uid": 0}
+
+TASK [supervisor : Copy the sha256 info file] ************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "1c64874cd584cf30f32d30e34c6cb0b8a46b471e", "dest": "/tmp/sha256info.txt", "gid": 0, "group": "root", "mode": "0644", "owner": "root", "path": "/tmp/sha256info.txt", "size": 108, "state": "file", "uid": 0}
+
+TASK [supervisor : Check the sha256 value of the shell file] *********************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "cmd": ["sha256sum", "-c", "sha256info.txt"], "delta": "0:00:00.237958", "end": "2024-05-23 23:08:06.611481", "failed_when_result": false, "rc": 0, "start": "2024-05-23 23:08:06.373523", "stderr": "", "stderr_lines": [], "stdout": "Miniconda3-py310_24.1.2-0-Linux-x86_64.sh: OK", "stdout_lines": ["Miniconda3-py310_24.1.2-0-Linux-x86_64.sh: OK"]}
+
+TASK [supervisor : Copy condarc config file] *************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "d6edf310e69bb5ea7d54068817d9b60653e31a1b", "dest": "/root/.condarc", "gid": 0, "group": "root", "mode": "0744", "owner": "root", "path": "/root/.condarc", "size": 777, "state": "file", "uid": 0}
+
+TASK [supervisor : Install miniconda] ********************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "cmd": ["/tmp/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh", "-b", "-p", "/srv/miniconda3"], "delta": "0:00:08.590488", "end": "2024-05-23 23:08:15.983518", "rc": 0, "start": "2024-05-23 23:08:07.393030", "stderr": "\r  0%|          | 0/73 [00:00<?, ?it/s]\rExtracting : python-3.10.13-h955ad1f_0.conda:   0%|          | 0/73 [00:01<?, ?it/s]\rExtracting : python-3.10.13-h955ad1f_0.conda:   1%|▏         | 1/73 [00:01<01:35,  1.33s/it]\rExtracting : _libgcc_mutex-0.1-main.conda:   1%|▏         | 1/73 [00:01<01:35,  1.33s/it]   \rExtracting : ca-certificates-2023.12.12-h06a4308_0.conda:   3%|▎         | 2/73 [00:01<01:34,  1.33s/it]\rExtracting : ld_impl_linux-64-2.38-h1181459_1.conda:   4%|▍         | 3/73 [00:01<01:32,  1.33s/it]     \rExtracting : libstdcxx-ng-11.2.0-h1234567_1.conda:   5%|▌         | 4/73 [00:01<01:31,  1.33s/it]  \rExtracting : pybind11-abi-4-hd3eb1b0_1.conda:   7%|▋         | 5/73 [00:01<01:30,  1.33s/it]     \rExtracting : tzdata-2023d-h04d1e81_0.conda:   8%|▊         | 6/73 [00:01<01:28,  1.33s/it]  \rExtracting : libgomp-11.2.0-h1234567_1.conda:  10%|▉         | 7/73 [00:01<01:27,  1.33s/it]\rExtracting : _openmp_mutex-5.1-1_gnu.conda:  11%|█         | 8/73 [00:01<01:26,  1.33s/it]  \rExtracting : libgcc-ng-11.2.0-h1234567_1.conda:  12%|█▏        | 9/73 [00:01<01:24,  1.33s/it]\rExtracting : bzip2-1.0.8-h7b6447c_0.conda:  14%|█▎        | 10/73 [00:01<01:23,  1.33s/it]    \rExtracting : c-ares-1.19.1-h5eee18b_0.conda:  15%|█▌        | 11/73 [00:01<01:22,  1.33s/it]\rExtracting : fmt-9.1.0-hdb19cb5_0.conda:  16%|█▋        | 12/73 [00:01<01:20,  1.33s/it]    \rExtracting : icu-73.1-h6a678d5_0.conda:  18%|█▊        | 13/73 [00:01<01:19,  1.33s/it] \rExtracting : libev-4.33-h7f8727e_1.conda:  19%|█▉        | 14/73 [00:01<01:18,  1.33s/it]\rExtracting : libffi-3.4.4-h6a678d5_0.conda:  21%|██        | 15/73 [00:01<01:16,  1.33s/it]\rExtracting : libuuid-1.41.5-h5eee18b_0.conda:  22%|██▏       | 16/73 [00:01<01:15,  1.33s/it]\rExtracting : lz4-c-1.9.4-h6a678d5_0.conda:  23%|██▎       | 17/73 [00:01<01:14,  1.33s/it]   \rExtracting : ncurses-6.4-h6a678d5_0.conda:  25%|██▍       | 18/73 [00:01<01:12,  1.33s/it]\rExtracting : ncurses-6.4-h6a678d5_0.conda:  26%|██▌       | 19/73 [00:01<00:04, 13.10it/s]\rExtracting : openssl-3.0.13-h7f8727e_0.conda:  26%|██▌       | 19/73 [00:01<00:04, 13.10it/s]\rExtracting : reproc-14.2.4-h295c915_1.conda:  27%|██▋       | 20/73 [00:01<00:04, 13.10it/s] \rExtracting : xz-5.4.5-h5eee18b_0.conda:  29%|██▉       | 21/73 [00:01<00:03, 13.10it/s]     \rExtracting : yaml-cpp-0.8.0-h6a678d5_0.conda:  30%|███       | 22/73 [00:01<00:03, 13.10it/s]\rExtracting : zlib-1.2.13-h5eee18b_0.conda:  32%|███▏      | 23/73 [00:01<00:03, 13.10it/s]   \rExtracting : libedit-3.1.20230828-h5eee18b_0.conda:  33%|███▎      | 24/73 [00:01<00:03, 13.10it/s]\rExtracting : libnghttp2-1.57.0-h2d74bed_0.conda:  34%|███▍      | 25/73 [00:01<00:03, 13.10it/s]   \rExtracting : libssh2-1.10.0-hdbd6064_2.conda:  36%|███▌      | 26/73 [00:01<00:03, 13.10it/s]   \rExtracting : libxml2-2.10.4-hf1b16e4_1.conda:  37%|███▋      | 27/73 [00:01<00:03, 13.10it/s]\rExtracting : pcre2-10.42-hebb0a14_0.conda:  38%|███▊      | 28/73 [00:01<00:03, 13.10it/s]   \rExtracting : readline-8.2-h5eee18b_0.conda:  40%|███▉      | 29/73 [00:01<00:03, 13.10it/s]\rExtracting : reproc-cpp-14.2.4-h295c915_1.conda:  41%|████      | 30/73 [00:01<00:03, 13.10it/s]\rExtracting : tk-8.6.12-h1ccaba5_0.conda:  42%|████▏     | 31/73 [00:02<00:03, 13.10it/s]        \rExtracting : tk-8.6.12-h1ccaba5_0.conda:  44%|████▍     | 32/73 [00:02<00:01, 21.24it/s]\rExtracting : zstd-1.5.5-hc292b87_0.conda:  44%|████▍     | 32/73 [00:02<00:01, 21.24it/s]\rExtracting : krb5-1.20.1-h143b758_1.conda:  45%|████▌     | 33/73 [00:02<00:01, 21.24it/s]\rExtracting : libarchive-3.6.2-h6ac8c49_2.conda:  47%|████▋     | 34/73 [00:02<00:01, 21.24it/s]\rExtracting : libsolv-0.7.24-he621ea3_0.conda:  48%|████▊     | 35/73 [00:02<00:01, 21.24it/s]  \rExtracting : sqlite-3.41.2-h5eee18b_0.conda:  49%|████▉     | 36/73 [00:02<00:01, 21.24it/s] \rExtracting : libcurl-8.5.0-h251f7ec_0.conda:  51%|█████     | 37/73 [00:02<00:01, 21.24it/s]\rExtracting : libmamba-1.5.6-haf1ee3a_0.conda:  52%|█████▏    | 38/73 [00:02<00:01, 21.24it/s]\rExtracting : menuinst-2.0.2-py310h06a4308_0.conda:  53%|█████▎    | 39/73 [00:02<00:01, 21.24it/s]\rExtracting : archspec-0.2.1-pyhd3eb1b0_0.conda:  55%|█████▍    | 40/73 [00:02<00:01, 21.24it/s]   \rExtracting : boltons-23.0.0-py310h06a4308_0.conda:  56%|█████▌    | 41/73 [00:02<00:01, 21.24it/s]\rExtracting : boltons-23.0.0-py310h06a4308_0.conda:  58%|█████▊    | 42/73 [00:02<00:01, 28.28it/s]\rExtracting : brotli-python-1.0.9-py310h6a678d5_7.conda:  58%|█████▊    | 42/73 [00:02<00:01, 28.28it/s]\rExtracting : certifi-2024.2.2-py310h06a4308_0.conda:  59%|█████▉    | 43/73 [00:02<00:01, 28.28it/s]   \rExtracting : charset-normalizer-2.0.4-pyhd3eb1b0_0.conda:  60%|██████    | 44/73 [00:02<00:01, 28.28it/s]\rExtracting : distro-1.8.0-py310h06a4308_0.conda:  62%|██████▏   | 45/73 [00:02<00:00, 28.28it/s]         \rExtracting : idna-3.4-py310h06a4308_0.conda:  63%|██████▎   | 46/73 [00:02<00:00, 28.28it/s]    \rExtracting : jsonpointer-2.1-pyhd3eb1b0_0.conda:  64%|██████▍   | 47/73 [00:02<00:00, 28.28it/s]\rExtracting : libmambapy-1.5.6-py310h2dafd23_0.conda:  66%|██████▌   | 48/73 [00:02<00:00, 28.28it/s]\rExtracting : packaging-23.1-py310h06a4308_0.conda:  67%|██████▋   | 49/73 [00:02<00:00, 28.28it/s]  \rExtracting : platformdirs-3.10.0-py310h06a4308_0.conda:  68%|██████▊   | 50/73 [00:02<00:00, 28.28it/s]\rExtracting : pluggy-1.0.0-py310h06a4308_1.conda:  70%|██████▉   | 51/73 [00:02<00:00, 28.28it/s]       \rExtracting : pycosat-0.6.6-py310h5eee18b_0.conda:  71%|███████   | 52/73 [00:02<00:00, 28.28it/s]\rExtracting : pycparser-2.21-pyhd3eb1b0_0.conda:  73%|███████▎  | 53/73 [00:02<00:00, 28.28it/s]  \rExtracting : pysocks-1.7.1-py310h06a4308_0.conda:  74%|███████▍  | 54/73 [00:02<00:00, 28.28it/s]\rExtracting : ruamel.yaml.clib-0.2.6-py310h5eee18b_1.conda:  75%|███████▌  | 55/73 [00:02<00:00, 28.28it/s]\rExtracting : setuptools-68.2.2-py310h06a4308_0.conda:  77%|███████▋  | 56/73 [00:02<00:00, 28.28it/s]     \rExtracting : setuptools-68.2.2-py310h06a4308_0.conda:  78%|███████▊  | 57/73 [00:02<00:00, 37.97it/s]\rExtracting : tqdm-4.65.0-py310h2f386ee_0.conda:  78%|███████▊  | 57/73 [00:02<00:00, 37.97it/s]      \rExtracting : truststore-0.8.0-py310h06a4308_0.conda:  79%|███████▉  | 58/73 [00:02<00:00, 37.97it/s]\rExtracting : wheel-0.41.2-py310h06a4308_0.conda:  81%|████████  | 59/73 [00:02<00:00, 37.97it/s]    \rExtracting : cffi-1.16.0-py310h5eee18b_0.conda:  82%|████████▏ | 60/73 [00:02<00:00, 37.97it/s] \rExtracting : jsonpatch-1.32-pyhd3eb1b0_0.conda:  84%|████████▎ | 61/73 [00:02<00:00, 37.97it/s]\rExtracting : pip-23.3.1-py310h06a4308_0.conda:  85%|████████▍ | 62/73 [00:02<00:00, 37.97it/s] \rExtracting : pip-23.3.1-py310h06a4308_0.conda:  86%|████████▋ | 63/73 [00:02<00:00, 29.97it/s]\rExtracting : ruamel.yaml-0.17.21-py310h5eee18b_0.conda:  86%|████████▋ | 63/73 [00:02<00:00, 29.97it/s]\rExtracting : urllib3-2.1.0-py310h06a4308_1.conda:  88%|████████▊ | 64/73 [00:02<00:00, 29.97it/s]      \rExtracting : cryptography-42.0.2-py310hdda0065_0.conda:  89%|████████▉ | 65/73 [00:02<00:00, 29.97it/s]\rExtracting : requests-2.31.0-py310h06a4308_1.conda:  90%|█████████ | 66/73 [00:02<00:00, 29.97it/s]    \rExtracting : zstandard-0.19.0-py310h5eee18b_0.conda:  92%|█████████▏| 67/73 [00:02<00:00, 29.97it/s]\rExtracting : conda-content-trust-0.2.0-py310h06a4308_0.conda:  93%|█████████▎| 68/73 [00:02<00:00, 29.97it/s]\rExtracting : conda-package-streaming-0.9.0-py310h06a4308_0.conda:  95%|█████████▍| 69/73 [00:02<00:00, 29.97it/s]\rExtracting : conda-package-handling-2.2.0-py310h06a4308_0.conda:  96%|█████████▌| 70/73 [00:02<00:00, 29.97it/s] \rExtracting : conda-24.1.2-py310h06a4308_0.conda:  97%|█████████▋| 71/73 [00:02<00:00, 29.97it/s]                \rExtracting : conda-24.1.2-py310h06a4308_0.conda:  99%|█████████▊| 72/73 [00:02<00:00, 35.67it/s]\rExtracting : conda-libmamba-solver-24.1.0-pyhd3eb1b0_0.conda:  99%|█████████▊| 72/73 [00:02<00:00, 35.67it/s]\r                                                                                                             ", "stderr_lines": ["", "  0%|          | 0/73 [00:00<?, ?it/s]", "Extracting : python-3.10.13-h955ad1f_0.conda:   0%|          | 0/73 [00:01<?, ?it/s]", "Extracting : python-3.10.13-h955ad1f_0.conda:   1%|▏         | 1/73 [00:01<01:35,  1.33s/it]", "Extracting : _libgcc_mutex-0.1-main.conda:   1%|▏         | 1/73 [00:01<01:35,  1.33s/it]   ", "Extracting : ca-certificates-2023.12.12-h06a4308_0.conda:   3%|▎         | 2/73 [00:01<01:34,  1.33s/it]", "Extracting : ld_impl_linux-64-2.38-h1181459_1.conda:   4%|▍         | 3/73 [00:01<01:32,  1.33s/it]     ", "Extracting : libstdcxx-ng-11.2.0-h1234567_1.conda:   5%|▌         | 4/73 [00:01<01:31,  1.33s/it]  ", "Extracting : pybind11-abi-4-hd3eb1b0_1.conda:   7%|▋         | 5/73 [00:01<01:30,  1.33s/it]     ", "Extracting : tzdata-2023d-h04d1e81_0.conda:   8%|▊         | 6/73 [00:01<01:28,  1.33s/it]  ", "Extracting : libgomp-11.2.0-h1234567_1.conda:  10%|▉         | 7/73 [00:01<01:27,  1.33s/it]", "Extracting : _openmp_mutex-5.1-1_gnu.conda:  11%|█         | 8/73 [00:01<01:26,  1.33s/it]  ", "Extracting : libgcc-ng-11.2.0-h1234567_1.conda:  12%|█▏        | 9/73 [00:01<01:24,  1.33s/it]", "Extracting : bzip2-1.0.8-h7b6447c_0.conda:  14%|█▎        | 10/73 [00:01<01:23,  1.33s/it]    ", "Extracting : c-ares-1.19.1-h5eee18b_0.conda:  15%|█▌        | 11/73 [00:01<01:22,  1.33s/it]", "Extracting : fmt-9.1.0-hdb19cb5_0.conda:  16%|█▋        | 12/73 [00:01<01:20,  1.33s/it]    ", "Extracting : icu-73.1-h6a678d5_0.conda:  18%|█▊        | 13/73 [00:01<01:19,  1.33s/it] ", "Extracting : libev-4.33-h7f8727e_1.conda:  19%|█▉        | 14/73 [00:01<01:18,  1.33s/it]", "Extracting : libffi-3.4.4-h6a678d5_0.conda:  21%|██        | 15/73 [00:01<01:16,  1.33s/it]", "Extracting : libuuid-1.41.5-h5eee18b_0.conda:  22%|██▏       | 16/73 [00:01<01:15,  1.33s/it]", "Extracting : lz4-c-1.9.4-h6a678d5_0.conda:  23%|██▎       | 17/73 [00:01<01:14,  1.33s/it]   ", "Extracting : ncurses-6.4-h6a678d5_0.conda:  25%|██▍       | 18/73 [00:01<01:12,  1.33s/it]", "Extracting : ncurses-6.4-h6a678d5_0.conda:  26%|██▌       | 19/73 [00:01<00:04, 13.10it/s]", "Extracting : openssl-3.0.13-h7f8727e_0.conda:  26%|██▌       | 19/73 [00:01<00:04, 13.10it/s]", "Extracting : reproc-14.2.4-h295c915_1.conda:  27%|██▋       | 20/73 [00:01<00:04, 13.10it/s] ", "Extracting : xz-5.4.5-h5eee18b_0.conda:  29%|██▉       | 21/73 [00:01<00:03, 13.10it/s]     ", "Extracting : yaml-cpp-0.8.0-h6a678d5_0.conda:  30%|███       | 22/73 [00:01<00:03, 13.10it/s]", "Extracting : zlib-1.2.13-h5eee18b_0.conda:  32%|███▏      | 23/73 [00:01<00:03, 13.10it/s]   ", "Extracting : libedit-3.1.20230828-h5eee18b_0.conda:  33%|███▎      | 24/73 [00:01<00:03, 13.10it/s]", "Extracting : libnghttp2-1.57.0-h2d74bed_0.conda:  34%|███▍      | 25/73 [00:01<00:03, 13.10it/s]   ", "Extracting : libssh2-1.10.0-hdbd6064_2.conda:  36%|███▌      | 26/73 [00:01<00:03, 13.10it/s]   ", "Extracting : libxml2-2.10.4-hf1b16e4_1.conda:  37%|███▋      | 27/73 [00:01<00:03, 13.10it/s]", "Extracting : pcre2-10.42-hebb0a14_0.conda:  38%|███▊      | 28/73 [00:01<00:03, 13.10it/s]   ", "Extracting : readline-8.2-h5eee18b_0.conda:  40%|███▉      | 29/73 [00:01<00:03, 13.10it/s]", "Extracting : reproc-cpp-14.2.4-h295c915_1.conda:  41%|████      | 30/73 [00:01<00:03, 13.10it/s]", "Extracting : tk-8.6.12-h1ccaba5_0.conda:  42%|████▏     | 31/73 [00:02<00:03, 13.10it/s]        ", "Extracting : tk-8.6.12-h1ccaba5_0.conda:  44%|████▍     | 32/73 [00:02<00:01, 21.24it/s]", "Extracting : zstd-1.5.5-hc292b87_0.conda:  44%|████▍     | 32/73 [00:02<00:01, 21.24it/s]", "Extracting : krb5-1.20.1-h143b758_1.conda:  45%|████▌     | 33/73 [00:02<00:01, 21.24it/s]", "Extracting : libarchive-3.6.2-h6ac8c49_2.conda:  47%|████▋     | 34/73 [00:02<00:01, 21.24it/s]", "Extracting : libsolv-0.7.24-he621ea3_0.conda:  48%|████▊     | 35/73 [00:02<00:01, 21.24it/s]  ", "Extracting : sqlite-3.41.2-h5eee18b_0.conda:  49%|████▉     | 36/73 [00:02<00:01, 21.24it/s] ", "Extracting : libcurl-8.5.0-h251f7ec_0.conda:  51%|█████     | 37/73 [00:02<00:01, 21.24it/s]", "Extracting : libmamba-1.5.6-haf1ee3a_0.conda:  52%|█████▏    | 38/73 [00:02<00:01, 21.24it/s]", "Extracting : menuinst-2.0.2-py310h06a4308_0.conda:  53%|█████▎    | 39/73 [00:02<00:01, 21.24it/s]", "Extracting : archspec-0.2.1-pyhd3eb1b0_0.conda:  55%|█████▍    | 40/73 [00:02<00:01, 21.24it/s]   ", "Extracting : boltons-23.0.0-py310h06a4308_0.conda:  56%|█████▌    | 41/73 [00:02<00:01, 21.24it/s]", "Extracting : boltons-23.0.0-py310h06a4308_0.conda:  58%|█████▊    | 42/73 [00:02<00:01, 28.28it/s]", "Extracting : brotli-python-1.0.9-py310h6a678d5_7.conda:  58%|█████▊    | 42/73 [00:02<00:01, 28.28it/s]", "Extracting : certifi-2024.2.2-py310h06a4308_0.conda:  59%|█████▉    | 43/73 [00:02<00:01, 28.28it/s]   ", "Extracting : charset-normalizer-2.0.4-pyhd3eb1b0_0.conda:  60%|██████    | 44/73 [00:02<00:01, 28.28it/s]", "Extracting : distro-1.8.0-py310h06a4308_0.conda:  62%|██████▏   | 45/73 [00:02<00:00, 28.28it/s]         ", "Extracting : idna-3.4-py310h06a4308_0.conda:  63%|██████▎   | 46/73 [00:02<00:00, 28.28it/s]    ", "Extracting : jsonpointer-2.1-pyhd3eb1b0_0.conda:  64%|██████▍   | 47/73 [00:02<00:00, 28.28it/s]", "Extracting : libmambapy-1.5.6-py310h2dafd23_0.conda:  66%|██████▌   | 48/73 [00:02<00:00, 28.28it/s]", "Extracting : packaging-23.1-py310h06a4308_0.conda:  67%|██████▋   | 49/73 [00:02<00:00, 28.28it/s]  ", "Extracting : platformdirs-3.10.0-py310h06a4308_0.conda:  68%|██████▊   | 50/73 [00:02<00:00, 28.28it/s]", "Extracting : pluggy-1.0.0-py310h06a4308_1.conda:  70%|██████▉   | 51/73 [00:02<00:00, 28.28it/s]       ", "Extracting : pycosat-0.6.6-py310h5eee18b_0.conda:  71%|███████   | 52/73 [00:02<00:00, 28.28it/s]", "Extracting : pycparser-2.21-pyhd3eb1b0_0.conda:  73%|███████▎  | 53/73 [00:02<00:00, 28.28it/s]  ", "Extracting : pysocks-1.7.1-py310h06a4308_0.conda:  74%|███████▍  | 54/73 [00:02<00:00, 28.28it/s]", "Extracting : ruamel.yaml.clib-0.2.6-py310h5eee18b_1.conda:  75%|███████▌  | 55/73 [00:02<00:00, 28.28it/s]", "Extracting : setuptools-68.2.2-py310h06a4308_0.conda:  77%|███████▋  | 56/73 [00:02<00:00, 28.28it/s]     ", "Extracting : setuptools-68.2.2-py310h06a4308_0.conda:  78%|███████▊  | 57/73 [00:02<00:00, 37.97it/s]", "Extracting : tqdm-4.65.0-py310h2f386ee_0.conda:  78%|███████▊  | 57/73 [00:02<00:00, 37.97it/s]      ", "Extracting : truststore-0.8.0-py310h06a4308_0.conda:  79%|███████▉  | 58/73 [00:02<00:00, 37.97it/s]", "Extracting : wheel-0.41.2-py310h06a4308_0.conda:  81%|████████  | 59/73 [00:02<00:00, 37.97it/s]    ", "Extracting : cffi-1.16.0-py310h5eee18b_0.conda:  82%|████████▏ | 60/73 [00:02<00:00, 37.97it/s] ", "Extracting : jsonpatch-1.32-pyhd3eb1b0_0.conda:  84%|████████▎ | 61/73 [00:02<00:00, 37.97it/s]", "Extracting : pip-23.3.1-py310h06a4308_0.conda:  85%|████████▍ | 62/73 [00:02<00:00, 37.97it/s] ", "Extracting : pip-23.3.1-py310h06a4308_0.conda:  86%|████████▋ | 63/73 [00:02<00:00, 29.97it/s]", "Extracting : ruamel.yaml-0.17.21-py310h5eee18b_0.conda:  86%|████████▋ | 63/73 [00:02<00:00, 29.97it/s]", "Extracting : urllib3-2.1.0-py310h06a4308_1.conda:  88%|████████▊ | 64/73 [00:02<00:00, 29.97it/s]      ", "Extracting : cryptography-42.0.2-py310hdda0065_0.conda:  89%|████████▉ | 65/73 [00:02<00:00, 29.97it/s]", "Extracting : requests-2.31.0-py310h06a4308_1.conda:  90%|█████████ | 66/73 [00:02<00:00, 29.97it/s]    ", "Extracting : zstandard-0.19.0-py310h5eee18b_0.conda:  92%|█████████▏| 67/73 [00:02<00:00, 29.97it/s]", "Extracting : conda-content-trust-0.2.0-py310h06a4308_0.conda:  93%|█████████▎| 68/73 [00:02<00:00, 29.97it/s]", "Extracting : conda-package-streaming-0.9.0-py310h06a4308_0.conda:  95%|█████████▍| 69/73 [00:02<00:00, 29.97it/s]", "Extracting : conda-package-handling-2.2.0-py310h06a4308_0.conda:  96%|█████████▌| 70/73 [00:02<00:00, 29.97it/s] ", "Extracting : conda-24.1.2-py310h06a4308_0.conda:  97%|█████████▋| 71/73 [00:02<00:00, 29.97it/s]                ", "Extracting : conda-24.1.2-py310h06a4308_0.conda:  99%|█████████▊| 72/73 [00:02<00:00, 35.67it/s]", "Extracting : conda-libmamba-solver-24.1.0-pyhd3eb1b0_0.conda:  99%|█████████▊| 72/73 [00:02<00:00, 35.67it/s]", "                                                                                                             "], "stdout": "PREFIX=/srv/miniconda3\nUnpacking payload ...\n\nInstalling base environment...\n\n\nDownloading and Extracting Packages: ...working... done\n\nDownloading and Extracting Packages: ...working... done\nPreparing transaction: ...working... done\nExecuting transaction: ...working... done\ninstallation finished.", "stdout_lines": ["PREFIX=/srv/miniconda3", "Unpacking payload ...", "", "Installing base environment...", "", "", "Downloading and Extracting Packages: ...working... done", "", "Downloading and Extracting Packages: ...working... done", "Preparing transaction: ...working... done", "Executing transaction: ...working... done", "installation finished."]}
+
+TASK [supervisor : Remove install shell file] ************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "path": "/tmp/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh", "state": "absent"}
+
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=7    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+Playbook run took 0 days, 0 hours, 0 minutes, 13 seconds
+[root@ansible ansible_playbooks]#
+```
+
+执行过程截图：
+
+![](/img/Snipaste_2024-05-23_23-14-38.png)
+
+![](/img/Snipaste_2024-05-23_23-15-37.png)
+
+此时，可以在工作节点1上面检查一下：
+
+```sh
+[root@ansible-node1 ~]# ll /tmp/sha256info.txt
+-rw-r--r-- 1 root root 108 May 22 22:17 /tmp/sha256info.txt
+[root@ansible-node1 ~]# cat /tmp/sha256info.txt
+8eb5999c2f7ac6189690d95ae5ec911032fa6697ae4b34eb3235802086566d78  Miniconda3-py310_24.1.2-0-Linux-x86_64.sh
+[root@ansible-node1 ~]# ll /root/.condarc
+-rwxr--r-- 1 root root 777 Apr 18 23:10 /root/.condarc
+[root@ansible-node1 ~]# cat /root/.condarc
+channels:
+  - defaults
+show_channel_urls: true
+default_channels:
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/msys2
+custom_channels:
+  conda-forge: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  msys2: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  bioconda: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  menpo: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  pytorch: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  pytorch-lts: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  simpleitk: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  deepmodeling: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/
+[root@ansible-node1 ~]# ll /srv/miniconda3
+total 32216
+drwxr-xr-x  2 root root     4096 May 23 23:08 bin
+drwxr-xr-x  2 root root       66 May 23 23:08 cmake
+drwxr-xr-x  2 root root       30 May 23 23:08 compiler_compat
+-rwxr-xr-x  1 root root 32840488 May 23 23:08 _conda
+drwxr-xr-x  2 root root       19 May 23 23:08 condabin
+drwxr-xr-x  2 root root     4096 May 23 23:08 conda-meta
+drwxr-xr-x  2 root root        6 May 23 23:08 envs
+drwxr-xr-x  4 root root       35 May 23 23:08 etc
+drwxr-xr-x 26 root root     8192 May 23 23:08 include
+drwxr-xr-x 19 root root     8192 May 23 23:08 lib
+-rw-r--r--  1 root root    91585 Feb 24 02:39 LICENSE.txt
+drwxr-xr-x  4 root root       30 May 23 23:08 man
+drwxr-xr-x 76 root root     8192 May 23 23:08 pkgs
+drwxr-xr-x  2 root root      203 May 23 23:08 sbin
+drwxr-xr-x 15 root root      181 May 23 23:08 share
+drwxr-xr-x  3 root root       22 May 23 23:08 shell
+drwxr-xr-x  3 root root      146 May 23 23:08 ssl
+drwxr-xr-x  3 root root       17 May 23 23:08 x86_64-conda_cos7-linux-gnu
+drwxr-xr-x  3 root root       17 May 23 23:08 x86_64-conda-linux-gnu
+[root@ansible-node1 ~]# cd /srv/miniconda3/bin/
+[root@ansible-node1 bin]# ./conda -V
+conda 24.1.2
+[root@ansible-node1 bin]# ./conda env list
+# conda environments:
+#
+base                     /srv/miniconda3
+[root@ansible-node1 bin]#
+```
+
+可以看到，预期的文件已经有了，miniconda也安装到MINICONDA_BASE_DIR变量指定的目录`/srv/miniconda3`里面了，并且能够执行`conda`相关的命令。
+
+此时，只有一个`base`环境。
+
+可以看到，miniconda成功安装，并正常可用了，说明第一个任务配置是对的。
