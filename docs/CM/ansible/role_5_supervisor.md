@@ -520,3 +520,92 @@ base                     /srv/miniconda3
 此时，只有一个`base`环境。
 
 可以看到，miniconda成功安装，并正常可用了，说明第一个任务配置是对的。
+
+
+
+### 2.10 任务二-创建虚拟环境
+
+任务二创建虚拟环境，使用的是`virtual_env.yaml`子任务，由`roles/supervisor/tasks/virtual_env.yaml`定义，查看该文件内容：
+
+```yaml
+---
+- name: Create supervisor virtual environment
+  ansible.builtin.command:
+    # cmd: "/srv/miniconda3/bin/conda create --yes --name supervisorPython3.10.13 python=3.10.13"
+    cmd: "{{ MINICONDA_BASE_DIR }}/bin/conda create --yes --name {{ VIRTUAL_ENV_NAME }} python={{ VIRTUAL_PYTHON_VERSION }}"
+
+- name: Show virtual environments
+  ansible.builtin.command:
+    # cmd: "/srv/miniconda3/bin/conda env list"
+    cmd: "{{ MINICONDA_BASE_DIR }}/bin/conda env list"
+  changed_when: False
+
+- name: Show virtual Python version
+  ansible.builtin.command:
+    # cmd: "/srv/miniconda/envs/supervisorPython3.10.13/bin/python -V"
+    cmd: "{{ MINICONDA_BASE_DIR }}/envs/{{ VIRTUAL_ENV_NAME }}/bin/python -V"
+  changed_when: False
+
+```
+
+实际上，就只用执行类似`/srv/miniconda3/bin/conda create --yes --name supervisorPython3.10.13 python=3.10.13`这样的命令，来创建一个名为`supervisorPython3.10.13`的虚拟环境，而虚拟环境的名称和Python的版本，则是由默认变量`VIRTUAL_ENV_NAME`和`VIRTUAL_PYTHON_VERSION`来定义的，2.5节中已经说明。
+
+由于任务一已经测试环境，我们此时只想测试第二个任务，因此可以调整`roles/supervisor/tasks/main.yml`配置内容中的`include`情况，修改成这样的：
+
+```yaml
+---
+# supervisor角色任务
+# 安装mincoda
+# - include: miniconda.yaml
+# 创建虚拟环境
+- include: virtual_env.yaml
+# 配置supervisor进程管理工具
+#- include: supervisor.yaml
+# 创建快捷命令
+#- include: alias.yaml
+```
+
+此时，执行剧本：
+
+```sh
+[root@ansible ansible_playbooks]# ansible-playbook -i hosts.ini supervisor.yml -v
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [supervisorhosts] ***********************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+
+TASK [Create supervisor virtual environment] *************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "cmd": ["/srv/miniconda3/bin/conda", "create", "--yes", "--name", "supervisorPython3.10.13", "python=3.10.13"], "delta": "0:00:13.757764", "end": "2024-05-23 23:44:25.118665", "rc": 0, "start": "2024-05-23 23:44:11.360901", "stderr": "", "stderr_lines": [], "stdout": "Retrieving notices: ...working... done\nChannels:\n - defaults\nPlatform: linux-64\nCollecting package metadata (repodata.json): ...working... done\nSolving environment: ...working... done\n\n## Package Plan ##\n\n  environment location: /srv/miniconda3/envs/supervisorPython3.10.13\n\n  added / updated specs:\n    - python=3.10.13\n\n\nThe following packages will be downloaded:\n\n    package                    |            build\n    ---------------------------|-----------------\n    _libgcc_mutex-0.1          |             main           3 KB  defaults\n    _openmp_mutex-5.1          |            1_gnu          21 KB  defaults\n    bzip2-1.0.8                |       h5eee18b_6         262 KB  defaults\n    ca-certificates-2024.3.11  |       h06a4308_0         127 KB  defaults\n    ld_impl_linux-64-2.38      |       h1181459_1         654 KB  defaults\n    libffi-3.4.4               |       h6a678d5_1         141 KB  defaults\n    libgcc-ng-11.2.0           |       h1234567_1         5.3 MB  defaults\n    libgomp-11.2.0             |       h1234567_1         474 KB  defaults\n    libstdcxx-ng-11.2.0        |       h1234567_1         4.7 MB  defaults\n    libuuid-1.41.5             |       h5eee18b_0          27 KB  defaults\n    ncurses-6.4                |       h6a678d5_0         914 KB  defaults\n    openssl-3.0.13             |       h7f8727e_2         5.2 MB  defaults\n    pip-24.0                   |  py310h06a4308_0         2.7 MB  defaults\n    python-3.10.13             |       h955ad1f_0        26.8 MB  defaults\n    readline-8.2               |       h5eee18b_0         357 KB  defaults\n    setuptools-69.5.1          |  py310h06a4308_0        1012 KB  defaults\n    sqlite-3.45.3              |       h5eee18b_0         1.2 MB  defaults\n    tk-8.6.14                  |       h39e8969_0         3.4 MB  defaults\n    tzdata-2024a               |       h04d1e81_0         116 KB  defaults\n    wheel-0.43.0               |  py310h06a4308_0         110 KB  defaults\n    xz-5.4.6                   |       h5eee18b_1         643 KB  defaults\n    zlib-1.2.13                |       h5eee18b_1         111 KB  defaults\n    ------------------------------------------------------------\n                                           Total:        54.2 MB\n\nThe following NEW packages will be INSTALLED:\n\n  _libgcc_mutex      anaconda/pkgs/main/linux-64::_libgcc_mutex-0.1-main \n  _openmp_mutex      anaconda/pkgs/main/linux-64::_openmp_mutex-5.1-1_gnu \n  bzip2              anaconda/pkgs/main/linux-64::bzip2-1.0.8-h5eee18b_6 \n  ca-certificates    anaconda/pkgs/main/linux-64::ca-certificates-2024.3.11-h06a4308_0 \n  ld_impl_linux-64   anaconda/pkgs/main/linux-64::ld_impl_linux-64-2.38-h1181459_1 \n  libffi             anaconda/pkgs/main/linux-64::libffi-3.4.4-h6a678d5_1 \n  libgcc-ng          anaconda/pkgs/main/linux-64::libgcc-ng-11.2.0-h1234567_1 \n  libgomp            anaconda/pkgs/main/linux-64::libgomp-11.2.0-h1234567_1 \n  libstdcxx-ng       anaconda/pkgs/main/linux-64::libstdcxx-ng-11.2.0-h1234567_1 \n  libuuid            anaconda/pkgs/main/linux-64::libuuid-1.41.5-h5eee18b_0 \n  ncurses            anaconda/pkgs/main/linux-64::ncurses-6.4-h6a678d5_0 \n  openssl            anaconda/pkgs/main/linux-64::openssl-3.0.13-h7f8727e_2 \n  pip                anaconda/pkgs/main/linux-64::pip-24.0-py310h06a4308_0 \n  python             anaconda/pkgs/main/linux-64::python-3.10.13-h955ad1f_0 \n  readline           anaconda/pkgs/main/linux-64::readline-8.2-h5eee18b_0 \n  setuptools         anaconda/pkgs/main/linux-64::setuptools-69.5.1-py310h06a4308_0 \n  sqlite             anaconda/pkgs/main/linux-64::sqlite-3.45.3-h5eee18b_0 \n  tk                 anaconda/pkgs/main/linux-64::tk-8.6.14-h39e8969_0 \n  tzdata             anaconda/pkgs/main/noarch::tzdata-2024a-h04d1e81_0 \n  wheel              anaconda/pkgs/main/linux-64::wheel-0.43.0-py310h06a4308_0 \n  xz                 anaconda/pkgs/main/linux-64::xz-5.4.6-h5eee18b_1 \n  zlib               anaconda/pkgs/main/linux-64::zlib-1.2.13-h5eee18b_1 \n\n\n\nDownloading and Extracting Packages: ...working... done\nPreparing transaction: ...working... done\nVerifying transaction: ...working... done\nExecuting transaction: ...working... done\n#\n# To activate this environment, use\n#\n#     $ conda activate supervisorPython3.10.13\n#\n# To deactivate an active environment, use\n#\n#     $ conda deactivate", "stdout_lines": ["Retrieving notices: ...working... done", "Channels:", " - defaults", "Platform: linux-64", "Collecting package metadata (repodata.json): ...working... done", "Solving environment: ...working... done", "", "## Package Plan ##", "", "  environment location: /srv/miniconda3/envs/supervisorPython3.10.13", "", "  added / updated specs:", "    - python=3.10.13", "", "", "The following packages will be downloaded:", "", "    package                    |            build", "    ---------------------------|-----------------", "    _libgcc_mutex-0.1          |             main           3 KB  defaults", "    _openmp_mutex-5.1          |            1_gnu          21 KB  defaults", "    bzip2-1.0.8                |       h5eee18b_6         262 KB  defaults", "    ca-certificates-2024.3.11  |       h06a4308_0         127 KB  defaults", "    ld_impl_linux-64-2.38      |       h1181459_1         654 KB  defaults", "    libffi-3.4.4               |       h6a678d5_1         141 KB  defaults", "    libgcc-ng-11.2.0           |       h1234567_1         5.3 MB  defaults", "    libgomp-11.2.0             |       h1234567_1         474 KB  defaults", "    libstdcxx-ng-11.2.0        |       h1234567_1         4.7 MB  defaults", "    libuuid-1.41.5             |       h5eee18b_0          27 KB  defaults", "    ncurses-6.4                |       h6a678d5_0         914 KB  defaults", "    openssl-3.0.13             |       h7f8727e_2         5.2 MB  defaults", "    pip-24.0                   |  py310h06a4308_0         2.7 MB  defaults", "    python-3.10.13             |       h955ad1f_0        26.8 MB  defaults", "    readline-8.2               |       h5eee18b_0         357 KB  defaults", "    setuptools-69.5.1          |  py310h06a4308_0        1012 KB  defaults", "    sqlite-3.45.3              |       h5eee18b_0         1.2 MB  defaults", "    tk-8.6.14                  |       h39e8969_0         3.4 MB  defaults", "    tzdata-2024a               |       h04d1e81_0         116 KB  defaults", "    wheel-0.43.0               |  py310h06a4308_0         110 KB  defaults", "    xz-5.4.6                   |       h5eee18b_1         643 KB  defaults", "    zlib-1.2.13                |       h5eee18b_1         111 KB  defaults", "    ------------------------------------------------------------", "                                           Total:        54.2 MB", "", "The following NEW packages will be INSTALLED:", "", "  _libgcc_mutex      anaconda/pkgs/main/linux-64::_libgcc_mutex-0.1-main ", "  _openmp_mutex      anaconda/pkgs/main/linux-64::_openmp_mutex-5.1-1_gnu ", "  bzip2              anaconda/pkgs/main/linux-64::bzip2-1.0.8-h5eee18b_6 ", "  ca-certificates    anaconda/pkgs/main/linux-64::ca-certificates-2024.3.11-h06a4308_0 ", "  ld_impl_linux-64   anaconda/pkgs/main/linux-64::ld_impl_linux-64-2.38-h1181459_1 ", "  libffi             anaconda/pkgs/main/linux-64::libffi-3.4.4-h6a678d5_1 ", "  libgcc-ng          anaconda/pkgs/main/linux-64::libgcc-ng-11.2.0-h1234567_1 ", "  libgomp            anaconda/pkgs/main/linux-64::libgomp-11.2.0-h1234567_1 ", "  libstdcxx-ng       anaconda/pkgs/main/linux-64::libstdcxx-ng-11.2.0-h1234567_1 ", "  libuuid            anaconda/pkgs/main/linux-64::libuuid-1.41.5-h5eee18b_0 ", "  ncurses            anaconda/pkgs/main/linux-64::ncurses-6.4-h6a678d5_0 ", "  openssl            anaconda/pkgs/main/linux-64::openssl-3.0.13-h7f8727e_2 ", "  pip                anaconda/pkgs/main/linux-64::pip-24.0-py310h06a4308_0 ", "  python             anaconda/pkgs/main/linux-64::python-3.10.13-h955ad1f_0 ", "  readline           anaconda/pkgs/main/linux-64::readline-8.2-h5eee18b_0 ", "  setuptools         anaconda/pkgs/main/linux-64::setuptools-69.5.1-py310h06a4308_0 ", "  sqlite             anaconda/pkgs/main/linux-64::sqlite-3.45.3-h5eee18b_0 ", "  tk                 anaconda/pkgs/main/linux-64::tk-8.6.14-h39e8969_0 ", "  tzdata             anaconda/pkgs/main/noarch::tzdata-2024a-h04d1e81_0 ", "  wheel              anaconda/pkgs/main/linux-64::wheel-0.43.0-py310h06a4308_0 ", "  xz                 anaconda/pkgs/main/linux-64::xz-5.4.6-h5eee18b_1 ", "  zlib               anaconda/pkgs/main/linux-64::zlib-1.2.13-h5eee18b_1 ", "", "", "", "Downloading and Extracting Packages: ...working... done", "Preparing transaction: ...working... done", "Verifying transaction: ...working... done", "Executing transaction: ...working... done", "#", "# To activate this environment, use", "#", "#     $ conda activate supervisorPython3.10.13", "#", "# To deactivate an active environment, use", "#", "#     $ conda deactivate"]}
+
+TASK [supervisor : Show virtual environments] ************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "cmd": ["/srv/miniconda3/bin/conda", "env", "list"], "delta": "0:00:00.300997", "end": "2024-05-23 23:44:25.746078", "rc": 0, "start": "2024-05-23 23:44:25.445081", "stderr": "", "stderr_lines": [], "stdout": "# conda environments:\n#\nbase                     /srv/miniconda3\nsupervisorPython3.10.13     /srv/miniconda3/envs/supervisorPython3.10.13", "stdout_lines": ["# conda environments:", "#", "base                     /srv/miniconda3", "supervisorPython3.10.13     /srv/miniconda3/envs/supervisorPython3.10.13"]}
+
+TASK [supervisor : Show virtual Python version] **********************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "cmd": ["/srv/miniconda3/envs/supervisorPython3.10.13/bin/python", "-V"], "delta": "0:00:00.002003", "end": "2024-05-23 23:44:26.101416", "rc": 0, "start": "2024-05-23 23:44:26.099413", "stderr": "", "stderr_lines": [], "stdout": "Python 3.10.13", "stdout_lines": ["Python 3.10.13"]}
+
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+Playbook run took 0 days, 0 hours, 0 minutes, 16 seconds
+[root@ansible ansible_playbooks]#
+```
+
+![](/img/Snipaste_2024-05-23_23-45-23.png)
+
+可以看到，剧本执行成功。在节点1上面去检查一下：
+
+```sh
+[root@ansible-node1 bin]# ./conda env list
+# conda environments:
+#
+base                     /srv/miniconda3
+supervisorPython3.10.13     /srv/miniconda3/envs/supervisorPython3.10.13
+
+[root@ansible-node1 bin]# /srv/miniconda3/envs/supervisorPython3.10.13/bin/python -V
+Python 3.10.13
+[root@ansible-node1 bin]#
+```
+
+可以看到，虚拟环境supervisorPython3.10.13创建成功，对应虚拟环境的Python版本是Python 3.10.13。
