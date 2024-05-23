@@ -316,3 +316,79 @@ HOST_IP: "{{ hostvars[inventory_hostname]['inventory_hostname'] }}"
 ### 2.7 内容不动态渲染的文件
 
 在`roles/supervisor/files/`文件夹保存的文件，会原样从Ansible控制主机复制到远程主机上，其中没有使用定义的变量。在任务配置文件中应使用`ansible.builtin.copy`模块，而不是`ansible.builtin.template`模块。
+
+示例：
+
+```sh
+# 查看roles/supervisor/files 文件夹有哪些文件
+[root@ansible ansible_playbooks]# ll roles/supervisor/files/
+total 131796
+-rw-r--r--. 1 root root        36 Apr 24 22:36 app.ini
+-rw-r--r--. 1 root root 134948792 Apr 18 23:00 Miniconda3-py310_24.1.2-0-Linux-x86_64.sh
+-rw-r--r--. 1 root root       108 May 22 22:17 sha256info.txt
+
+
+# 查看散列校验文件的内容
+[root@ansible ansible_playbooks]# cat roles/supervisor/files/sha256info.txt
+8eb5999c2f7ac6189690d95ae5ec911032fa6697ae4b34eb3235802086566d78  Miniconda3-py310_24.1.2-0-Linux-x86_64.sh
+[root@ansible ansible_playbooks]#
+
+# 查看用于配置supervisor测试应用的配置文件
+[root@ansible ansible_playbooks]# cat roles/supervisor/files/app.ini
+[program:testapp]
+command=/bin/cat
+
+[root@ansible ansible_playbooks]#
+```
+
+
+
+### 2.8 内容动态渲染的文件
+
+在`roles/supervisor/templates/`文件夹保存的文件，会将引用变量的位置，用变量的值来进行代替，并渲染成最终的值。在任务配置文件中应使用`ansible.builtin.template`模块，而不是`ansible.builtin.copy`模块，刚好与上一节的内容不动态渲染的文件使用的模块相反。
+
+当然，如果你在`roles/supervisor/templates/`文件夹保存的文件，没使用变量，此时也应使用`ansible.builtin.template`模块来复制文件，不能用`ansible.builtin.copy`模块来复制文件。
+
+
+
+示例：
+
+```sh
+# condarc.j2中没有使用变量，但在`Copy condarc config file`任务中还是使用的ansible.builtin.template模块
+[root@ansible ansible_playbooks]# cat roles/supervisor/templates/condarc.j2
+channels:
+  - defaults
+show_channel_urls: true
+default_channels:
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/msys2
+custom_channels:
+  conda-forge: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  msys2: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  bioconda: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  menpo: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  pytorch: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  pytorch-lts: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  simpleitk: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+  deepmodeling: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/
+
+[root@ansible ansible_playbooks]#
+
+# supervisord.service.j2中使用了默认变量SUPERVISORD_DIR_PATH和SUPERVISORD_CONFIG_FILE
+[root@ansible ansible_playbooks]# cat roles/supervisor/templates/supervisord.service.j2
+# /usr/lib/systemd/system/supervisord.service
+[Unit]
+Description=Process Monitoring and Control Daemon
+After=rc-local.service nss-user-lookup.target
+
+[Service]
+Type=forking
+# ExecStart=/usr/bin/supervisord -c /etc/supervisord.conf
+ExecStart={{ SUPERVISORD_DIR_PATH }}/supervisord -c {{ SUPERVISORD_CONFIG_FILE }}
+
+[Install]
+WantedBy=multi-user.target
+[root@ansible ansible_playbooks]#
+```
+
