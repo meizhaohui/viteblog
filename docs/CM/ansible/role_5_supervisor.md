@@ -779,3 +779,136 @@ testapp                          RUNNING   pid 2349, uptime 0:04:27
 
 
 
+### 2.11 任务四-创建快捷命令
+
+创建快捷命令的任务，由`roles/supervisor/tasks/alias.yaml`定义，查看该文件内容：
+
+```yaml
+---
+- name: Copy alias config
+  ansible.builtin.template:
+    src: alias_supervisor.sh.j2
+    dest: /root/.alias_supervisor.sh
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Insert block to .bashrc
+  ansible.builtin.blockinfile:
+    path: /root/.bashrc
+    block: |
+      source ~/.alias_supervisor.sh
+    create: yes
+    # 注意，需要设置不同的marker标记，否则会修改以前存在的默认标记
+    marker: "# {mark} meizhaohui add supervisor alias"
+    state: present
+
+```
+
+此任务将自定义的相关快捷命令都写到`/root/.alias_supervisor.sh`这个文件里面，然后在`/root/.bashrc`中加载这个文件。
+
+查看`alias_supervisor.sh.j2`模板内容：
+
+```sh
+# meizhaohui add this
+# supervisor相关的快捷命令
+alias supervisordStatus='systemctl status supervisord'
+alias supervisordRestart='systemctl restart supervisord'
+alias spctl='{{ SUPERVISORD_DIR_PATH }}/supervisorctl'
+alias spreload='{{ SUPERVISORD_DIR_PATH }}/supervisorctl reload'
+alias spstatus='sp_status'
+function sp_status() {
+    {{ SUPERVISORD_DIR_PATH }}/supervisorctl status $1|awk '{if($2=="RUNNING"){printf "\033[1;32m"$0"\033[0m\n"} else if($2=="STOPPED"){printf "\033[1;33m"$0"\033[0m\n"} else {print "\033[1;31m"$0"\033[0m"} }'
+}
+
+```
+
+像前面任务一样，修改`roles/supervisor/tasks/main.yml`配置文件，将前面三个测试好的任务关掉：
+
+```yaml
+---
+# supervisor角色任务
+# 安装mincoda
+#- include: miniconda.yaml
+# 创建虚拟环境
+#- include: virtual_env.yaml
+# 配置supervisor进程管理工具
+#- include: supervisor.yaml
+# 创建快捷命令
+- include: alias.yaml
+
+```
+
+然后执行剧本：
+
+```sh
+
+[root@ansible ansible_playbooks]# ansible-playbook -i hosts.ini supervisor.yml -v
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [supervisorhosts] ***********************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+
+TASK [supervisor : Copy alias config] ********************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "checksum": "ac45722c54f80be7acfbe97bd8049e8759d0fe38", "dest": "/root/.alias_supervisor.sh", "gid": 0, "group": "root", "md5sum": "782a6cbdd363ff30afbc78d83b16128d", "mode": "0644", "owner": "root", "size": 617, "src": "/root/.ansible/tmp/ansible-tmp-1716627556.73-1741-224175243910168/source", "state": "file", "uid": 0}
+
+TASK [supervisor : Insert block to .bashrc] **************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "msg": "Block inserted"}
+
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+Playbook run took 0 days, 0 hours, 0 minutes, 2 seconds
+[root@ansible ansible_playbooks]#
+```
+
+执行过程截图：
+
+![](/img/Snipaste_2024-05-25_17-00-04.png)
+
+然后在节点1上面去检查，执行一些相关的命令：
+
+```sh
+[root@ansible-node1 ~]# alias|grep super
+alias spctl='/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisorctl'
+alias spreload='/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisorctl reload'
+alias supervisordRestart='systemctl restart supervisord'
+alias supervisordStatus='systemctl status supervisord'
+[root@ansible-node1 ~]# supervisordStatus
+● supervisord.service - Process Monitoring and Control Daemon
+   Loaded: loaded (/usr/lib/systemd/system/supervisord.service; enabled; vendor preset: disabled)
+   Active: active (running) since Sat 2024-05-25 16:39:37 CST; 21min ago
+  Process: 2339 ExecStart=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf (code=exited, status=0/SUCCESS)
+ Main PID: 2340 (supervisord)
+   CGroup: /system.slice/supervisord.service
+           ├─2340 /srv/miniconda3/envs/supervisorPython3.10.13/bin/python /srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf
+           └─2349 /bin/cat
+
+May 25 16:39:37 ansible-node1 systemd[1]: Starting Process Monitoring and Control Daemon...
+May 25 16:39:37 ansible-node1 systemd[1]: Started Process Monitoring and Control Daemon.
+[root@ansible-node1 ~]# spctl status
+testapp                          RUNNING   pid 2349, uptime 0:21:59
+[root@ansible-node1 ~]# spctl status testapp
+testapp                          RUNNING   pid 2349, uptime 0:22:03
+[root@ansible-node1 ~]# spstatus
+testapp                          RUNNING   pid 2349, uptime 0:22:09
+[root@ansible-node1 ~]# spstatus testapp
+testapp                          RUNNING   pid 2349, uptime 0:22:14
+[root@ansible-node1 ~]# spctl restart testapp
+testapp: stopped
+testapp: started
+[root@ansible-node1 ~]# spstatus
+testapp                          RUNNING   pid 2672, uptime 0:00:04
+[root@ansible-node1 ~]# spstatus
+testapp                          RUNNING   pid 2672, uptime 0:00:08
+[root@ansible-node1 ~]#
+```
+
+执行过程截图：
+
+![](/img/Snipaste_2024-05-25_17-03-05.png)
+
+可以看到，supervisor相关的快捷命令都能正常使用了，说明创建快捷命令这个子任务也能正常工作了！！
+
