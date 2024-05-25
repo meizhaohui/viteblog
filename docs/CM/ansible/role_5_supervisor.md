@@ -550,7 +550,7 @@ base                     /srv/miniconda3
 
 实际上，就只用执行类似`/srv/miniconda3/bin/conda create --yes --name supervisorPython3.10.13 python=3.10.13`这样的命令，来创建一个名为`supervisorPython3.10.13`的虚拟环境，而虚拟环境的名称和Python的版本，则是由默认变量`VIRTUAL_ENV_NAME`和`VIRTUAL_PYTHON_VERSION`来定义的，2.5节中已经说明。
 
-由于任务一已经测试环境，我们此时只想测试第二个任务，因此可以调整`roles/supervisor/tasks/main.yml`配置内容中的`include`情况，修改成这样的：
+由于任务一已经测试完成，我们此时只想测试第二个任务，因此可以调整`roles/supervisor/tasks/main.yml`配置内容中的`include`情况，修改成这样的：
 
 ```yaml
 ---
@@ -609,3 +609,173 @@ Python 3.10.13
 ```
 
 可以看到，虚拟环境supervisorPython3.10.13创建成功，对应虚拟环境的Python版本是Python 3.10.13。
+
+
+
+### 2.11 任务三-配置supervisor进程管理工具
+
+上一节我们已经创建了一个虚拟环境supervisorPython3.10.13，
+
+下面在该虚拟环境下安装supervisor包及其依赖。然后将supervisord.conf和supervisord.service等配置文件复制到远程主机，最后启动supervisord服务。
+
+由`roles/supervisor/tasks/supervisor.yaml`定义，查看该文件内容：
+
+```yaml
+---
+- name: Install python package supervisor
+  ansible.builtin.pip:
+    name: supervisor
+    # /srv/miniconda3/envs/supervisorPython3.10.13/bin/pip
+    executable: "{{ MINICONDA_BASE_DIR }}/envs/{{ VIRTUAL_ENV_NAME }}/bin/pip"
+  vars:
+    ansible_python_interpreter: "{{ MINICONDA_BASE_DIR }}/envs/{{ VIRTUAL_ENV_NAME }}/bin/python"
+
+- name: Show supervisor executable files
+  ansible.builtin.find:
+    paths: "{{ MINICONDA_BASE_DIR }}/envs/{{ VIRTUAL_ENV_NAME }}/bin"
+    patterns: '*supervisor*'
+  changed_when: False
+
+- name: Copy supervisord.conf file
+  ansible.builtin.template:
+    src: supervisord.conf.j2
+    dest: "{{ SUPERVISORD_CONFIG_FILE }}"
+    mode: '0600'
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Create a directory if it does not exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  with_items:
+    - /etc/supervisord.d
+    - "{{ SUPERVISOR_BASE_DIR }}"
+    - "{{ SUPERVISOR_BASE_DIR }}/pid"
+    - "{{ SUPERVISOR_BASE_DIR }}/logs"
+    - "{{ SUPERVISOR_BASE_DIR }}/socket"
+
+- name: Copy supervisor test app config
+  ansible.builtin.copy:
+    src: app.ini
+    dest: /etc/supervisord.d/app.ini
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Copy supervisor service file
+  ansible.builtin.template:
+    src: supervisord.service.j2
+    dest: /usr/lib/systemd/system/supervisord.service
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Start service supervisord, in all cases
+  ansible.builtin.service:
+    name: supervisord
+    state: restarted
+    # 开机启动
+    enabled: yes
+
+```
+
+
+
+此处需要注意的是，通过`ansible_python_interpreter`变量来指定远程主机上的python解释器路径 ，避免使用默认的python解释器。
+
+像前面任务二一样，修改`roles/supervisor/tasks/main.yml`配置文件，将前面两个测试好的任务关掉：
+
+```yaml
+---
+# supervisor角色任务
+# 安装mincoda
+#- include: miniconda.yaml
+# 创建虚拟环境
+#- include: virtual_env.yaml
+# 配置supervisor进程管理工具
+- include: supervisor.yaml
+# 创建快捷命令
+#- include: alias.yaml
+
+```
+
+然后执行剧本：
+
+```sh
+[root@ansible ansible_playbooks]# ansible-playbook -i hosts.ini supervisor.yml -v
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [supervisorhosts] ***********************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+
+TASK [Install python package supervisor] *****************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "cmd": ["/srv/miniconda3/envs/supervisorPython3.10.13/bin/pip", "install", "supervisor"], "name": ["supervisor"], "requirements": null, "state": "present", "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n", "stderr_lines": ["WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv"], "stdout": "Looking in indexes: http://mirrors.aliyun.com/pypi/simple/\nCollecting supervisor\n  Downloading http://mirrors.aliyun.com/pypi/packages/2c/7a/0ad3973941590c040475046fef37a2b08a76691e61aa59540828ee235a6e/supervisor-4.2.5-py2.py3-none-any.whl (319 kB)\n     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 319.6/319.6 kB 163.9 kB/s eta 0:00:00\nRequirement already satisfied: setuptools in /srv/miniconda3/envs/supervisorPython3.10.13/lib/python3.10/site-packages (from supervisor) (69.5.1)\nInstalling collected packages: supervisor\nSuccessfully installed supervisor-4.2.5\n", "stdout_lines": ["Looking in indexes: http://mirrors.aliyun.com/pypi/simple/", "Collecting supervisor", "  Downloading http://mirrors.aliyun.com/pypi/packages/2c/7a/0ad3973941590c040475046fef37a2b08a76691e61aa59540828ee235a6e/supervisor-4.2.5-py2.py3-none-any.whl (319 kB)", "     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 319.6/319.6 kB 163.9 kB/s eta 0:00:00", "Requirement already satisfied: setuptools in /srv/miniconda3/envs/supervisorPython3.10.13/lib/python3.10/site-packages (from supervisor) (69.5.1)", "Installing collected packages: supervisor", "Successfully installed supervisor-4.2.5"], "version": null, "virtualenv": null}
+
+TASK [Show supervisor executable files] ******************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "examined": 75, "files": [{"atime": 1716626372.7525017, "ctime": 1716626372.7465017, "dev": 64768, "gid": 0, "gr_name": "root", "inode": 34017491, "isblk": false, "ischr": false, "isdir": false, "isfifo": false, "isgid": false, "islnk": false, "isreg": true, "issock": false, "isuid": false, "mode": "0755", "mtime": 1716626372.7465017, "nlink": 1, "path": "/srv/miniconda3/envs/supervisorPython3.10.13/bin/echo_supervisord_conf", "pw_name": "root", "rgrp": true, "roth": true, "rusr": true, "size": 257, "uid": 0, "wgrp": false, "woth": false, "wusr": true, "xgrp": true, "xoth": true, "xusr": true}, {"atime": 1716626372.7525017, "ctime": 1716626372.7465017, "dev": 64768, "gid": 0, "gr_name": "root", "inode": 34017493, "isblk": false, "ischr": false, "isdir": false, "isfifo": false, "isgid": false, "islnk": false, "isreg": true, "issock": false, "isuid": false, "mode": "0755", "mtime": 1716626372.7465017, "nlink": 1, "path": "/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisorctl", "pw_name": "root", "rgrp": true, "roth": true, "rusr": true, "size": 262, "uid": 0, "wgrp": false, "woth": false, "wusr": true, "xgrp": true, "xoth": true, "xusr": true}, {"atime": 1716626372.7525017, "ctime": 1716626372.7465017, "dev": 64768, "gid": 0, "gr_name": "root", "inode": 34017494, "isblk": false, "ischr": false, "isdir": false, "isfifo": false, "isgid": false, "islnk": false, "isreg": true, "issock": false, "isuid": false, "mode": "0755", "mtime": 1716626372.7465017, "nlink": 1, "path": "/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord", "pw_name": "root", "rgrp": true, "roth": true, "rusr": true, "size": 260, "uid": 0, "wgrp": false, "woth": false, "wusr": true, "xgrp": true, "xoth": true, "xusr": true}], "matched": 3, "msg": ""}
+
+TASK [Copy supervisord.conf file] ************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "77992e3dab6a4a7605837a0ff91ef3d6156dcb33", "dest": "/etc/supervisord.conf", "gid": 0, "group": "root", "mode": "0600", "owner": "root", "path": "/etc/supervisord.conf", "size": 10925, "state": "file", "uid": 0}
+
+TASK [supervisor : Create a directory if it does not exist] **********************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => (item=/etc/supervisord.d) => {"ansible_loop_var": "item", "changed": false, "gid": 0, "group": "root", "item": "/etc/supervisord.d", "mode": "0755", "owner": "root", "path": "/etc/supervisord.d", "size": 21, "state": "directory", "uid": 0}
+ok: [192.168.56.121] => (item=/srv/supervisor) => {"ansible_loop_var": "item", "changed": false, "gid": 0, "group": "root", "item": "/srv/supervisor", "mode": "0755", "owner": "root", "path": "/srv/supervisor", "size": 43, "state": "directory", "uid": 0}
+ok: [192.168.56.121] => (item=/srv/supervisor/pid) => {"ansible_loop_var": "item", "changed": false, "gid": 0, "group": "root", "item": "/srv/supervisor/pid", "mode": "0755", "owner": "root", "path": "/srv/supervisor/pid", "size": 6, "state": "directory", "uid": 0}
+ok: [192.168.56.121] => (item=/srv/supervisor/logs) => {"ansible_loop_var": "item", "changed": false, "gid": 0, "group": "root", "item": "/srv/supervisor/logs", "mode": "0755", "owner": "root", "path": "/srv/supervisor/logs", "size": 29, "state": "directory", "uid": 0}
+ok: [192.168.56.121] => (item=/srv/supervisor/socket) => {"ansible_loop_var": "item", "changed": false, "gid": 0, "group": "root", "item": "/srv/supervisor/socket", "mode": "0755", "owner": "root", "path": "/srv/supervisor/socket", "size": 6, "state": "directory", "uid": 0}
+
+TASK [Copy supervisor test app config] *******************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "7137be46fd82131df6404446399948bd3cb4f600", "dest": "/etc/supervisord.d/app.ini", "gid": 0, "group": "root", "mode": "0644", "owner": "root", "path": "/etc/supervisord.d/app.ini", "size": 36, "state": "file", "uid": 0}
+
+TASK [Copy supervisor service file] **********************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "16b394317b270a868dd88147c5b179921d726eb6", "dest": "/usr/lib/systemd/system/supervisord.service", "gid": 0, "group": "root", "mode": "0644", "owner": "root", "path": "/usr/lib/systemd/system/supervisord.service", "size": 365, "state": "file", "uid": 0}
+
+TASK [Start service supervisord, in all cases] ***********************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "enabled": true, "name": "supervisord", "state": "started", "status": {"ActiveEnterTimestampMonotonic": "0", "ActiveExitTimestampMonotonic": "0", "ActiveState": "inactive", "After": "rc-local.service system.slice basic.target nss-user-lookup.target systemd-journald.socket", "AllowIsolate": "no", "AmbientCapabilities": "0", "AssertResult": "no", "AssertTimestampMonotonic": "0", "Before": "shutdown.target", "BlockIOAccounting": "no", "BlockIOWeight": "18446744073709551615", "CPUAccounting": "no", "CPUQuotaPerSecUSec": "infinity", "CPUSchedulingPolicy": "0", "CPUSchedulingPriority": "0", "CPUSchedulingResetOnFork": "no", "CPUShares": "18446744073709551615", "CanIsolate": "no", "CanReload": "no", "CanStart": "yes", "CanStop": "yes", "CapabilityBoundingSet": "18446744073709551615", "CollectMode": "inactive", "ConditionResult": "no", "ConditionTimestampMonotonic": "0", "Conflicts": "shutdown.target", "ControlPID": "0", "DefaultDependencies": "yes", "Delegate": "no", "Description": "Process Monitoring and Control Daemon", "DevicePolicy": "auto", "ExecMainCode": "0", "ExecMainExitTimestampMonotonic": "0", "ExecMainPID": "0", "ExecMainStartTimestampMonotonic": "0", "ExecMainStatus": "0", "ExecStart": "{ path=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord ; argv[]=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }", "FailureAction": "none", "FileDescriptorStoreMax": "0", "FragmentPath": "/usr/lib/systemd/system/supervisord.service", "GuessMainPID": "yes", "IOScheduling": "0", "Id": "supervisord.service", "IgnoreOnIsolate": "no", "IgnoreOnSnapshot": "no", "IgnoreSIGPIPE": "yes", "InactiveEnterTimestampMonotonic": "0", "InactiveExitTimestampMonotonic": "0", "JobTimeoutAction": "none", "JobTimeoutUSec": "0", "KillMode": "control-group", "KillSignal": "15", "LimitAS": "18446744073709551615", "LimitCORE": "18446744073709551615", "LimitCPU": "18446744073709551615", "LimitDATA": "18446744073709551615", "LimitFSIZE": "18446744073709551615", "LimitLOCKS": "18446744073709551615", "LimitMEMLOCK": "65536", "LimitMSGQUEUE": "819200", "LimitNICE": "0", "LimitNOFILE": "4096", "LimitNPROC": "7259", "LimitRSS": "18446744073709551615", "LimitRTPRIO": "0", "LimitRTTIME": "18446744073709551615", "LimitSIGPENDING": "7259", "LimitSTACK": "18446744073709551615", "LoadState": "loaded", "MainPID": "0", "MemoryAccounting": "no", "MemoryCurrent": "18446744073709551615", "MemoryLimit": "18446744073709551615", "MountFlags": "0", "Names": "supervisord.service", "NeedDaemonReload": "no", "Nice": "0", "NoNewPrivileges": "no", "NonBlocking": "no", "NotifyAccess": "none", "OOMScoreAdjust": "0", "OnFailureJobMode": "replace", "PermissionsStartOnly": "no", "PrivateDevices": "no", "PrivateNetwork": "no", "PrivateTmp": "no", "ProtectHome": "no", "ProtectSystem": "no", "RefuseManualStart": "no", "RefuseManualStop": "no", "RemainAfterExit": "no", "Requires": "basic.target system.slice", "Restart": "no", "RestartUSec": "100ms", "Result": "success", "RootDirectoryStartOnly": "no", "RuntimeDirectoryMode": "0755", "SameProcessGroup": "no", "SecureBits": "0", "SendSIGHUP": "no", "SendSIGKILL": "yes", "Slice": "system.slice", "StandardError": "inherit", "StandardInput": "null", "StandardOutput": "journal", "StartLimitAction": "none", "StartLimitBurst": "5", "StartLimitInterval": "10000000", "StartupBlockIOWeight": "18446744073709551615", "StartupCPUShares": "18446744073709551615", "StatusErrno": "0", "StopWhenUnneeded": "no", "SubState": "dead", "SyslogLevelPrefix": "yes", "SyslogPriority": "30", "SystemCallErrorNumber": "0", "TTYReset": "no", "TTYVHangup": "no", "TTYVTDisallocate": "no", "TasksAccounting": "no", "TasksCurrent": "18446744073709551615", "TasksMax": "18446744073709551615", "TimeoutStartUSec": "1min 30s", "TimeoutStopUSec": "1min 30s", "TimerSlackNSec": "50000", "Transient": "no", "Type": "forking", "UMask": "0022", "UnitFilePreset": "disabled", "UnitFileState": "disabled", "WatchdogTimestampMonotonic": "0", "WatchdogUSec": "0"}}
+
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=8    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+Playbook run took 0 days, 0 hours, 0 minutes, 8 seconds
+[root@ansible ansible_playbooks]#
+```
+
+执行过程截图：
+
+![](/img/Snipaste_2024-05-25_16-41-11.png)
+
+可以看到，任务正常完成，中间创建supervisor相关目录和复制配置文件，由于我之前测试过，文件已经复制到远程主机上了或者文件夹已经创建过了，所以执行过程中显示任务未产生变更。最后一个任务`Start service supervisord, in all cases`可以看到，supervisord服务正常启动了。
+
+
+
+我们在节点1上面检查一下：
+
+```sh
+[root@ansible-node1 ~]# systemctl status supervisord
+● supervisord.service - Process Monitoring and Control Daemon
+   Loaded: loaded (/usr/lib/systemd/system/supervisord.service; enabled; vendor preset: disabled)
+   Active: active (running) since Sat 2024-05-25 16:39:37 CST; 1min 5s ago
+  Process: 2339 ExecStart=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf (code=exited, status=0/SUCCESS)
+ Main PID: 2340 (supervisord)
+   CGroup: /system.slice/supervisord.service
+           ├─2340 /srv/miniconda3/envs/supervisorPython3.10.13/bin/python /srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf
+           └─2349 /bin/cat
+
+May 25 16:39:37 ansible-node1 systemd[1]: Starting Process Monitoring and Control Daemon...
+May 25 16:39:37 ansible-node1 systemd[1]: Started Process Monitoring and Control Daemon.
+[root@ansible-node1 ~]#  /srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisorctl status
+testapp                          RUNNING   pid 2349, uptime 0:04:27
+[root@ansible-node1 ~]#
+```
+
+可以看到，supervisord服务正常启动了，由其管理的`testapp`应用也正常启动了，说明supervisor进程管理工具配置正常。
+
+到此，跟supervisor相关的配置就差不多完成了，但每次查看supervisor进程管理工具管理的应用状态，都需要输入那么长的命令，如`/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisorctl status`，将显得有点麻烦，因此，就应该为这些命令配置一些快捷命令，这就是下一个任务创建快捷命令的由来。
+
+
+
