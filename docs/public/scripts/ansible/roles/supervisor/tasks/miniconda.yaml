@@ -37,6 +37,8 @@
   ansible.builtin.command:
     # cmd: "/tmp/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh -b -p /srv/miniconda3"
     cmd: "/tmp/{{ MINICONDA_SHELL_FILENAME }} -b -p {{ MINICONDA_BASE_DIR }}"
+    # 如果对应的文件存在，则忽略此步
+    creates: "{{ MINICONDA_BASE_DIR }}"
 
 - name: Remove install shell file
   ansible.builtin.file:

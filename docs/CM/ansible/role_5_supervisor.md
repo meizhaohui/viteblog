@@ -912,3 +912,446 @@ testapp                          RUNNING   pid 2672, uptime 0:00:08
 
 可以看到，supervisor相关的快捷命令都能正常使用了，说明创建快捷命令这个子任务也能正常工作了！！
 
+
+
+### 2.12 复查所有任务
+
+我们测试时，是将测试好的任务注释掉了，再来进行测试的，为了验证整个剧本能正常工作，我们应将之前注释掉的任务现次取消注释，让剧本正常执行。
+
+修改`roles/supervisor/tasks/main.yml`配置文件，将所有注释的任务打开：
+
+```yaml
+---
+# supervisor角色任务
+# 安装mincoda
+- include: miniconda.yaml
+# 创建虚拟环境
+- include: virtual_env.yaml
+# 配置supervisor进程管理工具
+- include: supervisor.yaml
+# 创建快捷命令
+- include: alias.yaml
+
+```
+
+然后执行剧本：
+
+```sh
+[root@ansible ansible_playbooks]# cat roles/supervisor/tasks/main.yml
+---
+# supervisor角色任务
+# 安装mincoda
+- include: miniconda.yaml
+# 创建虚拟环境
+- include: virtual_env.yaml
+# 配置supervisor进程管理工具
+- include: supervisor.yaml
+# 创建快捷命令
+- include: alias.yaml
+[root@ansible ansible_playbooks]# ansible-playbook -i hosts.ini supervisor.yml -v
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [supervisorhosts] ***********************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+
+TASK [supervisor : Copy install shell file] **************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "checksum": "d80c76dc3fa4af07900daf1dd628863f1f56a67c", "dest": "/tmp/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh", "gid": 0, "group": "root", "md5sum": "7adfc2ad82f2c1731e14db72aed42c5a", "mode": "0744", "owner": "root", "size": 134948792, "src": "/root/.ansible/tmp/ansible-tmp-1716628879.82-1812-204262872957053/source", "state": "file", "uid": 0}
+
+TASK [supervisor : Copy the sha256 info file] ************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "1c64874cd584cf30f32d30e34c6cb0b8a46b471e", "dest": "/tmp/sha256info.txt", "gid": 0, "group": "root", "mode": "0644", "owner": "root", "path": "/tmp/sha256info.txt", "size": 108, "state": "file", "uid": 0}
+
+TASK [supervisor : Check the sha256 value of the shell file] *********************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "cmd": ["sha256sum", "-c", "sha256info.txt"], "delta": "0:00:00.239311", "end": "2024-05-25 17:21:27.978665", "failed_when_result": false, "rc": 0, "start": "2024-05-25 17:21:27.739354", "stderr": "", "stderr_lines": [], "stdout": "Miniconda3-py310_24.1.2-0-Linux-x86_64.sh: OK", "stdout_lines": ["Miniconda3-py310_24.1.2-0-Linux-x86_64.sh: OK"]}
+
+TASK [supervisor : Copy condarc config file] *************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "d6edf310e69bb5ea7d54068817d9b60653e31a1b", "dest": "/root/.condarc", "gid": 0, "group": "root", "mode": "0744", "owner": "root", "path": "/root/.condarc", "size": 777, "state": "file", "uid": 0}
+
+TASK [supervisor : Install miniconda] ********************************************************************************************************************************************************************************************************************************************************
+fatal: [192.168.56.121]: FAILED! => {"changed": true, "cmd": ["/tmp/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh", "-b", "-p", "/srv/miniconda3"], "delta": "0:00:00.006315", "end": "2024-05-25 17:21:28.964761", "msg": "non-zero return code", "rc": 1, "start": "2024-05-25 17:21:28.958446", "stderr": "ERROR: File or directory already exists: '/srv/miniconda3'\nIf you want to update an existing installation, use the -u option.", "stderr_lines": ["ERROR: File or directory already exists: '/srv/miniconda3'", "If you want to update an existing installation, use the -u option."], "stdout": "", "stdout_lines": []}
+
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=5    changed=2    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+
+Playbook run took 0 days, 0 hours, 0 minutes, 8 seconds
+[root@ansible ansible_playbooks]#
+```
+
+执行剧本报错了！！
+
+![](/img/Snipaste_2024-05-25_17-22-28.png)
+
+异常信息：`ERROR: File or directory already exists: '/srv/miniconda3'\nIf you want to update an existing installation, use the -u option.`
+
+提示目录/srv/miniconda3已经存在，如果你需要更新现有安装，请使用`-u`参数。
+
+原因是，我们之前测试时，已经将miniconda安装在`/srv/miniconda3`目录了。并且在上一节已经看到，由miniconda安装的supervisor还在正常管理应用。
+
+我们在节点1上面查看一下miniconda安装程序的帮助信息：
+
+```sh
+[root@ansible-node1 ~]# cd /tmp/
+[root@ansible-node1 tmp]# ./Miniconda3-py310_24.1.2-0-Linux-x86_64.sh  -h
+
+usage: ./Miniconda3-py310_24.1.2-0-Linux-x86_64.sh [options]
+
+Installs Miniconda3 py310_24.1.2-0
+
+-b           run install in batch mode (without manual intervention),
+             it is expected the license terms (if any) are agreed upon
+-f           no error if install prefix already exists
+-h           print this help message and exit
+-p PREFIX    install prefix, defaults to /root/miniconda3, must not contain spaces.
+-s           skip running pre/post-link/install scripts
+-m           disable the creation of menu items / shortcuts
+-u           update an existing installation
+-t           run package tests after installation (may install conda-build)
+
+[root@ansible-node1 tmp]#
+```
+
+可以看到，miniconda安装程序的确是有一个`-u`参数。
+
+
+
+为了让Ansible在知道有`/srv/miniconda3`目录时，不执行这个安装任务，则需要修改一下角色的任务。
+
+刚好`command`模块，有一个`creates`参数可以来判断目录是否存在，存在就不执行命令。详细可参考 [Command命令模块](./command)
+
+修改一下角色任务一`roles/supervisor/tasks/miniconda.yaml`的配置：
+
+```yaml :40-41
+---
+- name: Copy install shell file
+  ansible.builtin.copy:
+    src: "{{ MINICONDA_SHELL_FILENAME }}"
+    dest: "/tmp/{{ MINICONDA_SHELL_FILENAME }}"
+    force: yes
+    backup: yes
+    remote_src: no
+    mode: u=rwx,g=r,o=r
+
+- name: Copy the sha256 info file
+  ansible.builtin.copy:
+    src: sha256info.txt
+    dest: /tmp/sha256info.txt
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Check the sha256 value of the shell file
+  # 在执行sha256sum校验前，先切换目录，避免因目录中找不到文件出现校验异常问题
+  ansible.builtin.command:
+    cmd: sha256sum -c sha256info.txt
+    chdir: /tmp
+  register: result
+  failed_when:
+    - result.rc != 0
+
+- name: Copy condarc config file
+  ansible.builtin.template:
+    src: condarc.j2
+    dest: "/root/.condarc"
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Install miniconda
+  ansible.builtin.command:
+    # cmd: "/tmp/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh -b -p /srv/miniconda3"
+    cmd: "/tmp/{{ MINICONDA_SHELL_FILENAME }} -b -p {{ MINICONDA_BASE_DIR }}"
+    # 如果对应的文件存在，则忽略此步
+    creates: "{{ MINICONDA_BASE_DIR }}"
+
+- name: Remove install shell file
+  ansible.builtin.file:
+    path: "/tmp/{{ MINICONDA_SHELL_FILENAME }}"
+    state: absent
+
+```
+
+
+
+其中，第40-41行是新增的内容。
+
+
+
+此时，再次执行剧本：
+
+```sh
+[root@ansible ansible_playbooks]# ansible-playbook -i hosts.ini supervisor.yml -v
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [supervisorhosts] ***********************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+
+TASK [supervisor : Copy install shell file] **************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "d80c76dc3fa4af07900daf1dd628863f1f56a67c", "dest": "/tmp/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh", "gid": 0, "group": "root", "mode": "0744", "owner": "root", "path": "/tmp/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh", "size": 134948792, "state": "file", "uid": 0}
+
+TASK [supervisor : Copy the sha256 info file] ************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "1c64874cd584cf30f32d30e34c6cb0b8a46b471e", "dest": "/tmp/sha256info.txt", "gid": 0, "group": "root", "mode": "0644", "owner": "root", "path": "/tmp/sha256info.txt", "size": 108, "state": "file", "uid": 0}
+
+TASK [supervisor : Check the sha256 value of the shell file] *********************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "cmd": ["sha256sum", "-c", "sha256info.txt"], "delta": "0:00:00.236107", "end": "2024-05-25 17:39:15.696038", "failed_when_result": false, "rc": 0, "start": "2024-05-25 17:39:15.459931", "stderr": "", "stderr_lines": [], "stdout": "Miniconda3-py310_24.1.2-0-Linux-x86_64.sh: OK", "stdout_lines": ["Miniconda3-py310_24.1.2-0-Linux-x86_64.sh: OK"]}
+
+TASK [supervisor : Copy condarc config file] *************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "d6edf310e69bb5ea7d54068817d9b60653e31a1b", "dest": "/root/.condarc", "gid": 0, "group": "root", "mode": "0744", "owner": "root", "path": "/root/.condarc", "size": 777, "state": "file", "uid": 0}
+
+TASK [supervisor : Install miniconda] ********************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "cmd": ["/tmp/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh", "-b", "-p", "/srv/miniconda3"], "rc": 0, "stdout": "skipped, since /srv/miniconda3 exists", "stdout_lines": ["skipped, since /srv/miniconda3 exists"]}
+
+TASK [supervisor : Remove install shell file] ************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "path": "/tmp/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh", "state": "absent"}
+
+TASK [Create supervisor virtual environment] *************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "cmd": ["/srv/miniconda3/bin/conda", "create", "--yes", "--name", "supervisorPython3.10.13", "python=3.10.13"], "delta": "0:00:07.232805", "end": "2024-05-25 17:39:24.347782", "rc": 0, "start": "2024-05-25 17:39:17.114977", "stderr": "", "stderr_lines": [], "stdout": "Retrieving notices: ...working... done\nChannels:\n - defaults\nPlatform: linux-64\nCollecting package metadata (repodata.json): ...working... done\nSolving environment: ...working... done\n\n## Package Plan ##\n\n  environment location: /srv/miniconda3/envs/supervisorPython3.10.13\n\n  added / updated specs:\n    - python=3.10.13\n\n\nThe following NEW packages will be INSTALLED:\n\n  _libgcc_mutex      anaconda/pkgs/main/linux-64::_libgcc_mutex-0.1-main \n  _openmp_mutex      anaconda/pkgs/main/linux-64::_openmp_mutex-5.1-1_gnu \n  bzip2              anaconda/pkgs/main/linux-64::bzip2-1.0.8-h5eee18b_6 \n  ca-certificates    anaconda/pkgs/main/linux-64::ca-certificates-2024.3.11-h06a4308_0 \n  ld_impl_linux-64   anaconda/pkgs/main/linux-64::ld_impl_linux-64-2.38-h1181459_1 \n  libffi             anaconda/pkgs/main/linux-64::libffi-3.4.4-h6a678d5_1 \n  libgcc-ng          anaconda/pkgs/main/linux-64::libgcc-ng-11.2.0-h1234567_1 \n  libgomp            anaconda/pkgs/main/linux-64::libgomp-11.2.0-h1234567_1 \n  libstdcxx-ng       anaconda/pkgs/main/linux-64::libstdcxx-ng-11.2.0-h1234567_1 \n  libuuid            anaconda/pkgs/main/linux-64::libuuid-1.41.5-h5eee18b_0 \n  ncurses            anaconda/pkgs/main/linux-64::ncurses-6.4-h6a678d5_0 \n  openssl            anaconda/pkgs/main/linux-64::openssl-3.0.13-h7f8727e_2 \n  pip                anaconda/pkgs/main/linux-64::pip-24.0-py310h06a4308_0 \n  python             anaconda/pkgs/main/linux-64::python-3.10.13-h955ad1f_0 \n  readline           anaconda/pkgs/main/linux-64::readline-8.2-h5eee18b_0 \n  setuptools         anaconda/pkgs/main/linux-64::setuptools-69.5.1-py310h06a4308_0 \n  sqlite             anaconda/pkgs/main/linux-64::sqlite-3.45.3-h5eee18b_0 \n  tk                 anaconda/pkgs/main/linux-64::tk-8.6.14-h39e8969_0 \n  tzdata             anaconda/pkgs/main/noarch::tzdata-2024a-h04d1e81_0 \n  wheel              anaconda/pkgs/main/linux-64::wheel-0.43.0-py310h06a4308_0 \n  xz                 anaconda/pkgs/main/linux-64::xz-5.4.6-h5eee18b_1 \n  zlib               anaconda/pkgs/main/linux-64::zlib-1.2.13-h5eee18b_1 \n\n\n\nDownloading and Extracting Packages: ...working... done\nPreparing transaction: ...working... done\nVerifying transaction: ...working... done\nExecuting transaction: ...working... done\n#\n# To activate this environment, use\n#\n#     $ conda activate supervisorPython3.10.13\n#\n# To deactivate an active environment, use\n#\n#     $ conda deactivate", "stdout_lines": ["Retrieving notices: ...working... done", "Channels:", " - defaults", "Platform: linux-64", "Collecting package metadata (repodata.json): ...working... done", "Solving environment: ...working... done", "", "## Package Plan ##", "", "  environment location: /srv/miniconda3/envs/supervisorPython3.10.13", "", "  added / updated specs:", "    - python=3.10.13", "", "", "The following NEW packages will be INSTALLED:", "", "  _libgcc_mutex      anaconda/pkgs/main/linux-64::_libgcc_mutex-0.1-main ", "  _openmp_mutex      anaconda/pkgs/main/linux-64::_openmp_mutex-5.1-1_gnu ", "  bzip2              anaconda/pkgs/main/linux-64::bzip2-1.0.8-h5eee18b_6 ", "  ca-certificates    anaconda/pkgs/main/linux-64::ca-certificates-2024.3.11-h06a4308_0 ", "  ld_impl_linux-64   anaconda/pkgs/main/linux-64::ld_impl_linux-64-2.38-h1181459_1 ", "  libffi             anaconda/pkgs/main/linux-64::libffi-3.4.4-h6a678d5_1 ", "  libgcc-ng          anaconda/pkgs/main/linux-64::libgcc-ng-11.2.0-h1234567_1 ", "  libgomp            anaconda/pkgs/main/linux-64::libgomp-11.2.0-h1234567_1 ", "  libstdcxx-ng       anaconda/pkgs/main/linux-64::libstdcxx-ng-11.2.0-h1234567_1 ", "  libuuid            anaconda/pkgs/main/linux-64::libuuid-1.41.5-h5eee18b_0 ", "  ncurses            anaconda/pkgs/main/linux-64::ncurses-6.4-h6a678d5_0 ", "  openssl            anaconda/pkgs/main/linux-64::openssl-3.0.13-h7f8727e_2 ", "  pip                anaconda/pkgs/main/linux-64::pip-24.0-py310h06a4308_0 ", "  python             anaconda/pkgs/main/linux-64::python-3.10.13-h955ad1f_0 ", "  readline           anaconda/pkgs/main/linux-64::readline-8.2-h5eee18b_0 ", "  setuptools         anaconda/pkgs/main/linux-64::setuptools-69.5.1-py310h06a4308_0 ", "  sqlite             anaconda/pkgs/main/linux-64::sqlite-3.45.3-h5eee18b_0 ", "  tk                 anaconda/pkgs/main/linux-64::tk-8.6.14-h39e8969_0 ", "  tzdata             anaconda/pkgs/main/noarch::tzdata-2024a-h04d1e81_0 ", "  wheel              anaconda/pkgs/main/linux-64::wheel-0.43.0-py310h06a4308_0 ", "  xz                 anaconda/pkgs/main/linux-64::xz-5.4.6-h5eee18b_1 ", "  zlib               anaconda/pkgs/main/linux-64::zlib-1.2.13-h5eee18b_1 ", "", "", "", "Downloading and Extracting Packages: ...working... done", "Preparing transaction: ...working... done", "Verifying transaction: ...working... done", "Executing transaction: ...working... done", "#", "# To activate this environment, use", "#", "#     $ conda activate supervisorPython3.10.13", "#", "# To deactivate an active environment, use", "#", "#     $ conda deactivate"]}
+
+TASK [supervisor : Show virtual environments] ************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "cmd": ["/srv/miniconda3/bin/conda", "env", "list"], "delta": "0:00:00.287727", "end": "2024-05-25 17:39:24.886597", "rc": 0, "start": "2024-05-25 17:39:24.598870", "stderr": "", "stderr_lines": [], "stdout": "# conda environments:\n#\nbase                     /srv/miniconda3\nsupervisorPython3.10.13     /srv/miniconda3/envs/supervisorPython3.10.13", "stdout_lines": ["# conda environments:", "#", "base                     /srv/miniconda3", "supervisorPython3.10.13     /srv/miniconda3/envs/supervisorPython3.10.13"]}
+
+TASK [supervisor : Show virtual Python version] **********************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "cmd": ["/srv/miniconda3/envs/supervisorPython3.10.13/bin/python", "-V"], "delta": "0:00:00.002242", "end": "2024-05-25 17:39:25.136594", "rc": 0, "start": "2024-05-25 17:39:25.134352", "stderr": "", "stderr_lines": [], "stdout": "Python 3.10.13", "stdout_lines": ["Python 3.10.13"]}
+
+TASK [Install python package supervisor] *****************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "cmd": ["/srv/miniconda3/envs/supervisorPython3.10.13/bin/pip", "install", "supervisor"], "name": ["supervisor"], "requirements": null, "state": "present", "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n", "stderr_lines": ["WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv"], "stdout": "Looking in indexes: http://mirrors.aliyun.com/pypi/simple/\nCollecting supervisor\n  Downloading http://mirrors.aliyun.com/pypi/packages/2c/7a/0ad3973941590c040475046fef37a2b08a76691e61aa59540828ee235a6e/supervisor-4.2.5-py2.py3-none-any.whl (319 kB)\n     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 319.6/319.6 kB 299.1 kB/s eta 0:00:00\nRequirement already satisfied: setuptools in /srv/miniconda3/envs/supervisorPython3.10.13/lib/python3.10/site-packages (from supervisor) (69.5.1)\nInstalling collected packages: supervisor\nSuccessfully installed supervisor-4.2.5\n", "stdout_lines": ["Looking in indexes: http://mirrors.aliyun.com/pypi/simple/", "Collecting supervisor", "  Downloading http://mirrors.aliyun.com/pypi/packages/2c/7a/0ad3973941590c040475046fef37a2b08a76691e61aa59540828ee235a6e/supervisor-4.2.5-py2.py3-none-any.whl (319 kB)", "     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 319.6/319.6 kB 299.1 kB/s eta 0:00:00", "Requirement already satisfied: setuptools in /srv/miniconda3/envs/supervisorPython3.10.13/lib/python3.10/site-packages (from supervisor) (69.5.1)", "Installing collected packages: supervisor", "Successfully installed supervisor-4.2.5"], "version": null, "virtualenv": null}
+
+TASK [Show supervisor executable files] ******************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "examined": 75, "files": [{"atime": 1716629967.26702, "ctime": 1716629967.26102, "dev": 64768, "gid": 0, "gr_name": "root", "inode": 1171861, "isblk": false, "ischr": false, "isdir": false, "isfifo": false, "isgid": false, "islnk": false, "isreg": true, "issock": false, "isuid": false, "mode": "0755", "mtime": 1716629967.26102, "nlink": 1, "path": "/srv/miniconda3/envs/supervisorPython3.10.13/bin/echo_supervisord_conf", "pw_name": "root", "rgrp": true, "roth": true, "rusr": true, "size": 257, "uid": 0, "wgrp": false, "woth": false, "wusr": true, "xgrp": true, "xoth": true, "xusr": true}, {"atime": 1716629967.26902, "ctime": 1716629967.26102, "dev": 64768, "gid": 0, "gr_name": "root", "inode": 1171863, "isblk": false, "ischr": false, "isdir": false, "isfifo": false, "isgid": false, "islnk": false, "isreg": true, "issock": false, "isuid": false, "mode": "0755", "mtime": 1716629967.26102, "nlink": 1, "path": "/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisorctl", "pw_name": "root", "rgrp": true, "roth": true, "rusr": true, "size": 262, "uid": 0, "wgrp": false, "woth": false, "wusr": true, "xgrp": true, "xoth": true, "xusr": true}, {"atime": 1716629967.26902, "ctime": 1716629967.26102, "dev": 64768, "gid": 0, "gr_name": "root", "inode": 1171864, "isblk": false, "ischr": false, "isdir": false, "isfifo": false, "isgid": false, "islnk": false, "isreg": true, "issock": false, "isuid": false, "mode": "0755", "mtime": 1716629967.26102, "nlink": 1, "path": "/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord", "pw_name": "root", "rgrp": true, "roth": true, "rusr": true, "size": 260, "uid": 0, "wgrp": false, "woth": false, "wusr": true, "xgrp": true, "xoth": true, "xusr": true}], "matched": 3, "msg": ""}
+
+TASK [Copy supervisord.conf file] ************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "77992e3dab6a4a7605837a0ff91ef3d6156dcb33", "dest": "/etc/supervisord.conf", "gid": 0, "group": "root", "mode": "0600", "owner": "root", "path": "/etc/supervisord.conf", "size": 10925, "state": "file", "uid": 0}
+
+TASK [supervisor : Create a directory if it does not exist] **********************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => (item=/etc/supervisord.d) => {"ansible_loop_var": "item", "changed": false, "gid": 0, "group": "root", "item": "/etc/supervisord.d", "mode": "0755", "owner": "root", "path": "/etc/supervisord.d", "size": 21, "state": "directory", "uid": 0}
+ok: [192.168.56.121] => (item=/srv/supervisor) => {"ansible_loop_var": "item", "changed": false, "gid": 0, "group": "root", "item": "/srv/supervisor", "mode": "0755", "owner": "root", "path": "/srv/supervisor", "size": 43, "state": "directory", "uid": 0}
+ok: [192.168.56.121] => (item=/srv/supervisor/pid) => {"ansible_loop_var": "item", "changed": false, "gid": 0, "group": "root", "item": "/srv/supervisor/pid", "mode": "0755", "owner": "root", "path": "/srv/supervisor/pid", "size": 29, "state": "directory", "uid": 0}
+ok: [192.168.56.121] => (item=/srv/supervisor/logs) => {"ansible_loop_var": "item", "changed": false, "gid": 0, "group": "root", "item": "/srv/supervisor/logs", "mode": "0755", "owner": "root", "path": "/srv/supervisor/logs", "size": 29, "state": "directory", "uid": 0}
+ok: [192.168.56.121] => (item=/srv/supervisor/socket) => {"ansible_loop_var": "item", "changed": false, "gid": 0, "group": "root", "item": "/srv/supervisor/socket", "mode": "0755", "owner": "root", "path": "/srv/supervisor/socket", "size": 29, "state": "directory", "uid": 0}
+
+TASK [Copy supervisor test app config] *******************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "7137be46fd82131df6404446399948bd3cb4f600", "dest": "/etc/supervisord.d/app.ini", "gid": 0, "group": "root", "mode": "0644", "owner": "root", "path": "/etc/supervisord.d/app.ini", "size": 36, "state": "file", "uid": 0}
+
+TASK [Copy supervisor service file] **********************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "16b394317b270a868dd88147c5b179921d726eb6", "dest": "/usr/lib/systemd/system/supervisord.service", "gid": 0, "group": "root", "mode": "0644", "owner": "root", "path": "/usr/lib/systemd/system/supervisord.service", "size": 365, "state": "file", "uid": 0}
+
+TASK [Start service supervisord, in all cases] ***********************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "enabled": true, "name": "supervisord", "state": "started", "status": {"ActiveEnterTimestamp": "Sat 2024-05-25 16:39:37 CST", "ActiveEnterTimestampMonotonic": "2597368005", "ActiveExitTimestampMonotonic": "0", "ActiveState": "active", "After": "rc-local.service nss-user-lookup.target systemd-journald.socket basic.target system.slice", "AllowIsolate": "no", "AmbientCapabilities": "0", "AssertResult": "yes", "AssertTimestamp": "Sat 2024-05-25 16:39:37 CST", "AssertTimestampMonotonic": "2597251259", "Before": "shutdown.target multi-user.target", "BlockIOAccounting": "no", "BlockIOWeight": "18446744073709551615", "CPUAccounting": "no", "CPUQuotaPerSecUSec": "infinity", "CPUSchedulingPolicy": "0", "CPUSchedulingPriority": "0", "CPUSchedulingResetOnFork": "no", "CPUShares": "18446744073709551615", "CanIsolate": "no", "CanReload": "no", "CanStart": "yes", "CanStop": "yes", "CapabilityBoundingSet": "18446744073709551615", "CollectMode": "inactive", "ConditionResult": "yes", "ConditionTimestamp": "Sat 2024-05-25 16:39:37 CST", "ConditionTimestampMonotonic": "2597251259", "Conflicts": "shutdown.target", "ControlGroup": "/system.slice/supervisord.service", "ControlPID": "0", "DefaultDependencies": "yes", "Delegate": "no", "Description": "Process Monitoring and Control Daemon", "DevicePolicy": "auto", "ExecMainCode": "0", "ExecMainExitTimestampMonotonic": "0", "ExecMainPID": "2340", "ExecMainStartTimestamp": "Sat 2024-05-25 16:39:37 CST", "ExecMainStartTimestampMonotonic": "2597367980", "ExecMainStatus": "0", "ExecStart": "{ path=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord ; argv[]=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf ; ignore_errors=no ; start_time=[Sat 2024-05-25 16:39:37 CST] ; stop_time=[Sat 2024-05-25 16:39:37 CST] ; pid=2339 ; code=exited ; status=0 }", "FailureAction": "none", "FileDescriptorStoreMax": "0", "FragmentPath": "/usr/lib/systemd/system/supervisord.service", "GuessMainPID": "yes", "IOScheduling": "0", "Id": "supervisord.service", "IgnoreOnIsolate": "no", "IgnoreOnSnapshot": "no", "IgnoreSIGPIPE": "yes", "InactiveEnterTimestampMonotonic": "0", "InactiveExitTimestamp": "Sat 2024-05-25 16:39:37 CST", "InactiveExitTimestampMonotonic": "2597251533", "JobTimeoutAction": "none", "JobTimeoutUSec": "0", "KillMode": "control-group", "KillSignal": "15", "LimitAS": "18446744073709551615", "LimitCORE": "18446744073709551615", "LimitCPU": "18446744073709551615", "LimitDATA": "18446744073709551615", "LimitFSIZE": "18446744073709551615", "LimitLOCKS": "18446744073709551615", "LimitMEMLOCK": "65536", "LimitMSGQUEUE": "819200", "LimitNICE": "0", "LimitNOFILE": "4096", "LimitNPROC": "7259", "LimitRSS": "18446744073709551615", "LimitRTPRIO": "0", "LimitRTTIME": "18446744073709551615", "LimitSIGPENDING": "7259", "LimitSTACK": "18446744073709551615", "LoadState": "loaded", "MainPID": "2340", "MemoryAccounting": "no", "MemoryCurrent": "18446744073709551615", "MemoryLimit": "18446744073709551615", "MountFlags": "0", "Names": "supervisord.service", "NeedDaemonReload": "no", "Nice": "0", "NoNewPrivileges": "no", "NonBlocking": "no", "NotifyAccess": "none", "OOMScoreAdjust": "0", "OnFailureJobMode": "replace", "PermissionsStartOnly": "no", "PrivateDevices": "no", "PrivateNetwork": "no", "PrivateTmp": "no", "ProtectHome": "no", "ProtectSystem": "no", "RefuseManualStart": "no", "RefuseManualStop": "no", "RemainAfterExit": "no", "Requires": "system.slice basic.target", "Restart": "no", "RestartUSec": "100ms", "Result": "success", "RootDirectoryStartOnly": "no", "RuntimeDirectoryMode": "0755", "SameProcessGroup": "no", "SecureBits": "0", "SendSIGHUP": "no", "SendSIGKILL": "yes", "Slice": "system.slice", "StandardError": "inherit", "StandardInput": "null", "StandardOutput": "journal", "StartLimitAction": "none", "StartLimitBurst": "5", "StartLimitInterval": "10000000", "StartupBlockIOWeight": "18446744073709551615", "StartupCPUShares": "18446744073709551615", "StatusErrno": "0", "StopWhenUnneeded": "no", "SubState": "running", "SyslogLevelPrefix": "yes", "SyslogPriority": "30", "SystemCallErrorNumber": "0", "TTYReset": "no", "TTYVHangup": "no", "TTYVTDisallocate": "no", "TasksAccounting": "no", "TasksCurrent": "18446744073709551615", "TasksMax": "18446744073709551615", "TimeoutStartUSec": "1min 30s", "TimeoutStopUSec": "1min 30s", "TimerSlackNSec": "50000", "Transient": "no", "Type": "forking", "UMask": "0022", "UnitFilePreset": "disabled", "UnitFileState": "enabled", "WantedBy": "multi-user.target", "WatchdogTimestamp": "Sat 2024-05-25 16:39:37 CST", "WatchdogTimestampMonotonic": "2597367991", "WatchdogUSec": "0"}}
+
+TASK [supervisor : Copy alias config] ********************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "checksum": "ac45722c54f80be7acfbe97bd8049e8759d0fe38", "dest": "/root/.alias_supervisor.sh", "gid": 0, "group": "root", "mode": "0644", "owner": "root", "path": "/root/.alias_supervisor.sh", "size": 617, "state": "file", "uid": 0}
+
+TASK [supervisor : Insert block to .bashrc] **************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": false, "msg": ""}
+
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=19   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+Playbook run took 0 days, 0 hours, 0 minutes, 19 seconds
+[root@ansible ansible_playbooks]#
+```
+
+![](/img/Snipaste_2024-05-25_17-41-34.png)
+
+![](/img/Snipaste_2024-05-25_17-42-09.png)
+
+可以看到任务都执行成功了，然后在节点1上面再检查一下supervisor管理的应用：
+
+```sh
+[root@ansible-node1 ~]# supervisordStatus
+● supervisord.service - Process Monitoring and Control Daemon
+   Loaded: loaded (/usr/lib/systemd/system/supervisord.service; enabled; vendor preset: disabled)
+   Active: active (running) since Sat 2024-05-25 17:39:31 CST; 4min 0s ago
+  Process: 4462 ExecStart=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf (code=exited, status=0/SUCCESS)
+ Main PID: 4463 (supervisord)
+   CGroup: /system.slice/supervisord.service
+           ├─4463 /srv/miniconda3/envs/supervisorPython3.10.13/bin/python /srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf
+           └─4599 /bin/cat
+
+May 25 17:39:30 ansible-node1 systemd[1]: Stopped Process Monitoring and Control Daemon.
+May 25 17:39:30 ansible-node1 systemd[1]: Starting Process Monitoring and Control Daemon...
+May 25 17:39:31 ansible-node1 systemd[1]: Started Process Monitoring and Control Daemon.
+[root@ansible-node1 ~]# spstatus
+testapp                          RUNNING   pid 4599, uptime 0:04:04
+[root@ansible-node1 ~]#
+```
+
+可以看到supervisord服务被重启了，并且管理的`testapp`应用也重启了。说明重复执行Ansible剧本后，节点上的配置仍然是正确的。
+
+说明一个节点任务没有问题了。
+
+
+
+再把主机清单里面其他两个节点的注释也关掉，同时在三个节点时执行。
+
+```sh
+[root@ansible ansible_playbooks]# cat hosts.ini
+[supervisorhosts]
+192.168.56.121 hostname=ansible-node1
+192.168.56.122 hostname=ansible-node2
+192.168.56.123 hostname=ansible-node3
+```
+
+由于三个节点同时执行的话，日志比较多，不便于截图，此处执行剧本时，去掉`-v`参数，执行命令：
+
+```sh
+[root@ansible ansible_playbooks]# ansible-playbook -i hosts.ini supervisor.yml
+
+PLAY [supervisorhosts] ***********************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+ok: [192.168.56.122]
+ok: [192.168.56.123]
+
+TASK [supervisor : Copy install shell file] **************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.123]
+ok: [192.168.56.122]
+changed: [192.168.56.121]
+
+TASK [supervisor : Copy the sha256 info file] ************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+ok: [192.168.56.122]
+ok: [192.168.56.123]
+
+TASK [supervisor : Check the sha256 value of the shell file] *********************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121]
+changed: [192.168.56.122]
+changed: [192.168.56.123]
+
+TASK [supervisor : Copy condarc config file] *************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+ok: [192.168.56.123]
+ok: [192.168.56.122]
+
+TASK [supervisor : Install miniconda] ********************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+ok: [192.168.56.122]
+ok: [192.168.56.123]
+
+TASK [supervisor : Remove install shell file] ************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.122]
+changed: [192.168.56.123]
+changed: [192.168.56.121]
+
+TASK [Create supervisor virtual environment] *************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121]
+changed: [192.168.56.123]
+changed: [192.168.56.122]
+
+TASK [supervisor : Show virtual environments] ************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+ok: [192.168.56.122]
+ok: [192.168.56.123]
+
+TASK [supervisor : Show virtual Python version] **********************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+ok: [192.168.56.123]
+ok: [192.168.56.122]
+
+TASK [Install python package supervisor] *****************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121]
+changed: [192.168.56.123]
+changed: [192.168.56.122]
+
+TASK [Show supervisor executable files] ******************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122]
+ok: [192.168.56.121]
+ok: [192.168.56.123]
+
+TASK [Copy supervisord.conf file] ************************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122]
+ok: [192.168.56.121]
+ok: [192.168.56.123]
+
+TASK [supervisor : Create a directory if it does not exist] **********************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => (item=/etc/supervisord.d)
+ok: [192.168.56.123] => (item=/etc/supervisord.d)
+ok: [192.168.56.122] => (item=/etc/supervisord.d)
+ok: [192.168.56.121] => (item=/srv/supervisor)
+ok: [192.168.56.123] => (item=/srv/supervisor)
+ok: [192.168.56.122] => (item=/srv/supervisor)
+ok: [192.168.56.121] => (item=/srv/supervisor/pid)
+ok: [192.168.56.123] => (item=/srv/supervisor/pid)
+ok: [192.168.56.122] => (item=/srv/supervisor/pid)
+ok: [192.168.56.121] => (item=/srv/supervisor/logs)
+ok: [192.168.56.123] => (item=/srv/supervisor/logs)
+ok: [192.168.56.122] => (item=/srv/supervisor/logs)
+ok: [192.168.56.121] => (item=/srv/supervisor/socket)
+ok: [192.168.56.123] => (item=/srv/supervisor/socket)
+ok: [192.168.56.122] => (item=/srv/supervisor/socket)
+
+TASK [Copy supervisor test app config] *******************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122]
+ok: [192.168.56.121]
+ok: [192.168.56.123]
+
+TASK [Copy supervisor service file] **********************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+ok: [192.168.56.123]
+ok: [192.168.56.122]
+
+TASK [Start service supervisord, in all cases] ***********************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121]
+changed: [192.168.56.122]
+changed: [192.168.56.123]
+
+TASK [supervisor : Copy alias config] ********************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+ok: [192.168.56.122]
+ok: [192.168.56.123]
+
+TASK [supervisor : Insert block to .bashrc] **************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+ok: [192.168.56.122]
+ok: [192.168.56.123]
+
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=19   changed=6    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+192.168.56.122             : ok=19   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+192.168.56.123             : ok=19   changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+Playbook run took 0 days, 0 hours, 0 minutes, 32 seconds
+[root@ansible ansible_playbooks]#
+```
+
+![](/img/Snipaste_2024-05-25_17-49-29.png)
+
+![](/img/Snipaste_2024-05-25_17-50-40.png)
+
+可以看到，三个节点都顺利执行完成了。
+
+再在三个节点上面检查一下：
+
+![](/img/Snipaste_2024-05-25_17-55-13.png)
+
+可以看到，三个节点上面supervisord服务正常，管理的`testapp`也正常工作，说明我们的supervisor角色配置没有问题。
+
+
+
+也可以使用登陆一下三个节点的supervisord的web管制台，登陆用的用户名和密码，在默认变量配置文件` roles/supervisor/defaults/main.yml`中定义的：
+
+```yaml
+# 登陆supervisor web控制台的用户名
+SUPERVISOR_USERNAME: admin
+# 登陆supervisor web控制台的密码
+SUPERVISOR_PASSWORD: admin@123
+```
+
+
+
+![](/img/Snipaste_2024-05-25_18-00-52.png)
+
+登陆后，可以正常看到supervisor管理的应用：
+
+![](/img/Snipaste_2024-05-25_18-03-25.png)
+
+到此，supervisor角色的相关介绍就结束了！^_^ 
+
+
+
+篇外话：
+
+一旦学会了角色如何配置，你就可以像搭积木一样来使用角色，将角色拆分成多个子任务，然后再单独用Ansible的模块来实现子任务的功能，最后再将各子任务拼接起来，最后你的角色剧本就配置好了，后面就可以方便快速的完成自己的工作了！
