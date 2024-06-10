@@ -1,0 +1,17 @@
+---
+- name: Create supervisor virtual environment
+  ansible.builtin.command:
+    # cmd: "/srv/miniconda3/bin/conda create --yes --name supervisorPython3.10.13 python=3.10.13"
+    cmd: "{{ MINICONDA_BASE_DIR }}/bin/conda create --yes --name {{ VIRTUAL_ENV_NAME }} python={{ VIRTUAL_PYTHON_VERSION }}"
+
+- name: Show virtual environments
+  ansible.builtin.command:
+    # cmd: "/srv/miniconda3/bin/conda env list"
+    cmd: "{{ MINICONDA_BASE_DIR }}/bin/conda env list"
+  changed_when: False
+
+- name: Show virtual Python version
+  ansible.builtin.command:
+    # cmd: "/srv/miniconda/envs/supervisorPython3.10.13/bin/python -V"
+    cmd: "{{ MINICONDA_BASE_DIR }}/envs/{{ VIRTUAL_ENV_NAME }}/bin/python -V"
+  changed_when: False

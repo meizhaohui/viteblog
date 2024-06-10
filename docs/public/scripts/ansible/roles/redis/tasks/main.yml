@@ -1,0 +1,18 @@
+---
+# redis角色任务
+# 安装redis
+- include: redis.yaml
+# 使用supervisor进程管理工具配置redis app
+- include: supervisor.yaml
+# 创建快捷命令
+- include: alias.yaml
+
+
+yum install gcc -y
+cd dep && make fpconv hdr_histogram hiredis jemalloc linenoise lua
+cd ..
+make
+make install PREFIX=/srv/redis
+
+
+make hiredis jemalloc linenoise lua geohash-int

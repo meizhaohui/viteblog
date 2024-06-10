@@ -1,0 +1,19 @@
+---
+# 从 https://docs.anaconda.com/free/miniconda/miniconda-other-installer-links/ 下载的miniconda shell安装文件的名称
+MINICONDA_SHELL_FILENAME: Miniconda3-py310_24.1.2-0-Linux-x86_64.sh
+# miniconda虚拟环境目录，Ansible会将miniconda环境安装到该目录下
+MINICONDA_BASE_DIR: /srv/miniconda3
+# 虚拟环境名称
+VIRTUAL_ENV_NAME: supervisorPython3.10.13
+# 虚拟环境Python版本
+VIRTUAL_PYTHON_VERSION: 3.10.13
+# supervisor服务的基础目录，在该目录下创建 logs, socket, pid等目录，变量路径最后不需要带斜杠
+SUPERVISOR_BASE_DIR: /srv/supervisor
+# supervisor服务的配置文件
+SUPERVISORD_CONFIG_FILE: /etc/supervisord.conf
+# 虚拟环境supervisor可执行文件路径,如 /srv/miniconda3/envs/supervisorPython3.10.13/bin
+SUPERVISORD_DIR_PATH: "{{ MINICONDA_BASE_DIR }}/envs/{{ VIRTUAL_ENV_NAME }}/bin"
+# 登陆supervisor web控制台的用户名
+SUPERVISOR_USERNAME: admin
+# 登陆supervisor web控制台的密码
+SUPERVISOR_PASSWORD: admin@123

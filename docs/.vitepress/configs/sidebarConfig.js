@@ -215,6 +215,7 @@ module.exports = {
       collapsed: true, // 是否可折叠，默认可折叠true 
       items: [
         { text: 'Redis6安装与主从配置', link: '/database/redis/install_redis' },
+        { text: 'CentOS7源码安装Redis6.2.14', link: '/database/redis/install_redis_with_source' },
       ]
     },
   ],
