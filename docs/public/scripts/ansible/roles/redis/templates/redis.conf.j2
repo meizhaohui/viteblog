@@ -1260,6 +1260,10 @@ acllog-max-len 128
 # hard to guess so that it will still be available for internal-use tools
 # but not available for general clients.
 #
+
+# BEGIN MEIZHAOHUI COMMENTS
+#   可以在共享环境中更改危险命令的名称,暂时不设置。
+# END MEIZHAOHUI COMMENTS
 # Example:
 #
 # rename-command CONFIG b840fc02d524045429941cc15f59e41cb7be6c52
@@ -1289,6 +1293,19 @@ acllog-max-len 128
 # limit accordingly in case of very large clusters.
 #
 # maxclients 10000
+# BEGIN MEIZHAOHUI COMMENTS
+#   设置同时连接的最大客户端数量。
+#   默认情况下，此限制设置为 10000 个客户端。
+#   但是如果 Redis 服务器无法配置进程文件限制以允许指定的限制，
+#   则允许的最大客户端数量将设置为当前文件限制减 32（因为 Redis 保留了一些文件描述符供内部使用）。
+#
+#   一旦达到限制，Redis 将关闭所有新连接并发送错误"已达到最大客户端数量"。
+#
+#   重要提示：使用 Redis 集群时，最大连接数也与集群总线共享：
+#   集群中的每个节点都将使用两个连接，一个传入，另一个传出。
+#   如果集群非常大，则必须相应地调整限制的大小。
+#   我们不单独设置。
+# END MEIZHAOHUI COMMENTS
 
 ############################## MEMORY MANAGEMENT ################################
 
@@ -1316,6 +1333,23 @@ acllog-max-len 128
 # output buffers (but this is not needed if the policy is 'noeviction').
 #
 # maxmemory <bytes>
+# BEGIN MEIZHAOHUI COMMENTS
+#   将内存使用限制设置为指定的字节数。
+#   当达到内存限制时，Redis 将尝试根据所选的驱逐策略删除键（请参阅 maxmemory-policy）。
+#
+#   如果 Redis 无法根据策略删除键，或者策略设置为"noeviction"，
+#   Redis 将开始以错误回复将使用更多内存的命令，例如 SET、LPUSH 等，并将继续回复只读命令，例如 GET。
+#
+#   此选项通常在将 Redis 用作 LRU 或 LFU 缓存时有用，或者在为实例设置硬内存限制时很有用（使用"noeviction"策略）。
+#
+#   警告：如果您将副本附加到启用了 maxmemory 的实例，
+#   将从已用内存计数中减去提供副本所需的输出缓冲区大小，这样网络问题/重新同步就不会触发循环，导致键被逐出，
+#   反过来，副本的输出缓冲区已满，被逐出的键的 DEL 触发了更多键的删除，依此类推，直到数据库完全清空。
+#
+#   简而言之……如果您附加了副本，建议您为 maxmemory 设置一个较低的限制，
+#   以便系统上有一些可用于副本输出缓冲区的可用 RAM（但如果策略为"noeviction"，则不需要这样做）。
+# END MEIZHAOHUI COMMENTS
+
 
 # MAXMEMORY POLICY: how Redis will select what to remove when maxmemory
 # is reached. You can select one from the following behaviors:
@@ -1345,6 +1379,29 @@ acllog-max-len 128
 # The default is:
 #
 # maxmemory-policy noeviction
+# BEGIN MEIZHAOHUI COMMENTS
+#   MAXMEMORY POLICY：达到 maxmemory 时，Redis 将如何选择要删除的内容。您可以从以下行为中选择一个：
+#
+#   volatile-lru -> 使用近似 LRU 驱逐，仅驱逐设置了过期时间的键。
+#   allkeys-lru -> 使用近似 LRU 驱逐任何键。
+#   volatile-lfu -> 使用近似 LFU 驱逐，仅驱逐设置了过期时间的键。
+#   allkeys-lfu -> 使用近似 LFU 驱逐任何键。
+#   volatile-random -> 删除设置了过期时间的随机键。
+#   allkeys-random -> 删除随机键，任何键。
+#   volatile-ttl -> 删除具有最近过期时间（次要 TTL）的键
+#   noeviction -> 不驱逐任何内容，仅在写入操作时返回错误。
+#
+#   LRU 表示最近最少使用
+#   LFU 表示最不频繁使用
+#
+#   LRU、LFU 和 volatile-ttl 都是使用近似随机算法实现的。
+#
+#   注意：对于上述任何一种策略，当没有适合驱逐的键时，Redis 将在需要更多内存的写入操作上返回错误。
+#   这些通常是创建新键、添加数据或修改现有键的命令。
+#   一些示例是：SET、INCR、HSET、LPUSH、SUNIONSTORE、SORT（由于 STORE 参数）和 EXEC（如果事务包含任何需要内存的命令）。
+#   默认是 maxmemory-policy noeviction， 即不驱逐任何内容，仅在写入操作时返回错误。
+# END MEIZHAOHUI COMMENTS
+
 
 # LRU, LFU and minimal TTL algorithms are not precise algorithms but approximated
 # algorithms (in order to save memory), so you can tune it for speed or
