@@ -1175,6 +1175,12 @@ replica-priority 100
 # by ACLs. The ACL Log is stored in memory. You can reclaim memory with 
 # ACL LOG RESET. Define the maximum entry length of the ACL Log below.
 acllog-max-len 128
+# BEGIN MEIZHAOHUI COMMENTS
+#   acllog-max-len配置项用于设置ACL日志的最大长度。
+#   ACL日志记录了所有的访问控制列表(ACL)相关的命令执行历史。
+#   当ACL日志记录数据超过了acllog-max-len配置的长度时，旧的记录会被移除。
+# END MEIZHAOHUI COMMENTS
+
 
 # Using an external ACL file
 #
@@ -1187,6 +1193,15 @@ acllog-max-len 128
 # format that is used inside redis.conf to describe users.
 #
 # aclfile /etc/redis/users.acl
+# BEGIN MEIZHAOHUI COMMENTS
+#   使用外部 ACL 文件。aclfile配置用来设置外部ACL文件路径。
+#   除了在此文件中配置用户之外，还可以使用# 仅列出用户的独立文件。
+#   这两种方法不能混合使用：
+#   如果您在此配置用户，同时激活外部ACL 文件，服务器将拒绝启动。
+#
+#  外部 ACL 用户文件的格式与 redis.conf 中用于描述用户的格式完全相同。
+#  保持默认即可。不启动ACL文件。
+# END MEIZHAOHUI COMMENTS
 
 # IMPORTANT NOTE: starting with Redis 6 "requirepass" is just a compatibility
 # layer on top of the new ACL system. The option effect will be just setting
@@ -1198,6 +1213,18 @@ acllog-max-len 128
 # command, these will cause requirepass to be ignored.
 #
 # requirepass foobared
+# BEGIN MEIZHAOHUI COMMENTS
+#   重要提示：从 Redis 6 开始，"requirepass"只是新 ACL 系统之上的兼容层。
+#   该选项的效果只是设置默认用户的密码。
+#   客户端仍将像往常一样使用 AUTH <password> 进行身份验证，
+#   或者更明确地使用 AUTH default <password> 进行身份验证，
+#   如果它们遵循新协议：两者都可以工作。
+#
+#   requirepass 与 aclfile 选项和 ACL LOAD 命令不兼容，
+#   这些将导致 requirepass 被忽略。
+#
+# 请注意，出于安全考虑，应确保密码足够复杂，并在生产环境中使用复杂的安全措施来保护密码。
+# END MEIZHAOHUI COMMENTS
 
 # New users are initialized with restrictive permissions by default, via the
 # equivalent of this ACL rule 'off resetkeys -@all'. Starting with Redis 6.2, it
