@@ -1413,6 +1413,15 @@ acllog-max-len 128
 # true LRU but costs more CPU. 3 is faster but not very accurate.
 #
 # maxmemory-samples 5
+# BEGIN MEIZHAOHUI COMMENTS
+#   LRU、LFU 和最小 TTL 算法不是精确算法，而是近似算法（为了节省内存），
+#   因此您可以调整速度或准确性。
+#   默认情况下，Redis 将检查五个键并选择最近使用最少的键，您可以使用以下配置指令更改样本大小。
+#
+#   默认值 5 产生足够好的结果。10 非常接近真正的 LRU，但消耗更多 CPU。3 更快但不太准确。
+#   因为未启用驱逐算法，此配置无作用。
+#   我们保持默认 maxmemory-samples 5 即可。
+# END MEIZHAOHUI COMMENTS
 
 # Eviction processing is designed to function well with the default setting.
 # If there is an unusually large amount of write traffic, this value may need to
@@ -1421,6 +1430,14 @@ acllog-max-len 128
 #   0 = minimum latency, 10 = default, 100 = process without regard to latency
 #
 # maxmemory-eviction-tenacity 10
+# BEGIN MEIZHAOHUI COMMENTS
+#   设置移除容忍度。
+#   数值越小表示容忍度越低，需要移除的数据移除延迟越小；
+#   数值越大表示容忍度越高，需要移除的数据移除延迟越大。
+#   如果写入流量异常大，则可能需要增加此值。
+#   降低此值可能会降低延迟，但可能会降低驱逐处理效率
+#   0 = 最小延迟，10 = 默认值，100 = 不考虑延迟的处理。
+# END MEIZHAOHUI COMMENTS
 
 # Starting from Redis 5, by default a replica will ignore its maxmemory setting
 # (unless it is promoted to master after a failover or manually). It means
@@ -1441,6 +1458,15 @@ acllog-max-len 128
 # master hits the configured maxmemory setting.
 #
 # replica-ignore-maxmemory yes
+# BEGIN MEIZHAOHUI COMMENTS
+#   replica-ignore-maxmemor用于控制 Redis 副本（replica）在达到 maxmemory 限制时的行为。
+#   当 replica-ignore-maxmemory 设置为 yes 时，副本会忽略 maxmemory 设置，
+#   并允许内存持续增长超过 maxmemory 指定的限制。
+#   这可能会导致副本的内存使用超过主服务器，并可能导致不一致的数据状态。
+#
+#   通常，这个选项应当设置为 no，以确保副本服务器的内存使用保持在安全的范围内。
+# END MEIZHAOHUI COMMENTS
+
 
 # Redis reclaims expired keys in two ways: upon access when those keys are
 # found to be expired, and also in background, in what is called the
@@ -1458,6 +1484,11 @@ acllog-max-len 128
 # in the system. It's a tradeoff between memory, CPU and latency.
 #
 # active-expire-effort 1
+# BEGIN MEIZHAOHUI COMMENTS
+#   active-expire-effort 配置指的是对过期键进行处理的活跃性工作量。
+#   这个配置影响了Redis如何平衡CPU时间来处理过期键和其他任务，如持久化和命令处理。
+#   值从1-10，值越大，占用CPU资源越多。
+# END MEIZHAOHUI COMMENTS
 
 ############################# LAZY FREEING ####################################
 
