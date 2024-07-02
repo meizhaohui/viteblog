@@ -1629,6 +1629,16 @@ lazyfree-lazy-user-flush no
 # enable I/O threads use the following configuration directive:
 #
 # io-threads 4
+# BEGIN MEIZHAOHUI COMMENTS
+#   官方表示，当使用redis时有性能瓶颈时，才推荐开启该功能，但是消耗更多的cpu时间。
+#   并且，开启i/o多线程，至少要是4核以上的cpu，
+#   并且需要预留一个空闲cpu。
+#   比如4核就配io-threads=2，
+#   8核至多配io-threads=6。
+#   对于4核以上的机器，官方更推荐配置io-threads=4，
+#   因为再往上叠加，收益相对较低了，也没有太大必要。
+# END MEIZHAOHUI COMMENTS
+
 #
 # Setting io-threads to 1 will just use the main thread as usual.
 # When I/O threads are enabled, we only use threads for writes, that is
@@ -1636,8 +1646,12 @@ lazyfree-lazy-user-flush no
 # socket. However it is also possible to enable threading of reads and
 # protocol parsing using the following configuration directive, by setting
 # it to yes:
-#
 # io-threads-do-reads no
+# BEGIN MEIZHAOHUI COMMENTS
+#   io-threads-do-reads配置默认no。
+#   i/o多线程默认是的是写socket多线程，socket连接本身就是epoll多路复用模式，
+#   理解下来开启此配置对性能不太有提升空间。
+# END MEIZHAOHUI COMMENTS
 #
 # Usually threading reads doesn't help much.
 #
@@ -1670,6 +1684,11 @@ lazyfree-lazy-user-flush no
 #           Because typically the initial value is 0, they will often match the
 #           absolute values.
 oom-score-adj no
+# BEGIN MEIZHAOHUI COMMENTS
+#   在 Linux 上，可以提示内核 OOM 终止程序在内存不足时应首先终止哪些进程。
+#   oom-score-adj 参数用于设置 Redis 进程在内存不足时被系统杀死的可能性。
+#   保持默认不开启。
+# END MEIZHAOHUI COMMENTS
 
 # When oom-score-adj is used, this directive controls the specific values used
 # for master, replica and background child processes. Values range -2000 to
@@ -1680,6 +1699,9 @@ oom-score-adj no
 # settings. This means that setting oom-score-adj to "relative" and setting the
 # oom-score-adj-values to positive values will always succeed.
 oom-score-adj-values 0 200 800
+# BEGIN MEIZHAOHUI COMMENTS
+#   oom-score-adj 配置未开启，此配置无效。
+# END MEIZHAOHUI COMMENTS
 
 
 #################### KERNEL transparent hugepage CONTROL ######################
@@ -1693,6 +1715,11 @@ oom-score-adj-values 0 200 800
 # "no" and the kernel global to "always".
 
 disable-thp yes
+# BEGIN MEIZHAOHUI COMMENTS
+#   disable-thp 配置项是用来控制是否禁用Transparent Huge Pages (THP)特性的。
+#   THP透明大页是Linux系统中用于支持大页面的一个特性，它可以提高内存的使用效率，
+#   但也可能对一些需要低延迟的应用程序造成影响，因为它会破坏内存的局部性。
+# END MEIZHAOHUI COMMENTS
 
 ############################## APPEND ONLY MODE ###############################
 
