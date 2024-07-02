@@ -1534,16 +1534,61 @@ acllog-max-len 128
 # in order to instead release memory in a non-blocking way like if UNLINK
 # was called, using the following configuration directives.
 
+# BEGIN MEIZHAOHUI COMMENTS
+#   Redis有两个命令用于删除键。一个称为DEL，是对对象的阻塞删除。
+#   这意味着服务器停止处理新命令，以便以同步方式回收与对象关联的所有内存。
+#   如果删除的键与一个小对象相关联，则执行DEL命令所需的时间非常短，
+#   与Redis中的大多数其他O（1）或O（log_N）命令相当。但是，
+#   如果key与包含数百万个元素的聚合值关联，则服务器可以阻塞很长时间（甚至几秒钟）以完成操作。
+#
+#   出于上述原因，Redis还提供了UNLINK（non-blocking DEL）等非阻塞删除命令
+#   以及FLUSHALL和FLUSHDB命令的异步选项，以便在后台回收内存。
+#   这些命令在固定时间内执行。另一个线程将尽可能在后台释放对象。
+#
+#   FLUSHALL和FLUSHDB的DEL、UNLINK和ASYNC选项由用户控制。
+#   这取决于应用程序的设计，所以了解何时使用一个或另一个是一个好主意。
+#   然而，Redis服务器有时不得不删除keys或刷新整个数据库，这是其他操作的副作用。
+#   具体来说，在以下情况下，Redis独立于用户调用删除对象：
+#   1.在逐出时，由于maxmemory和maxmemory策略配置，为了在不超过指定内存限制的情况下为新数据腾出空间
+#   2.因为过期：必须从内存中删除具有相关生存时间的key
+#   3.因为将数据存储在可能已经存在的keys上的命令的副作用。
+#       例如，当旧的keys内容被另一个keys内容替换时，RENAME命令可能会删除它。
+#       类似地，SUNIONSTORE或SORT with STORE选项可以删除现有keys。
+#       SET命令本身删除指定键的任何旧内容，以便用指定字符串替换它。
+#   4.在复制过程中，当复制副本与其主服务器执行完全重新同步时，将删除整个数据库的内容，以便加载刚刚传输的RDB文件。
+# END MEIZHAOHUI COMMENTS
+
 lazyfree-lazy-eviction no
+# BEGIN MEIZHAOHUI COMMENTS
+#   当 redis 内存达到阈值 maxmemory 时，是否开启异步惰性淘汰，
+#   开启的话，可能使用淘汰键的内存释放不及时，导致redis内存超用，超过maxmemory的限制不建议开启。
+# END MEIZHAOHUI COMMENTS
 lazyfree-lazy-expire no
+# BEGIN MEIZHAOHUI COMMENTS
+#   针对设置有TTL的键，达到过期后，被redis清理删除时是否采用lazy free机制。
+#   没特殊要求的话，保持默认不开启。
+# END MEIZHAOHUI COMMENTS
 lazyfree-lazy-server-del no
+# BEGIN MEIZHAOHUI COMMENTS
+#   执行DEL命令时，是否异步执行删除操作。
+#   没特殊要求的话，保持默认不开启。
+# END MEIZHAOHUI COMMENTS
 replica-lazy-flush no
+# BEGIN MEIZHAOHUI COMMENTS
+#   主要用于复制过程中，全量同步的场景，从节点是否异步删除整个db。
+#   没特殊要求的话，保持默认不开启。
+# END MEIZHAOHUI COMMENTS
+
 
 # It is also possible, for the case when to replace the user code DEL calls
 # with UNLINK calls is not easy, to modify the default behavior of the DEL
 # command to act exactly like UNLINK, using the following configuration
 # directive:
-
+# BEGIN MEIZHAOHUI COMMENTS
+#   将代码中的del替换成unlink可能不是那么太容易，所以为了让del
+#   命令的实际效果等价于unlink，
+#   你可以修改配置文件为lazyfree-lazy-user-del yes
+# END MEIZHAOHUI COMMENTS
 lazyfree-lazy-user-del no
 
 # FLUSHDB, FLUSHALL, and SCRIPT FLUSH support both asynchronous and synchronous
@@ -1551,6 +1596,12 @@ lazyfree-lazy-user-del no
 # commands. When neither flag is passed, this directive will be used to determine
 # if the data should be deleted asynchronously.
 
+# BEGIN MEIZHAOHUI COMMENTS
+#   FLUSHDB、FLUSHALL 和 SCRIPT FLUSH 支持异步和同步
+#   删除，可通过将 [SYNC|ASYNC] 标志传递到命令中来控制。
+#   当未传递任何标志时，此指令将用于确定是否应异步删除数据。
+#   保持默认不启用异步删除。
+# END MEIZHAOHUI COMMENTS
 lazyfree-lazy-user-flush no
 
 ################################ THREADED I/O #################################
