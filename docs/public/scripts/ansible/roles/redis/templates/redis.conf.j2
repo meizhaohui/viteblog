@@ -1719,6 +1719,10 @@ disable-thp yes
 #   disable-thp 配置项是用来控制是否禁用Transparent Huge Pages (THP)特性的。
 #   THP透明大页是Linux系统中用于支持大页面的一个特性，它可以提高内存的使用效率，
 #   但也可能对一些需要低延迟的应用程序造成影响，因为它会破坏内存的局部性。
+#       cat /sys/kernel/mm/transparent_hugepage/enabled
+#       [always] madvise never   <------- 这种是透明大页开启状态
+#       cat /sys/kernel/mm/transparent_hugepage/enabled
+#       always madvise [never]   <------- 这种是透明大页关闭状态
 # END MEIZHAOHUI COMMENTS
 
 ############################## APPEND ONLY MODE ###############################
