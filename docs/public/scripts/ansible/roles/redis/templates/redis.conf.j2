@@ -1973,12 +1973,22 @@ lua-time-limit 5000
 # Every Redis Cluster node requires a different cluster configuration file.
 # Make sure that instances running in the same system do not have
 # overlapping cluster configuration file names.
+# BEGIN MEIZHAOHUI COMMENTS
+#   每个集群节点都有一个集群配置文件。此文件不应手动编辑。它由 Redis 节点创建和更新。
+#   每个 Redis 集群节点都需要不同的集群配置文件。
+#   确保在同一系统中运行的实例没有重复的集群配置文件名。
+# END MEIZHAOHUI COMMENTS
 #
 # cluster-config-file nodes-6379.conf
 
 # Cluster node timeout is the amount of milliseconds a node must be unreachable
 # for it to be considered in failure state.
 # Most other internal time limits are a multiple of the node timeout.
+# BEGIN MEIZHAOHUI COMMENTS
+#   集群节点超时是节点必须处于不可访问状态的毫秒数。
+#   才会被视为处于故障状态。
+#   大多数其他内部时间限制都是节点超时的倍数。
+# END MEIZHAOHUI COMMENTS
 #
 # cluster-node-timeout 15000
 
