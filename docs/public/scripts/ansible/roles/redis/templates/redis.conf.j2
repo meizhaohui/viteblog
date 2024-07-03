@@ -1896,6 +1896,14 @@ auto-aof-rewrite-min-size 64mb
 # the server will still exit with an error. This option only applies when
 # Redis will try to read more data from the AOF file but not enough bytes
 # will be found.
+# BEGIN MEIZHAOHUI COMMENTS
+#   aof文件可能在尾部是不完整的，当redis启动的时候，aof文件的数据被载入内存。
+#   重启可能发生在redis所在的主机操作系统宕机后，尤其在ext4文件系统没有加上data=ordered选项会出现这种现象。
+#   redis宕机或者异常终止不会造成尾部不完整现象，可以选择让redis退出，
+#   或者导入尽可能多的数据。如果选择的是yes，当截断的aof文件被导入的时候，
+#   会自动发布一个log给客户端然后load。
+#   如果是no，用户必须手动redis-check-aof修复AOF文件才可以。
+# END MEIZHAOHUI COMMENTS
 aof-load-truncated yes
 
 # When rewriting the AOF file, Redis is able to use an RDB preamble in the
@@ -1907,6 +1915,14 @@ aof-load-truncated yes
 # When loading, Redis recognizes that the AOF file starts with the "REDIS"
 # string and loads the prefixed RDB file, then continues loading the AOF
 # tail.
+# BEGIN MEIZHAOHUI COMMENTS
+#   在Redis4.0之后，新增了RDB-AOF混合持久化方式。这种方式结合了RDB和AOF的优点，既能快速加载又能避免丢失过多的数据。
+#   具体配置为：aof-use-rdb-preamble: 设置为yes表示开启，设置为no表示禁用。
+#   当开启混合持久化时，主进程先fork出子进程将现有内存副本全量以RDB方式写入aof文件中，
+#   然后将缓冲区中的增量命令以AOF方式写入aof文件中，
+#   写入完成后通知主进程更新相关信息，并将新的含有 RDB和AOF两种格式的aof文件替换旧的aof文件。
+#   简单来说：混合持久化方式产生的文件一部分是RDB格式，一部分是AOF格式。
+# END MEIZHAOHUI COMMENTS
 aof-use-rdb-preamble yes
 
 ################################ LUA SCRIPTING  ###############################
@@ -1925,6 +1941,20 @@ aof-use-rdb-preamble yes
 # termination of the script.
 #
 # Set it to 0 or a negative value for unlimited execution without warnings.
+# BEGIN MEIZHAOHUI COMMENTS
+#   Lua脚本的使用和设置超时时间，默认5000毫秒，即5秒。
+#   但这里有个坑，当一个脚本达到最大执行时长的时候，Redis并不会强制停止脚本的运行，
+#   仅仅在日志里打印个警告，告知有脚本超时。
+#   开始允许接受其他客户端请求，但仅限于 SCRIPT KILL 和 SHUTDOWN NOSAVE 两个命令
+#   其他请求仍返回busy错误，
+#   如果脚本已经改写了数据内容，SCRIPT KILL将报出以下错误，因为它破坏数据集的内容。
+#   为什么不能直接停掉呢？
+#   因为 Redis 必须保证脚本执行的原子性，中途停止可能导致内存的数据集上只修改了部分数据。
+#
+#   Redis脚本里的写命令是等到执行完成后再一次性写入AOF的。
+#   参考：https://www.jb51.net/article/230175.htm Redis中Lua脚本的使用和设置超时
+# END MEIZHAOHUI COMMENTS
+
 lua-time-limit 5000
 
 ################################ REDIS CLUSTER  ###############################
