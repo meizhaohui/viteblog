@@ -1954,7 +1954,6 @@ aof-use-rdb-preamble yes
 #   Redis脚本里的写命令是等到执行完成后再一次性写入AOF的。
 #   参考：https://www.jb51.net/article/230175.htm Redis中Lua脚本的使用和设置超时
 # END MEIZHAOHUI COMMENTS
-
 lua-time-limit 5000
 
 ################################ REDIS CLUSTER  ###############################
@@ -1962,6 +1961,10 @@ lua-time-limit 5000
 # Normal Redis instances can't be part of a Redis Cluster; only nodes that are
 # started as cluster nodes can. In order to start a Redis instance as a
 # cluster node enable the cluster support uncommenting the following:
+# BEGIN MEIZHAOHUI COMMENTS
+#   普通 Redis 实例不能成为 Redis 集群的一部分；只有作为集群节点启动的节点才可以。
+#   为了将 Redis 实例作为集群节点启动，请取消注释以下内容以启用集群支持：
+# END MEIZHAOHUI COMMENTS
 #
 # cluster-enabled yes
 
