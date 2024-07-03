@@ -1793,6 +1793,20 @@ appendfilename "appendonly.aof"
 #
 # If unsure, use "everysec".
 
+# BEGIN MEIZHAOHUI COMMENTS
+#   fsync() 调用会告知操作系统实际将数据写入磁盘，
+#   而不是等待输出缓冲区中出现更多数据。有些操作系统会真正刷新磁盘上的数据，
+#   而有些操作系统则会尝试尽快执行此操作。
+#   Redis 支持三种不同的模式：
+#
+#   no：不进行 fsync，只让操作系统在需要时刷新数据。速度更快。
+#   always：每次写入仅附加日志后进行 fsync。速度慢，最安全。
+#   everysec：每秒仅进行一次 fsync。折衷。
+#   默认值为“everysec”，因为这通常是速度和数据安全性之间的正确折衷。
+#
+#   我们使用默认值 appendfsync everysec 每秒写入一次。
+# END MEIZHAOHUI COMMENTS
+
 # appendfsync always
 appendfsync everysec
 # appendfsync no
@@ -1816,6 +1830,21 @@ appendfsync everysec
 # If you have latency problems turn this to "yes". Otherwise leave it as
 # "no" that is the safest pick from the point of view of durability.
 
+# BEGIN MEIZHAOHUI COMMENTS
+#   bgrewriteaof机制，在一个子进程中进行aof的重写，
+#   从而不阻塞主进程对其余命令的处理，同时解决了aof文件过大问题。
+#   现在问题出现了，同时在执行bgrewriteaof操作和主进程写aof文件的操作，
+#   两者都会操作磁盘，而bgrewriteaof往往会涉及大量磁盘操作，
+#   这样就会造成主进程在写aof文件的时候出现阻塞的情形，
+#   现在no-appendfsync-on-rewrite参数出场了。
+#   如果该参数设置为no，是最安全的方式，不会丢失数据，但是要忍受阻塞的问题。
+#   如果设置为yes呢？这就相当于将appendfsync设置为no，这说明并没有执行磁盘操作，
+#   只是写入了缓冲区，因此这样并不会造成阻塞（因为没有竞争磁盘），
+#   但是如果这个时候redis挂掉，就会丢失数据。丢失多少数据呢？
+#   在linux的操作系统的默认设置下，最多会丢失30s的数据。
+#   因此，如果应用系统无法忍受延迟，而可以容忍少量的数据丢失，则设置为yes。
+#   如果应用系统无法忍受数据丢失，则设置为no。
+# END MEIZHAOHUI COMMENTS
 no-appendfsync-on-rewrite no
 
 # Automatic rewrite of the append only file.
@@ -1835,8 +1864,15 @@ no-appendfsync-on-rewrite no
 # Specify a percentage of zero in order to disable the automatic AOF
 # rewrite feature.
 
+# BEGIN MEIZHAOHUI COMMENTS
+#   auto-aof-rewrite-percentage，设置触发 AOF 重写的百分比,一般建议设置为 100% 。
+#   当 AOF 文件体积增长超过上次 AOF 重写的体积的指定百分比时，
+#   Redis 会自动触发一个新的 AOF 重写操作。
+#   auto-aof-rewrite-min-size 设置最小 AOF 文件大小,一般建议设置为 64mb。
+# END MEIZHAOHUI COMMENTS
 auto-aof-rewrite-percentage 100
 auto-aof-rewrite-min-size 64mb
+
 
 # An AOF file may be found to be truncated at the end during the Redis
 # startup process, when the AOF data gets loaded back into memory.
