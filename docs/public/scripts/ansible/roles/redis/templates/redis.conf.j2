@@ -2021,6 +2021,24 @@ lua-time-limit 5000
 # is 10, and assuming a default repl-ping-replica-period of 10 seconds, the
 # replica will not try to failover if it was not able to talk with the master
 # for longer than 310 seconds.
+# BEGIN MEIZHAOHUI COMMENTS
+#   如果数据看起来太旧，故障主服务器的副本将避免启动故障转移。
+#   对于副本来说，没有简单的方法可以准确测量其“数据年龄”，因此需要执行以下两项检查：
+#  
+#   1) 如果有多个副本能够进行故障转移，它们将交换消息，以尝试为具有最佳复制偏移量的副本（处理来自主服务器的更多数据）提供优势(可以理解为优先级)。
+#   副本将尝试通过偏移量获取其排名，并在故障转移开始时应用与其排名成比例的延迟。
+#   2) 每个副本计算与其主服务器最后一次交互的时间。这可以是最后一次收到的 ping 或命令（如果主服务器仍处于“连接”状态），
+#   也可以是自与主服务器断开连接以来经过的时间（如果复制链接当前已关闭）。
+#   如果最后一次交互太旧，副本将根本不会尝试故障转移。
+#  
+#   点“2”可以由用户调整。具体来说，如果自上次与主服务器交互以来，经过的时间大于：
+#   (node-timeout * cluster-replica-validity-factor) + repl-ping-replica-period
+#  
+#   例如，如果 node-timeout 为 30 秒，cluster-replica-validity-factor为 10，
+#   并假设默认 repl-ping-replica-period 为 10 秒，
+#   则如果副本无法与主服务器通信超过 310 秒，则副本将不会尝试故障转移。
+# END MEIZHAOHUI COMMENTS
+
 #
 # A large cluster-replica-validity-factor may allow replicas with too old data to failover
 # a master, while a too small value may prevent the cluster from being able to
@@ -2034,6 +2052,11 @@ lua-time-limit 5000
 #
 # Zero is the only value able to guarantee that when all the partitions heal
 # the cluster will always be able to continue.
+# BEGIN MEIZHAOHUI COMMENTS
+#   较大的 cluster-replica-validity-factor 可能允许数据过旧的副本故障转移为主服务器，
+#   而太小的值可能会阻止集群能够# 选举副本。
+#   如果设置为 0 ，则不管 slave 与 master 之间断开多久，都认为自己有资格成为 master。
+# END MEIZHAOHUI COMMENTS
 #
 # cluster-replica-validity-factor 10
 
