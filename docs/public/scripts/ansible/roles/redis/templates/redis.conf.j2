@@ -1744,12 +1744,31 @@ disable-thp yes
 # with the better durability guarantees.
 #
 # Please check https://redis.io/topics/persistence for more information.
+# BEGIN MEIZHAOHUI COMMENTS
+#   默认情况下，Redis 会异步将数据集转储到磁盘上。
+#   此模式在许多应用程序中都足够好，但 Redis 进程出现问题或断电可能会导致几分钟的写入丢失（取决于配置的保存点）。
+#
+#   这种只增文件是可选的能够提供更好的体验的数据持久化策略。
+#   Redis 可能会在服务器断电等重大事件中丢失一秒钟的写入，
+#   或者如果 Redis 进程本身出现问题，但操作系统仍在正常运行，则只会丢失一次写入。
+#   可以同时启用 AOF 和 RDB 持久性而不会出现问题。
+#   如果在启动时启用了 AOF，Redis 将加载 AOF，即具有更好耐用性保证的文件。
+# END MEIZHAOHUI COMMENTS
 
-appendonly no
+# appendonly no
+appendonly yes
+# BEGIN MEIZHAOHUI COMMENTS
+#   默认 appendonly no 表示未开启AOF只增文件模式。
+#   为了让我们Redis在异常时数据丢失更少，开启该参数，
+#   设置appendonly yes 打开 AOF持久化。
+# END MEIZHAOHUI COMMENTS
 
 # The name of the append only file (default: "appendonly.aof")
 
 appendfilename "appendonly.aof"
+# BEGIN MEIZHAOHUI COMMENTS
+#   AOF持久化文件名
+# END MEIZHAOHUI COMMENTS
 
 # The fsync() call tells the Operating System to actually write data on disk
 # instead of waiting for more data in the output buffer. Some OS will really flush
