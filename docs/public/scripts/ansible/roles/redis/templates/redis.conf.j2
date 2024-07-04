@@ -2077,6 +2077,17 @@ lua-time-limit 5000
 # set cluster-allow-replica-migration to 'no'.
 # A value of 0 can be set but is useful only for debugging and dangerous
 # in production.
+# BEGIN MEIZHAOHUI COMMENTS
+#   没有 slave 节点的 master 节点称为孤儿 master节点，这个配置就是用于防止出现裸奔的 master。
+#   当某个 master 的 slave 节点宕机后，集群会从其他 master 中选出一个富余的 slave 节点迁移过来，
+#   确保每个 master 节点至少有一个 slave 节点，
+#   防止当孤立 master 节点宕机时，没有slave节点可以升为 master 导致集群不可用。
+#   默认配置为 cluster-migration-barrier 1，是一个迁移临界值。
+#   含义是：迁移后 master 节点至少还有 1 个 slave 节点才能做迁移操作。
+#   比如 master A 节点有2个以上 slave 节点 ，当集群出现孤儿 master B 节点时，
+#   A 节点富余的 slave 节点可以迁移到 master B 节点上。
+#   生产环境建议维持默认值，最大可能保证高可用。
+# END MEIZHAOHUI COMMENTS
 #
 # cluster-migration-barrier 1
 
