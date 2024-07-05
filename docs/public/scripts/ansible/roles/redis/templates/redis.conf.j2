@@ -2129,6 +2129,11 @@ lua-time-limit 5000
 # data center operations, where we want one side to never be promoted if not
 # in the case of a total DC failure.
 #
+# BEGIN MEIZHAOHUI COMMENTS
+#   默认配置为 no，当配置成 yes，在master 宕机时，slave 不会做故障转移升为 master。
+#   这个配置在多数据中心的情况下会很有用，你可能希望某个数据中心永远不要升级为 master 节点，
+#   否则 master 节点就漂移到其他数据中心了。
+# END MEIZHAOHUI COMMENTS
 # cluster-replica-no-failover no
 
 # This option, when set to yes, allows nodes to serve read traffic while the
@@ -2145,6 +2150,20 @@ lua-time-limit 5000
 # entire cluster without this option set, with it set there is only a write outage.
 # Without a quorum of masters, slot ownership will not change automatically. 
 #
+# BEGIN MEIZHAOHUI COMMENTS
+#   cluster-allow-reads-when-down配置选项用于控制在节点
+#   标记为FAIL（即节点认为它自己已经下线，不能正确处理命令请求）时，
+#   集群是否允许对该节点进行读操作。
+#
+#   当cluster-allow-reads-when-down配置项设置为yes时，
+#   即使一个节点因为网络分区问题被集群标记为FAIL，
+#   集群的其他节点仍然可以从这个节点进行读操作。
+#   这可以提供一定程度的数据可读性，
+#   但是需要注意，由于数据可能不同步，因此可能会返回过时的数据。
+#
+#   当cluster-allow-reads-when-down配置项设置为no时，
+#   一旦一个节点被集群标记为FAIL，它将不再从这个节点进行读操作。
+# END MEIZHAOHUI COMMENTS
 # cluster-allow-reads-when-down no
 
 # In order to setup your cluster make sure to read the documentation
