@@ -2113,6 +2113,12 @@ lua-time-limit 5000
 # covered. In order to do so, just set the cluster-require-full-coverage
 # option to no.
 #
+# BEGIN MEIZHAOHUI COMMENTS
+#   当 redis cluster 发现至少还有一个 哈希槽没有被分配时禁止查询操作。
+#   这就会导致集群部分宕机，整个集群就不可用了，
+#   当所有哈希槽都有分配，集群会自动变为可用状态。
+#   默认值 yes , 即需要集群完整性，方可对外提供服务。
+# END MEIZHAOHUI COMMENTS
 # cluster-require-full-coverage yes
 
 # This option, when set to yes, prevents replicas from trying to failover its
