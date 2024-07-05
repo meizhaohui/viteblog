@@ -2174,6 +2174,13 @@ lua-time-limit 5000
 # In certain deployments, Redis Cluster nodes address discovery fails, because
 # addresses are NAT-ted or because ports are forwarded (the typical case is
 # Docker and other containers).
+# BEGIN MEIZHAOHUI COMMENTS
+#   在某些部署中，Redis 集群节点地址发现失败，因为
+#   地址经过了 NAT 处理或者端口被转发（典型情况是
+#   Docker 和其他容器）。
+#
+#   我们此处不用docker部署redis,忽略下面这四个配置项。
+# END MEIZHAOHUI COMMENTS
 #
 # In order to make Redis Cluster working in such environments, a static
 # configuration where each node knows its public address is needed. The
