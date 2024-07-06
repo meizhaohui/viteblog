@@ -2273,6 +2273,16 @@ slowlog-max-len 128
 # impact, that while very small, can be measured under big load. Latency
 # monitoring can easily be enabled at runtime using the command
 # "CONFIG SET latency-monitor-threshold <milliseconds>" if needed.
+# BEGIN MEIZHAOHUI COMMENTS
+#   延迟监视器
+#   Redis 延迟监视子系统在运行时对不同的操作进行采样，
+#   以便收集与 Redis 实例的可能延迟源相关的数据。
+#   这个参数的默认值是0，意味着禁用延迟监控。
+#   用于指定处理命令请求的最大延迟时间（单位微秒）。
+#   如果某个命令的处理延迟超过这个值，Redis 会在日志中记录一条警告信息。
+#   如果你想启用并设置一个特定的阈值，请确保将其值设置为合理的高低值，
+#   以避免在正常的操作中记录警告。
+# END MEIZHAOHUI COMMENTS
 latency-monitor-threshold 0
 
 ############################# EVENT NOTIFICATION ##############################
@@ -2324,6 +2334,11 @@ latency-monitor-threshold 0
 #  By default all notifications are disabled because most users don't need
 #  this feature and the feature has some overhead. Note that if you don't
 #  specify at least one of K or E, no events will be delivered.
+# BEGIN MEIZHAOHUI COMMENTS
+#   事件通知。
+#   默认情况下，所有通知均被禁用，
+#   因为大多数用户不需要此功能，并且此功能有一些开销。
+# END MEIZHAOHUI COMMENTS
 notify-keyspace-events ""
 
 ############################### GOPHER SERVER #################################
@@ -2382,6 +2397,13 @@ notify-keyspace-events ""
 # To enable Gopher support, uncomment the following line and set the option
 # from no (the default) to yes.
 #
+# BEGIN MEIZHAOHUI COMMENTS
+#   是否启用gopher协议的web访问。
+#   Gopher 协议在 90 年代末非常流行。
+#   它是 Web 的替代品，服务器端和客户端的实现都非常简单，
+#   以至于 Redis 服务器只需 100 行代码即可实现此支持。
+#   保持默认不开启。
+# END MEIZHAOHUI COMMENTS
 # gopher-enabled no
 
 ############################### ADVANCED CONFIG ###############################
@@ -2389,6 +2411,17 @@ notify-keyspace-events ""
 # Hashes are encoded using a memory efficient data structure when they have a
 # small number of entries, and the biggest entry does not exceed a given
 # threshold. These thresholds can be configured using the following directives.
+# BEGIN MEIZHAOHUI COMMENTS
+#   高级设置。
+#   当哈希值包含少量条目且最大条目不超过给定阈值时，
+#   哈希值将使用内存高效的数据结构进行编码。
+#   可以使用以下指令配置这些阈值。
+#   hash-max-ziplist-entries，使用压缩列表保存时哈希集合中最大元素个数。
+#   hash-max-ziplist-value， 使用压缩列表保存时哈希集合中单个元素的最大长度。
+#   键值对个数小于512，所有的键值对的键和值的字符串长度都小于64个字节时用ziplist，否则用hashtable。
+#   注意：ziplist可以升级为hashtable，但hashtable不能降级为ziplist，
+#   在节省内存空间方面哈希表是没有压缩列表高效的！
+# END MEIZHAOHUI COMMENTS
 hash-max-ziplist-entries 512
 hash-max-ziplist-value 64
 
