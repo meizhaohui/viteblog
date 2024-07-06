@@ -2551,6 +2551,13 @@ stream-node-max-entries 100
 #
 # use "activerehashing yes" if you don't have such hard requirements but
 # want to free memory asap when possible.
+# BEGIN MEIZHAOHUI COMMENTS
+#   active rehashing（主动重哈希）是通过设置activerehashing参数来启用的。
+#   active rehashing是一种动态将哈希槽从一个节点转移到另一个节点的机制。
+#   在Redis集群中，哈希槽被分配给不同的节点来存储数据。当节点的负载不均衡时，
+#   active rehashing可以将一部分哈希槽从负载较高的节点移动到负载较低的节点，
+#   以实现负载均衡。这个过程是在运行时进行的，并且是自动执行的。
+# END MEIZHAOHUI COMMENTS
 activerehashing yes
 
 # The client output buffer limits can be used to force disconnection of clients
@@ -2586,6 +2593,17 @@ activerehashing yes
 # subscribers and replicas receive data in a push fashion.
 #
 # Both the hard or the soft limit can be disabled by setting them to zero.
+
+# BEGIN MEIZHAOHUI COMMENTS
+#   client-output-buffer-limit参数是用来限制客户端输出缓冲区的大小的。
+#   参数的格式为：
+#   client-output-buffer-limit <class> <hard limit> <soft limit> <soft seconds>
+#   其中，
+#   <class>指定了要限制的客户端类型，包括normal、slave、pubsub和replica。
+#   <hard-limit>表示客户端输出缓冲区的硬限制大小，单位为字节。当输出缓冲区大小超过这个限制时，客户端将被立即关闭。
+#   <soft-limit>表示客户端输出缓冲区的软限制大小，单位为字节。当输出缓冲区大小超过这个限制时，Redis将开始主动丢弃一部分缓冲区中的数据，以避免缓冲区溢出。
+#   <soft seconds>表示在达到软限制后，Redis将开始丢弃缓冲区数据的持续时间。以秒为单位进行设置。
+# END MEIZHAOHUI COMMENTS
 client-output-buffer-limit normal 0 0 0
 client-output-buffer-limit replica 256mb 64mb 60
 client-output-buffer-limit pubsub 32mb 8mb 60
