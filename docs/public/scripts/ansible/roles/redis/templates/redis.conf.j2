@@ -2438,6 +2438,20 @@ hash-max-ziplist-value 64
 # per list node.
 # The highest performing option is usually -2 (8 Kb size) or -1 (4 Kb size),
 # but if your use case is unique, adjust the settings as necessary.
+# BEGIN MEIZHAOHUI COMMENTS
+#   列表也以特殊方式编码以节省大量空间。
+#   可以将每个内部列表节点允许的条目数指定为
+#   固定最大大小或最大元素数。
+#   对于固定最大大小，请使用 -5 到 -1，这意味着：
+#   -5：最大大小：64 Kb <-- 不推荐用于正常工作负载
+#   -4：最大大小：32 Kb <-- 不推荐
+#   -3：最大大小：16 Kb <-- 可能不推荐
+#   -2：最大大小：8 Kb <-- 好
+#   -1：最大大小：4 Kb <-- 好
+#   正数表示每个列表节点最多存储该数量的元素。
+#   性能最高的选项通常是 -2（8 Kb 大小）或 -1（4 Kb 大小）。
+#   保持默认即可。
+# END MEIZHAOHUI COMMENTS
 list-max-ziplist-size -2
 
 # Lists may also be compressed.
@@ -2454,6 +2468,10 @@ list-max-ziplist-size -2
 #    but compress all nodes between them.
 # 3: [head]->[next]->[next]->node->node->...->node->[prev]->[prev]->[tail]
 # etc.
+# BEGIN MEIZHAOHUI COMMENTS
+#   列表也可以进行压缩。默认为0，禁用列表压缩。
+#   保持默认即可。
+# END MEIZHAOHUI COMMENTS
 list-compress-depth 0
 
 # Sets have a special encoding in just one case: when a set is composed
@@ -2461,6 +2479,10 @@ list-compress-depth 0
 # of 64 bit signed integers.
 # The following configuration setting sets the limit in the size of the
 # set in order to use this special memory saving encoding.
+# BEGIN MEIZHAOHUI COMMENTS
+#   集合仅在一种情况下具有特殊编码：
+#   当集合仅由恰好是基数为 10 的整数且范围为 64 位有符号整数的字符串组成时。
+# END MEIZHAOHUI COMMENTS
 set-max-intset-entries 512
 
 # Similarly to hashes and lists, sorted sets are also specially encoded in
