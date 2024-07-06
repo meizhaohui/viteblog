@@ -2507,6 +2507,11 @@ zset-max-ziplist-value 64
 # which is O(N) with the sparse encoding. The value can be raised to
 # ~ 10000 when CPU is not a concern, but space is, and the data set is
 # composed of many HyperLogLogs with cardinality in the 0 - 15000 range.
+# BEGIN MEIZHAOHUI COMMENTS
+#   hll-sparse-max-bytes用来控制稀疏HyperLogLog结构的最大保存字节数。
+#   HyperLogLog是一种用于进行基数估计的数据结构，
+#   通过牺牲一定的精确度来减小占用的内存空间。
+# END MEIZHAOHUI COMMENTS
 hll-sparse-max-bytes 3000
 
 # Streams macro node max size / items. The stream data structure is a radix
@@ -2517,6 +2522,14 @@ hll-sparse-max-bytes 3000
 # zero, the limit is ignored, so for instance it is possible to set just a
 # max entries limit by setting max-bytes to 0 and max-entries to the desired
 # value.
+# BEGIN MEIZHAOHUI COMMENTS
+#   stream-node-max-bytes参数用于设置stream节点的最大字节数。
+#   每个stream节点都是由多个消息组成的，并且每个消息都有一定的字节数。
+#   该参数用于限制stream节点的最大字节数，以避免节点过大而导致内存占用过多的问题。
+#   stream-node-max-entries参数用于限制一个stream节点（即一个stream所包含的数据的单位）中的最大条目数。
+#   默认值为100。当节点中的条目数量达到该限制时，Redis会自动将节点拆分为更小的节点，
+#   并创建新的节点来存储后续的条目。
+# END MEIZHAOHUI COMMENTS
 stream-node-max-bytes 4096
 stream-node-max-entries 100
 
