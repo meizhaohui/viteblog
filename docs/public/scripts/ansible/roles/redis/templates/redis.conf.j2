@@ -2488,6 +2488,10 @@ set-max-intset-entries 512
 # Similarly to hashes and lists, sorted sets are also specially encoded in
 # order to save a lot of space. This encoding is only used when the length and
 # elements of a sorted set are below the following limits:
+# BEGIN MEIZHAOHUI COMMENTS
+#   与哈希和列表类似，有序集合也经过特殊编码，以节省大量空间。
+#   只有当有序集合的长度和元素低于以下限制时才使用此编码：
+# END MEIZHAOHUI COMMENTS
 zset-max-ziplist-entries 128
 zset-max-ziplist-value 64
 
