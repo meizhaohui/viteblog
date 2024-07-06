@@ -2637,6 +2637,19 @@ client-output-buffer-limit pubsub 32mb 8mb 60
 # The range is between 1 and 500, however a value over 100 is usually not
 # a good idea. Most users should use the default of 10 and raise this up to
 # 100 only in environments where very low latency is required.
+# BEGIN MEIZHAOHUI COMMENTS
+#   Redis 调用内部函数来执行许多后台任务，
+#   例如关闭超时的客户端连接、清除从未请求的过期键等等。
+#
+#   并非所有任务都以相同的频率执行，但 Redis 会根据指定的"hz"值检查要执行的任务。
+#
+#   默认情况下，"hz"设置为 10。当 Redis 空闲时，提高该值将使用更多 CPU，
+#   但同时当有许多键同时过期时，Redis 的响应速度会更快，并且可以更精确地处理超时。
+#
+#   该参数范围在 1 到 500 之间，但超过 100 的值是不推荐的。
+#   大多数用户应该使用默认值 10，并仅在需要非常低延迟的环境中将其提高到 100。
+#   默认的HZ值为10，表示每秒进行10次的定时任务检查。
+# END MEIZHAOHUI COMMENTS
 hz 10
 
 # Normally it is useful to have an HZ value which is proportional to the
@@ -2653,18 +2666,45 @@ hz 10
 # used as needed once more clients are connected. In this way an idle
 # instance will use very little CPU time while a busy instance will be
 # more responsive.
+# BEGIN MEIZHAOHUI COMMENTS
+#   dynamic-hz用于控制Redis是否动态调整服务器的心跳频率。
+#   心跳频率是Redis服务器在非阻塞状态下执行任务的速率。
+#   在每次循环中，服务器都会操纵定时器（用于计算心跳）。
+#   dynamic-hz参数允许Redis根据服务器的负载动态地调整心跳频率。
+#   如果dynamic-hz被设置为yes，Redis将根据服务器的负载情况自动调整心跳频率。
+#   具体来说，如果服务器忙碌并且使用率较高，Redis会增加心跳频率以提高响应速度。
+#   相反，如果服务器处于空闲状态，Redis会降低心跳频率以节省资源。
+# END MEIZHAOHUI COMMENTS
 dynamic-hz yes
 
 # When a child rewrites the AOF file, if the following option is enabled
 # the file will be fsync-ed every 32 MB of data generated. This is useful
 # in order to commit the file to the disk more incrementally and avoid
 # big latency spikes.
+# BEGIN MEIZHAOHUI COMMENTS
+#   aof-rewrite-incremental-fsync参数用于控制重写过程中自动执行fsync的频率。
+#   fsync是一个用于将数据写入磁盘的系统调用，它确保数据写入磁盘后才返回。
+#   然而，频繁的执行fsync操作会导致性能下降。
+#   aof-rewrite-incremental-fsync参数接受以下值：
+#   yes：表示在AOF重写期间会自动执行fsync操作。这是默认值，可以确保AOF文件的安全性，但可能会影响性能。
+#   no：表示在AOF重写期间不执行fsync操作。这样可以提高性能，但可能会增加数据丢失的风险。
+# END MEIZHAOHUI COMMENTS
 aof-rewrite-incremental-fsync yes
 
 # When redis saves RDB file, if the following option is enabled
 # the file will be fsync-ed every 32 MB of data generated. This is useful
 # in order to commit the file to the disk more incrementally and avoid
 # big latency spikes.
+# BEGIN MEIZHAOHUI COMMENTS
+#   rdb-save-incremental-fsync参数用于控制是否在进行RDB持久化时进行增量fsync操作。
+#   RDB持久化是将Redis的内存数据以二进制格式写入磁盘文件，以保证数据在重启时的持久性。
+#   在默认情况下，Redis会在进行RDB持久化时执行一个完整的fsync操作，将数据强制刷写到磁盘上。
+#   但是，完整的fsync操作可能会导致一定的性能损失，特别是在写入大量数据时。
+#   为了减轻这种性能损失，Redis 6引入了rdb-save-incremental-fsync参数。
+#   默认情况下，rdb-save-incremental-fsync参数的值为yes，表示在进行RDB持久化时进行增量fsync操作。
+#   增量fsync操作只会将数据写入磁盘的文件系统缓存中，并不会马上将数据刷写到磁盘上。
+#   这种方式可以提高性能，但是可能会增加数据丢失的风险，在发生宕机的情况下可能会有一定的数据丢失。
+# END MEIZHAOHUI COMMENTS
 rdb-save-incremental-fsync yes
 
 # Redis LFU eviction (see maxmemory setting) can be tuned. However it is a good
@@ -2784,6 +2824,18 @@ rdb-save-incremental-fsync yes
 # active-defrag-max-scan-fields 1000
 
 # Jemalloc background thread for purging will be enabled by default
+# BEGIN MEIZHAOHUI COMMENTS
+#   jemalloc-bg-thread 参数是一个用于控制 jemalloc 后台线程行为的选项。
+#   jemalloc 是一个用于 Redis 内存分配的开源库，它的主要特点是支持多线程内存分配，
+#   可以提高 Redis 的并发性能。
+#   jemalloc-bg-thread 参数的默认值是 yes，它表示启用 jemalloc 后台线程。
+#   这个后台线程主要用于处理 jemalloc 的内存处理任务，
+#   例如内存碎片整理、内存归还等，它可以在后台异步地执行这些任务，
+#   避免阻塞 Redis 的主线程。
+#   当发生写入删除操作时，jemalloc 可能会产生一些内存碎片。
+#   这些内存碎片会导致 Redis 的内存使用效率下降。
+#   启用 jemalloc-bg-thread 可以定期对这些内存碎片进行整理，提高 Redis 的内存使用效率。
+# END MEIZHAOHUI COMMENTS
 jemalloc-bg-thread yes
 
 # It is possible to pin different threads and processes of Redis to specific
