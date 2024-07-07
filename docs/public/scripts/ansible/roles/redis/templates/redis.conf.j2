@@ -1225,6 +1225,7 @@ acllog-max-len 128
 #
 # 请注意，出于安全考虑，应确保密码足够复杂，并在生产环境中使用复杂的安全措施来保护密码。
 # END MEIZHAOHUI COMMENTS
+requirepass ALONGPASSWORD
 
 # New users are initialized with restrictive permissions by default, via the
 # equivalent of this ACL rule 'off resetkeys -@all'. Starting with Redis 6.2, it
@@ -1349,7 +1350,7 @@ acllog-max-len 128
 #   简而言之……如果您附加了副本，建议您为 maxmemory 设置一个较低的限制，
 #   以便系统上有一些可用于副本输出缓冲区的可用 RAM（但如果策略为"noeviction"，则不需要这样做）。
 # END MEIZHAOHUI COMMENTS
-
+maxmemory 1gb
 
 # MAXMEMORY POLICY: how Redis will select what to remove when maxmemory
 # is reached. You can select one from the following behaviors:

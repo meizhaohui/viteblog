@@ -1033,3 +1033,18 @@ repl_backlog_histlen:0
 
 
 
+尝试执行redis基本命令：
+
+```sh
+127.0.0.1:29736> set number 6379
+OK
+127.0.0.1:29736> get number
+"6379"
+127.0.0.1:29736> set name redis
+OK
+127.0.0.1:29736> get name
+"redis"
+127.0.0.1:29736>
+```
+
+可以看到，可以正常设置和获取键值。
