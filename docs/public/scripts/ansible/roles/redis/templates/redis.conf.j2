@@ -80,7 +80,7 @@
 #   bind 配置的是 redis server 网卡的地址，配置哪个网卡地址，
 #   你就可以通过哪个网卡地址访问redis,而不是外部访问redis的ip列表
 # END MEIZHAOHUI COMMENTS
-bind 192.168.56.121 127.0.0.1
+bind {{ HOST_IP }} 127.0.0.1
 
 # Protected mode is a layer of security protection, in order to avoid that
 # Redis instances left open on the internet are accessed and exploited.
@@ -116,7 +116,7 @@ protected-mode no
 #   使用默认的端口号不是很安全，为了安全一点，需要修改默认的端口号
 #   建议修改为10000以上，60000以下的端口，我这里设置为29736
 # END MEIZHAOHUI COMMENTS
-port 29736
+port {{ REDIS_LISTEN_PORT }}
 
 # TCP listen() backlog.
 #

@@ -1,19 +1,9 @@
 ---
-# 从 https://docs.anaconda.com/free/miniconda/miniconda-other-installer-links/ 下载的miniconda shell安装文件的名称
-MINICONDA_SHELL_FILENAME: Miniconda3-py310_24.1.2-0-Linux-x86_64.sh
-# miniconda虚拟环境目录，Ansible会将miniconda环境安装到该目录下
-MINICONDA_BASE_DIR: /srv/miniconda3
-# 虚拟环境名称
-VIRTUAL_ENV_NAME: supervisorPython3.10.13
-# 虚拟环境Python版本
-VIRTUAL_PYTHON_VERSION: 3.10.13
-# supervisor服务的基础目录，在该目录下创建 logs, socket, pid等目录，变量路径最后不需要带斜杠
-SUPERVISOR_BASE_DIR: /srv/supervisor
-# supervisor服务的配置文件
-SUPERVISORD_CONFIG_FILE: /etc/supervisord.conf
-# 虚拟环境supervisor可执行文件路径,如 /srv/miniconda3/envs/supervisorPython3.10.13/bin
-SUPERVISORD_DIR_PATH: "{{ MINICONDA_BASE_DIR }}/envs/{{ VIRTUAL_ENV_NAME }}/bin"
-# 登陆supervisor web控制台的用户名
-SUPERVISOR_USERNAME: admin
-# 登陆supervisor web控制台的密码
-SUPERVISOR_PASSWORD: admin@123
+# redis服务监听端口，默认6379
+# 使用默认的端口号不是很安全，为了安全一点，需要修改默认的端口号
+# 建议修改为10000以上，60000以下的端口，我这里设置为29736
+REDIS_LISTEN_PORT: 29736
+# redis服务基础目录，会在访目录下面创建conf、pid、data、logs等目录，存放redis相关文件
+REDIS_BASE_DIR: /srv/redis
+# 登陆redis控制台的认证密码，应该是一个足够长不易记忆的密码
+REDIS_PASSWORD: admin@123
