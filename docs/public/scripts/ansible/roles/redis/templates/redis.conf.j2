@@ -350,7 +350,8 @@ daemonize no
 # BEGIN MEIZHAOHUI COMMENTS
 #   设置PID文件，我将redis相关的文件都放在 /srv/redis 目录下
 # END MEIZHAOHUI COMMENTS
-pidfile /srv/redis/pid/redis_29736.pid
+# pidfile /srv/redis/pid/redis_29736.pid
+pidfile {{ REDIS_BASE_DIR }}/pid/redis_29736.pid
 
 # Specify the server verbosity level.
 # This can be one of:
@@ -375,7 +376,8 @@ loglevel notice
 #   redis 在运行过程中，会输出一些日志信息；默认情况下，这些日志信息会输出到控制台；
 #   我们可以使用 logfile 配置日志文件，使 redis 把日志信息输出到指定文件中
 # END MEIZHAOHUI COMMENTS
-logfile "/srv/redis/logs/redis_29736.log"
+# logfile "/srv/redis/logs/redis_29736.log"
+logfile "{{ REDIS_BASE_DIR }}/logs/redis_29736.log"
 
 # To enable logging to the system logger, just set 'syslog-enabled' to yes,
 # and optionally update the other syslog parameters to suit your needs.
@@ -616,7 +618,8 @@ rdb-del-sync-files no
 #   dir配置指的是Redis工作目录，用于存储持久化的数据文件和日志文件等。
 #   我们将数据文件单独存放到 /srv/redis/data 目录下
 # END MEIZHAOHUI COMMENTS
-dir /srv/redis/data
+# dir /srv/redis/data
+dir {{ REDIS_BASE_DIR }}/data
 
 ################################# REPLICATION #################################
 
@@ -1225,7 +1228,7 @@ acllog-max-len 128
 #
 # 请注意，出于安全考虑，应确保密码足够复杂，并在生产环境中使用复杂的安全措施来保护密码。
 # END MEIZHAOHUI COMMENTS
-requirepass ALONGPASSWORD
+requirepass {{ REDIS_PASSWORD }}
 
 # New users are initialized with restrictive permissions by default, via the
 # equivalent of this ACL rule 'off resetkeys -@all'. Starting with Redis 6.2, it

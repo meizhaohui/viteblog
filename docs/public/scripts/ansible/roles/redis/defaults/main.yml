@@ -6,4 +6,4 @@ REDIS_LISTEN_PORT: 29736
 # redis服务基础目录，会在访目录下面创建conf、pid、data、logs等目录，存放redis相关文件
 REDIS_BASE_DIR: /srv/redis
 # 登陆redis控制台的认证密码，应该是一个足够长不易记忆的密码
-REDIS_PASSWORD: admin@123
+REDIS_PASSWORD: ALONGPASSWORD

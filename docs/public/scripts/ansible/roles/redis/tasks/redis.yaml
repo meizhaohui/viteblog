@@ -1,41 +1,44 @@
 ---
-- name: Copy install shell file
-  ansible.builtin.copy:
-    src: "{{ MINICONDA_SHELL_FILENAME }}"
-    dest: "/tmp/{{ MINICONDA_SHELL_FILENAME }}"
-    force: yes
-    backup: yes
-    remote_src: no
-    mode: u=rwx,g=r,o=r
-
 # 归档文件复制到远程主机时，会自动解压
 - name: Unarchive the source package
   ansible.builtin.unarchive:
-    src: redis-stable.tar.gz
-    dest: /tmp
+    src: redis-6.2.14.tar.gz
+    dest: /srv
     remote_src: no
 
-
-
-
-    - result.rc != 0
-
-- name: Copy condarc config file
-  ansible.builtin.template:
-    src: condarc.j2
-    dest: "/root/.condarc"
-    force: yes
-    backup: yes
-    remote_src: no
-
-- name: Install miniconda
-  ansible.builtin.command:
-    # cmd: "/tmp/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh -b -p /srv/miniconda3"
-    cmd: "/tmp/{{ MINICONDA_SHELL_FILENAME }} -b -p {{ MINICONDA_BASE_DIR }}"
-    # 如果对应的文件存在，则忽略此步
-    creates: "{{ MINICONDA_BASE_DIR }}"
-
-- name: Remove install shell file
+- name: Create a symbolic link
   ansible.builtin.file:
-    path: "/tmp/{{ MINICONDA_SHELL_FILENAME }}"
-    state: absent
+    src: /srv/redis-6.2.14
+    dest: /srv/redis
+    state: link
+
+- name: Create a directory if it does not exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  with_items:
+    - "{{ REDIS_BASE_DIR }}"
+    - "{{ REDIS_BASE_DIR }}/conf"
+    - "{{ REDIS_BASE_DIR }}/pid"
+    - "{{ REDIS_BASE_DIR }}/logs"
+    - "{{ REDIS_BASE_DIR }}/data"
+
+- name: Create a random password
+  ansible.builtin.set_fact:
+    # 创建一个长度为32位的随机密码用作redis服务的认证密码
+    REDIS_PASSWORD: "{{ lookup('ansible.builtin.password', '/dev/null length=32') }}"
+  changed_when: false
+
+- name: Display the redis password
+  ansible.builtin.debug:
+    msg: "{{ REDIS_PASSWORD }}"
+  changed_when: false
+
+- name: Copy redis.conf file
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ REDIS_BASE_DIR }}/conf/redis.conf"
+    mode: '0600'
+    force: yes
+    remote_src: no
