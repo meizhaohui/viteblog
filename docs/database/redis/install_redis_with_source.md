@@ -754,3 +754,282 @@ d9a1e1fba487325b188ee5ec7bd78ae5  conf/redis.conf.default
 
 
 
+## 7. 修改redis配置文件
+
+修改redis配置，最后查看未注释的配置：
+
+```sh
+[root@redis-server redis-6.2.14]# grep -v '#' conf/redis.conf|awk NF
+bind 192.168.56.121 127.0.0.1
+protected-mode no
+port 29736
+tcp-backlog 511
+timeout 300
+tcp-keepalive 300
+daemonize no
+pidfile /srv/redis/pid/redis_29736.pid
+loglevel notice
+logfile "/srv/redis/logs/redis_29736.log"
+crash-log-enabled yes
+databases 16
+always-show-logo no
+set-proc-title no
+proc-title-template "{title} {listen-addr} {server-mode}"
+stop-writes-on-bgsave-error yes
+rdbcompression yes
+rdbchecksum yes
+dbfilename dump.rdb
+rdb-del-sync-files no
+dir /srv/redis/data
+replica-serve-stale-data yes
+replica-read-only yes
+repl-diskless-sync no
+repl-diskless-sync-delay 5
+repl-diskless-load disabled
+repl-disable-tcp-nodelay no
+replica-priority 100
+acllog-max-len 128
+requirepass ALONGPASSWORD
+maxmemory 1gb
+lazyfree-lazy-eviction no
+lazyfree-lazy-expire no
+lazyfree-lazy-server-del no
+replica-lazy-flush no
+lazyfree-lazy-user-del no
+lazyfree-lazy-user-flush no
+oom-score-adj no
+oom-score-adj-values 0 200 800
+disable-thp yes
+appendonly yes
+appendfilename "appendonly.aof"
+appendfsync everysec
+no-appendfsync-on-rewrite no
+auto-aof-rewrite-percentage 100
+auto-aof-rewrite-min-size 64mb
+aof-load-truncated yes
+aof-use-rdb-preamble yes
+lua-time-limit 5000
+slowlog-log-slower-than 10000
+slowlog-max-len 128
+latency-monitor-threshold 0
+notify-keyspace-events ""
+hash-max-ziplist-entries 512
+hash-max-ziplist-value 64
+list-max-ziplist-size -2
+list-compress-depth 0
+set-max-intset-entries 512
+zset-max-ziplist-entries 128
+zset-max-ziplist-value 64
+hll-sparse-max-bytes 3000
+stream-node-max-bytes 4096
+stream-node-max-entries 100
+activerehashing yes
+client-output-buffer-limit normal 0 0 0
+client-output-buffer-limit replica 256mb 64mb 60
+client-output-buffer-limit pubsub 32mb 8mb 60
+hz 10
+dynamic-hz yes
+aof-rewrite-incremental-fsync yes
+rdb-save-incremental-fsync yes
+jemalloc-bg-thread yes
+[root@redis-server redis-6.2.14]#
+```
+
+创建相关目录：
+
+```sh
+[root@redis-server redis-6.2.14]# cd /srv/
+[root@redis-server srv]# ln -s redis-6.2.14 redis
+[root@redis-server srv]# mkdir redis/{pid,logs,data}
+[root@redis-server srv]# ls -d redis/{pid,logs,data}
+redis/data  redis/logs  redis/pid
+```
+
+## 8. 启动redis服务
+
+### 8.1 尝试启动redis服务
+
+```sh
+[root@redis-server ~]# cd /srv/
+[root@redis-server redis]# ./bin/redis-server ./conf/redis.conf
+```
+
+此时，redis服务是在前台启动的。我们重新开一个控制台窗口，查看redis服务状态。
+
+```sh
+[root@redis-server ~]# ps -ef|grep redis
+root      1820  1479  0 11:35 pts/0    00:00:00 ./bin/redis-server ./conf/redis.conf
+root      2567  1532  0 11:49 pts/1    00:00:00 grep --color=always redis
+[root@redis-server ~]# netstat -tunlp|grep redis
+tcp        0      0 127.0.0.1:29736         0.0.0.0:*               LISTEN      1820/./bin/redis-se
+tcp        0      0 192.168.56.121:29736    0.0.0.0:*               LISTEN      1820/./bin/redis-se
+[root@redis-server ~]#
+```
+
+可以看到，服务启动了。查看一下日志:
+
+```sh
+[root@redis-server ~]# tail /srv/redis/logs/redis_29736.log
+1820:C 07 Jul 2024 11:35:09.760 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+1820:C 07 Jul 2024 11:35:09.760 # Redis version=6.2.14, bits=64, commit=00000000, modified=0, pid=1820, just started
+1820:C 07 Jul 2024 11:35:09.760 # Configuration loaded
+1820:M 07 Jul 2024 11:35:09.760 * Increased maximum number of open files to 10032 (it was originally set to 1024).
+1820:M 07 Jul 2024 11:35:09.760 * monotonic clock: POSIX clock_gettime
+1820:M 07 Jul 2024 11:35:09.760 * Running mode=standalone, port=29736.
+1820:M 07 Jul 2024 11:35:09.760 # WARNING: The TCP backlog setting of 511 cannot be enforced because /proc/sys/net/core/somaxconn is set to the lower value of 128.
+1820:M 07 Jul 2024 11:35:09.760 # Server initialized
+1820:M 07 Jul 2024 11:35:09.760 # WARNING Memory overcommit must be enabled! Without it, a background save or replication may fail under low memory condition. Being disabled, it can can also cause failures without low memory condition, see https://github.com/jemalloc/jemalloc/issues/1328. To fix this issue add 'vm.overcommit_memory = 1' to /etc/sysctl.conf and then reboot or run the command 'sysctl vm.overcommit_memory=1' for this to take effect.
+1820:M 07 Jul 2024 11:35:09.760 * Ready to accept connections
+[root@redis-server ~]#
+```
+
+可以看到，redis日志有了，但其中有两个警告信息。
+
+### 8.2 修复Memory overcommit must be enabled告警
+
+按提示修改`/etc/sysctl.conf `配置文件：
+
+```sh
+# 查看当前/etc/sysctl.conf配置
+[root@redis-server ~]# cat /etc/sysctl.conf
+# sysctl settings are defined through files in
+# /usr/lib/sysctl.d/, /run/sysctl.d/, and /etc/sysctl.d/.
+#
+# Vendors settings live in /usr/lib/sysctl.d/.
+# To override a whole file, create a new file with the same in
+# /etc/sysctl.d/ and put new settings there. To override
+# only specific settings, add a file with a lexically later
+# name in /etc/sysctl.d/ and put new settings there.
+#
+# For more information, see sysctl.conf(5) and sysctl.d(5).
+
+
+# 修改配置
+[root@redis-server ~]# echo "vm.overcommit_memory = 1" >> /etc/sysctl.conf
+
+
+# 再次查看当前/etc/sysctl.conf配置
+[root@redis-server ~]# cat /etc/sysctl.conf
+# sysctl settings are defined through files in
+# /usr/lib/sysctl.d/, /run/sysctl.d/, and /etc/sysctl.d/.
+#
+# Vendors settings live in /usr/lib/sysctl.d/.
+# To override a whole file, create a new file with the same in
+# /etc/sysctl.d/ and put new settings there. To override
+# only specific settings, add a file with a lexically later
+# name in /etc/sysctl.d/ and put new settings there.
+#
+# For more information, see sysctl.conf(5) and sysctl.d(5).
+vm.overcommit_memory = 1
+[root@redis-server ~]# sysctl -p
+vm.overcommit_memory = 1
+[root@redis-server ~]#
+
+```
+
+
+
+再次启动redis服务：
+
+```sh
+# 此处是按Ctrl+C停止之前启动的redis服务
+[root@redis-server redis]# ./bin/redis-server ./conf/redis.conf^C
+
+# 查看一下sysctl配置生效没有
+[root@redis-server redis]# sysctl -p|grep commit
+vm.overcommit_memory = 1
+
+# 可以看到配置生效了，清空一下之前的日志
+[root@redis-server redis]# > logs/redis_29736.log
+
+# 再次启动服务
+[root@redis-server redis]# ./bin/redis-server ./conf/redis.conf
+```
+
+此时查看日志已经可以看到没有`WARNING Memory overcommit must be enabled!`告警了：
+
+```sh
+[root@redis-server ~]# cat /srv/redis/logs/redis_29736.log
+2929:C 07 Jul 2024 11:56:55.391 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+2929:C 07 Jul 2024 11:56:55.391 # Redis version=6.2.14, bits=64, commit=00000000, modified=0, pid=2929, just started
+2929:C 07 Jul 2024 11:56:55.391 # Configuration loaded
+2929:M 07 Jul 2024 11:56:55.392 * Increased maximum number of open files to 10032 (it was originally set to 1024).
+2929:M 07 Jul 2024 11:56:55.392 * monotonic clock: POSIX clock_gettime
+2929:M 07 Jul 2024 11:56:55.392 * Running mode=standalone, port=29736.
+2929:M 07 Jul 2024 11:56:55.392 # WARNING: The TCP backlog setting of 511 cannot be enforced because /proc/sys/net/core/somaxconn is set to the lower value of 128.
+2929:M 07 Jul 2024 11:56:55.392 # Server initialized
+2929:M 07 Jul 2024 11:56:55.392 * Ready to accept connections
+[root@redis-server ~]#
+```
+
+
+
+查看redis相关信息：
+
+```sh
+[root@redis-server ~]# /srv/redis/bin/redis-cli -p 29736
+127.0.0.1:29736> info memory
+NOAUTH Authentication required.
+127.0.0.1:29736> auth ALONGPASSWORD
+OK
+127.0.0.1:29736> info memory
+# Memory
+used_memory:874208
+used_memory_human:853.72K
+used_memory_rss:10477568
+used_memory_rss_human:9.99M
+used_memory_peak:875952
+used_memory_peak_human:855.42K
+used_memory_peak_perc:99.80%
+used_memory_overhead:832632
+used_memory_startup:812120
+used_memory_dataset:41576
+used_memory_dataset_perc:66.96%
+allocator_allocated:1180856
+allocator_active:1462272
+allocator_resident:3829760
+total_system_memory:8201236480
+total_system_memory_human:7.64G
+used_memory_lua:30720
+used_memory_lua_human:30.00K
+used_memory_scripts:0
+used_memory_scripts_human:0B
+number_of_cached_scripts:0
+maxmemory:1073741824
+maxmemory_human:1.00G
+maxmemory_policy:noeviction
+allocator_frag_ratio:1.24
+allocator_frag_bytes:281416
+allocator_rss_ratio:2.62
+allocator_rss_bytes:2367488
+rss_overhead_ratio:2.74
+rss_overhead_bytes:6647808
+mem_fragmentation_ratio:12.58
+mem_fragmentation_bytes:9644376
+mem_not_counted_for_evict:4
+mem_replication_backlog:0
+mem_clients_slaves:0
+mem_clients_normal:20504
+mem_aof_buffer:8
+mem_allocator:jemalloc-5.1.0
+active_defrag_running:0
+lazyfree_pending_objects:0
+lazyfreed_objects:0
+127.0.0.1:29736> info replication
+# Replication
+role:master
+connected_slaves:0
+master_failover_state:no-failover
+master_replid:43d84609e88c12077b3d3e3a3d84dc8a062b9200
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:0
+second_repl_offset:-1
+repl_backlog_active:0
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:0
+repl_backlog_histlen:0
+127.0.0.1:29736>
+```
+
+
+
