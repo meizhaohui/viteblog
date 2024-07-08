@@ -318,6 +318,7 @@ module.exports = {
         { text: 'ansible role角色(4)--include的使用', link: '/CM/ansible/role_4_include' },
         { text: '优化Ansible速度', link: '/CM/ansible/accelerate' },
         { text: 'ansible role角色(5)--supervisor进程管理角色', link: '/CM/ansible/role_5_supervisor' },
+        { text: 'ansible role角色(6)--redis数据库角色', link: '/CM/ansible/role_6_redis' },
       ]
     },
     {

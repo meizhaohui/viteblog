@@ -168,7 +168,7 @@ Ansible内置模块：
 49. [ansible role角色(4)--include的使用](./role_4_include.md)
 50. [优化Ansible速度](./accelerate.md)
 51. [ansible role角色(5)--使用ansible配置supervisor进程管理角色](./role_5_supervisor.md)
-
+52. [ansible role角色(6)--使用ansible配置redis数据库角色](./role_6_redis.md)
 
 你也可以直接看大佬的博客：
 
