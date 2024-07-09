@@ -2,6 +2,8 @@
 # redis角色任务
 # 安装redis
 - include: redis.yaml
+# 优化系统设置
+- include: sysctl.yaml
 # 使用supervisor进程管理工具配置redis app
 - include: supervisor.yaml
 # 创建快捷命令
