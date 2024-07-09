@@ -29,6 +29,10 @@
     # 创建一个长度为32位的随机密码用作redis服务的认证密码
     REDIS_PASSWORD: "{{ lookup('ansible.builtin.password', '/dev/null length=32') }}"
   changed_when: false
+  # 委派给ansible控制节点
+  delegate_to: localhost
+  # 且只运行一次
+  run_once: true
 
 - name: Display the redis password
   ansible.builtin.debug:
