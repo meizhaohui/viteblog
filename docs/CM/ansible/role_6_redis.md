@@ -437,6 +437,8 @@ jemalloc-bg-thread yes
 
 
 
+参考： [ansible.posix.sysctl module – Manage entries in sysctl.conf](https://docs.ansible.com/ansible/latest/collections/ansible/posix/sysctl_module.html#ansible-collections-ansible-posix-sysctl-module)
+
 本节使用了一个第三方角色，使用前需要下载：
 
 ```sh

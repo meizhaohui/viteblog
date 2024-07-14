@@ -1,8 +1,23 @@
 ---
+# roles/redis/tasks/sysctl.yaml
 # Set vm.overcommit_memory=1 in the sysctl file and reload if necessary
-- ansible.posix.sysctl:
+- name: Set vm.overcommit_memory value
+  ansible.posix.sysctl:
     name: vm.overcommit_memory
     value: '1'
+    sysctl_set: true
+    state: present
+    reload: true
+
+# Set net.core.somaxconn in the sysctl file and reload if necessary
+- name: Set net.core.somaxconn value
+  ansible.posix.sysctl:
+    name: net.core.somaxconn
+    # 该参数系统默认值为128
+    # 使用|string 过滤器转换一下，避免出现以下告警
+    # [WARNING]: The value 511 (type int) in a string field was converted to u'511' (type string). 
+    # If this does not look like what you expect, quote the entire value to ensure it does not change.
+    value: "{{ NET_CORE_SOMAXCONN_VALUE|string }}"
     sysctl_set: true
     state: present
     reload: true
