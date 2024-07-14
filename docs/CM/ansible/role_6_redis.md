@@ -1285,3 +1285,43 @@ tcp        0      0 192.168.56.121:29736    0.0.0.0:*               LISTEN      
 
 
 但这个时候，查看日志又提示了警告信息`Current maximum open files is 4096. maxclients has been reduced to 4064 to compensate for low ulimit. If you need higher maxclients increase 'ulimit -n'.`。
+
+解释如下：
+第一行：Redis 建议把 open files 至少设置成10032，那么这个10032是如何来的呢？因为 maxclients 默认是10000，这些是用来处理客户端连接的，除此 之外，Redis 内部会使用最多32个文件描述符，所以这里的10032=10000+32。
+第二行：Redis 不能将 open files 设置成10032，因为它没有权限设置。
+第三行：当前系统的 open files 是4096，所以将 maxclients 设置成4096-32=4064个，如果你想设置更高的 maxclients，请使用 ulimit-n 来设置。
+从上面的三行日志分析可以看出 open files 的限制优先级比 maxclients 大。 Open files 的设置方法如下： `ulimit –Sn {max-open-files}` 。
+
+而在redis配置文件中，关于maxclients的配置说明如下：
+
+```ini
+# maxclients 10000
+# BEGIN MEIZHAOHUI COMMENTS
+#   设置同时连接的最大客户端数量。
+#   默认情况下，此限制设置为 10000 个客户端。
+#   但是如果 Redis 服务器无法配置进程文件限制以允许指定的限制，
+#   则允许的最大客户端数量将设置为当前文件限制减 32（因为 Redis 保留了一些文件描述符供内部使用）。
+#
+#   一旦达到限制，Redis 将关闭所有新连接并发送错误"已达到最大客户端数量"。
+#
+#   重要提示：使用 Redis 集群时，最大连接数也与集群总线共享：
+#   集群中的每个节点都将使用两个连接，一个传入，另一个传出。
+#   如果集群非常大，则必须相应地调整限制的大小。
+#   我们不单独设置。
+# END MEIZHAOHUI COMMENTS
+```
+
+
+
+参考 [Why redis can not set maximum open file https://stackoverflow.com/questions/36880321/why-redis-can-not-set-maximum-open-file](https://stackoverflow.com/questions/36880321/why-redis-can-not-set-maximum-open-file)
+
+
+
+只需要在以下配置中增加两行即可：
+
+```
+# /etc/security/limits.conf
+redis soft nofile 10000
+redis hard nofile 10000
+```
+

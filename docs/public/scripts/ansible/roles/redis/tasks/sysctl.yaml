@@ -21,3 +21,11 @@
     sysctl_set: true
     state: present
     reload: true
+
+- name: Set redis open files
+  ansible.builtin.blockinfile:
+    path: /etc/security/limits.conf
+    block: |
+      {{ REDIS_RUNNING_USER }} soft nofile 10000
+      {{ REDIS_RUNNING_USER }} hard nofile 10000
+    insertbefore: "# End of file"
