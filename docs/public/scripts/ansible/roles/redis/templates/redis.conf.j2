@@ -130,6 +130,8 @@ tcp-backlog 511
 #   在linux系统中控制tcp三次握手已完成连接队列的长度
 #   在高并发系统中，你需要设置一个较高的tcp-backlog来避免客户端连接速度慢的问题（三次握手的速度）
 #   取 /proc/sys/net/core/somaxconn 和 tcp-backlog 配置两者中的小值
+#   对于负载很大的服务程序来说一般会将它修改为2048或者更大。
+#   在/etc/sysctl.conf中添加:net.core.somaxconn = 2048，然后在终端中执行sysctl -p
 # END MEIZHAOHUI COMMENTS
 
 
