@@ -1532,7 +1532,7 @@ WantedBy=multi-user.target
 
 ```
 
-即增加11-12行的内容。
+即增加10-11行的内容。
 
 ```sh
 [root@ansible-node1 ~]# systemctl daemon-reload
