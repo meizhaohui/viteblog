@@ -1,7 +1,11 @@
 ---
+# roles/redis/defaults/main.yml
 # redis服务监听端口，默认6379
 # 使用默认的端口号不是很安全，为了安全一点，需要修改默认的端口号
 # 建议修改为10000以上，60000以下的端口，我这里设置为29736
 REDIS_LISTEN_PORT: 29736
 # redis服务基础目录，会在访目录下面创建conf、pid、data、logs等目录，存放redis相关文件
 REDIS_BASE_DIR: /srv/redis
+# redis运行用户
+REDIS_RUNNING_USER: redis
+

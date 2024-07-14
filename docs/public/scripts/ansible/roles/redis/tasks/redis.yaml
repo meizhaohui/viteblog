@@ -1,10 +1,20 @@
 ---
+# roles/redis/tasks/redis.yaml
+- name: Add the user with a specific shell
+  ansible.builtin.user:
+    name: "{{ REDIS_RUNNING_USER }}"
+    comment: Redis Database Server
+    create_home: no
+    shell: /sbin/nologin
+
 # 归档文件复制到远程主机时，会自动解压
 - name: Unarchive the source package
   ansible.builtin.unarchive:
     src: redis-6.2.14.tar.gz
     dest: /srv
     remote_src: no
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
 
 - name: Create a symbolic link
   ansible.builtin.file:
@@ -17,6 +27,8 @@
     path: "{{ item }}"
     state: directory
     mode: '0755'
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
   with_items:
     - "{{ REDIS_BASE_DIR }}"
     - "{{ REDIS_BASE_DIR }}/conf"
@@ -46,3 +58,15 @@
     mode: '0600'
     force: yes
     remote_src: no
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
+
+- name: Change the redis log file Permission
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: touch
+    mode: '0644'
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
+  with_items:
+    - "{{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_LISTEN_PORT }}.log"

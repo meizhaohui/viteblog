@@ -1,6 +1,8 @@
+# roles/redis/templates/redis.ini.j2
 [program:redis]
 command = {{ REDIS_BASE_DIR }}/bin/redis-server {{ REDIS_BASE_DIR }}/conf/redis.conf
 directory = {{ REDIS_BASE_DIR }}
+user = {{ REDIS_RUNNING_USER }}
 stdout_logfile = {{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_LISTEN_PORT }}.log
 stdout_logfile_maxbytes = 50MB
 stdout_logfile_backups = 10
