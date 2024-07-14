@@ -1325,3 +1325,224 @@ redis soft nofile 10000
 redis hard nofile 10000
 ```
 
+此处说明一下修改点。
+
+- 修改默认配置`roles/redis/defaults/main.yml`，增加`NET_CORE_SOMAXCONN_VALUE`和`REDIS_OPEN_FILES_VALUE`变量：
+
+```yaml {11-21}
+---
+# roles/redis/defaults/main.yml
+# redis服务监听端口，默认6379
+# 使用默认的端口号不是很安全，为了安全一点，需要修改默认的端口号
+# 建议修改为10000以上，60000以下的端口，我这里设置为29736
+REDIS_LISTEN_PORT: 29736
+# redis服务基础目录，会在访目录下面创建conf、pid、data、logs等目录，存放redis相关文件
+REDIS_BASE_DIR: /srv/redis
+# redis运行用户
+REDIS_RUNNING_USER: redis
+# BEGIN MEIZHAOHUI COMMENTS
+# net.core.somaxconn参数优化，与redis配置文件中tcp-backlog参数对应
+#   在linux系统中控制tcp三次握手已完成连接队列的长度
+#   在高并发系统中，你需要设置一个较高的tcp-backlog来避免客户端连接速度慢的问题（三次握手的速度）
+#   取 /proc/sys/net/core/somaxconn 和 tcp-backlog 配置两者中的小值
+#   对于负载很大的服务程序来说一般会将它修改为2048或者更大。
+#   在/etc/sysctl.conf中添加:net.core.somaxconn = 2048，然后在终端中执行sysctl -p
+# END MEIZHAOHUI COMMENTS
+NET_CORE_SOMAXCONN_VALUE: 511
+# redis open files
+REDIS_OPEN_FILES_VALUE: 10032
+
+```
+
+- 修改系统设置任务`roles/redis/tasks/sysctl.yaml`:
+
+```sh
+---
+# roles/redis/tasks/sysctl.yaml
+# Set vm.overcommit_memory=1 in the sysctl file and reload if necessary
+- name: Set vm.overcommit_memory value
+  ansible.posix.sysctl:
+    name: vm.overcommit_memory
+    value: '1'
+    sysctl_set: true
+    state: present
+    reload: true
+
+# Set net.core.somaxconn in the sysctl file and reload if necessary
+- name: Set net.core.somaxconn value
+  ansible.posix.sysctl:
+    name: net.core.somaxconn
+    # 该参数系统默认值为128
+    # 使用|string 过滤器转换一下，避免出现以下告警
+    # [WARNING]: The value 511 (type int) in a string field was converted to u'511' (type string). 
+    # If this does not look like what you expect, quote the entire value to ensure it does not change.
+    value: "{{ NET_CORE_SOMAXCONN_VALUE|string }}"
+    sysctl_set: true
+    state: present
+    reload: true
+
+- name: Set redis open files
+  ansible.builtin.blockinfile:
+    path: /etc/security/limits.conf
+    block: |
+      {{ REDIS_RUNNING_USER }} soft nofile {{ REDIS_OPEN_FILES_VALUE }}
+      {{ REDIS_RUNNING_USER }} hard nofile {{ REDIS_OPEN_FILES_VALUE }}
+    insertbefore: "# End of file"
+
+```
+
+然后再执行剧本(**注意，此时注释了其他任务**)：
+
+```sh
+[root@ansible ansible_playbooks]# ansible-playbook -i hosts.ini redis.yml -v
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [redishosts] *************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ********************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+ok: [192.168.56.122]
+
+TASK [redis : Set vm.overcommit_memory value] *********************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122] => {"changed": true}
+ok: [192.168.56.121] => {"changed": true}
+
+TASK [redis : Set net.core.somaxconn value] ***********************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"changed": true}
+ok: [192.168.56.122] => {"changed": true}
+
+TASK [Set redis open files] ***************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "msg": "Block inserted"}
+changed: [192.168.56.122] => {"changed": true, "msg": "Block inserted"}
+
+PLAY RECAP ********************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+192.168.56.122             : ok=4    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+Playbook run took 0 days, 0 hours, 0 minutes, 34 seconds
+[root@ansible ansible_playbooks]#
+```
+
+然后在节点检查：
+
+```sh
+[root@ansible-node1 ~]# cat /etc/sysctl.conf
+# sysctl settings are defined through files in
+# /usr/lib/sysctl.d/, /run/sysctl.d/, and /etc/sysctl.d/.
+#
+# Vendors settings live in /usr/lib/sysctl.d/.
+# To override a whole file, create a new file with the same in
+# /etc/sysctl.d/ and put new settings there. To override
+# only specific settings, add a file with a lexically later
+# name in /etc/sysctl.d/ and put new settings there.
+#
+# For more information, see sysctl.conf(5) and sysctl.d(5).
+vm.overcommit_memory=1
+net.core.somaxconn=511
+[root@ansible-node1 ~]# cat /etc/security/limits.conf
+# /etc/security/limits.conf
+#
+#This file sets the resource limits for the users logged in via PAM.
+#It does not affect resource limits of the system services.
+#
+#Also note that configuration files in /etc/security/limits.d directory,
+#which are read in alphabetical order, override the settings in this
+#file in case the domain is the same or more specific.
+#That means for example that setting a limit for wildcard domain here
+#can be overriden with a wildcard setting in a config file in the
+#subdirectory, but a user specific setting here can be overriden only
+#with a user specific setting in the subdirectory.
+#
+#Each line describes a limit for a user in the form:
+#
+#<domain>        <type>  <item>  <value>
+#
+#Where:
+#<domain> can be:
+#        - a user name
+#        - a group name, with @group syntax
+#        - the wildcard *, for default entry
+#        - the wildcard %, can be also used with %group syntax,
+#                 for maxlogin limit
+#
+#<type> can have the two values:
+#        - "soft" for enforcing the soft limits
+#        - "hard" for enforcing hard limits
+#
+#<item> can be one of the following:
+#        - core - limits the core file size (KB)
+#        - data - max data size (KB)
+#        - fsize - maximum filesize (KB)
+#        - memlock - max locked-in-memory address space (KB)
+#        - nofile - max number of open file descriptors
+#        - rss - max resident set size (KB)
+#        - stack - max stack size (KB)
+#        - cpu - max CPU time (MIN)
+#        - nproc - max number of processes
+#        - as - address space limit (KB)
+#        - maxlogins - max number of logins for this user
+#        - maxsyslogins - max number of logins on the system
+#        - priority - the priority to run user process with
+#        - locks - max number of file locks the user can hold
+#        - sigpending - max number of pending signals
+#        - msgqueue - max memory used by POSIX message queues (bytes)
+#        - nice - max nice priority allowed to raise to values: [-20, 19]
+#        - rtprio - max realtime priority
+#
+#<domain>      <type>  <item>         <value>
+#
+
+#*               soft    core            0
+#*               hard    rss             10000
+#@student        hard    nproc           20
+#@faculty        soft    nproc           20
+#@faculty        hard    nproc           50
+#ftp             hard    nproc           0
+#@student        -       maxlogins       4
+
+# BEGIN ANSIBLE MANAGED BLOCK
+redis soft nofile 10032
+redis hard nofile 10032
+# END ANSIBLE MANAGED BLOCK
+# End of file
+[root@ansible-node1 ~]#
+```
+
+经过一翻折腾，发现重启多次仍然提示 open files 异常。
+
+搜索后参考 [使用supervisor启动进程open files too many问题](https://blog.csdn.net/aninstein/article/details/131786807)
+
+原来是supervisord的坑。修改`/usr/lib/systemd/system/supervisord.service`:
+
+```ini {10-11}
+# /usr/lib/systemd/system/supervisord.service
+[Unit]
+Description=Process Monitoring and Control Daemon
+After=rc-local.service nss-user-lookup.target
+
+[Service]
+Type=forking
+# ExecStart=/usr/bin/supervisord -c /etc/supervisord.conf
+ExecStart=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf
+# LimitNOFILE或LimitNPROC参数设置为infinity时，表示容器单进程最大文件句柄数为1048576
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+
+```
+
+即增加11-12行的内容。
+
+```sh
+[root@ansible-node1 ~]# systemctl daemon-reload
+```
+
+重新加载配置。
+
+然后再执行剧本：
+
+```sh
+
+```
+

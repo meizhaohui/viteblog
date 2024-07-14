@@ -26,6 +26,6 @@
   ansible.builtin.blockinfile:
     path: /etc/security/limits.conf
     block: |
-      {{ REDIS_RUNNING_USER }} soft nofile 10000
-      {{ REDIS_RUNNING_USER }} hard nofile 10000
+      {{ REDIS_RUNNING_USER }} soft nofile {{ REDIS_OPEN_FILES_VALUE }}
+      {{ REDIS_RUNNING_USER }} hard nofile {{ REDIS_OPEN_FILES_VALUE }}
     insertbefore: "# End of file"

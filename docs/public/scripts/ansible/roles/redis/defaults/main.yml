@@ -17,4 +17,5 @@ REDIS_RUNNING_USER: redis
 #   在/etc/sysctl.conf中添加:net.core.somaxconn = 2048，然后在终端中执行sysctl -p
 # END MEIZHAOHUI COMMENTS
 NET_CORE_SOMAXCONN_VALUE: 511
-
+# redis open files
+REDIS_OPEN_FILES_VALUE: 10032

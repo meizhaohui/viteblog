@@ -7,6 +7,8 @@ After=rc-local.service nss-user-lookup.target
 Type=forking
 # ExecStart=/usr/bin/supervisord -c /etc/supervisord.conf
 ExecStart={{ SUPERVISORD_DIR_PATH }}/supervisord -c {{ SUPERVISORD_CONFIG_FILE }}
+# LimitNOFILE或LimitNPROC参数设置为infinity时，表示单进程最大文件句柄数为1048576
+LimitNOFILE=65535
 
 [Install]
 WantedBy=multi-user.target
