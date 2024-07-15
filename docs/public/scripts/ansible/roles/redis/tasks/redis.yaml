@@ -61,6 +61,24 @@
     owner: "{{ REDIS_RUNNING_USER }}"
     group: "{{ REDIS_RUNNING_USER }}"
 
+- name: Set replicaof masterip masterport info
+  ansible.builtin.blockinfile:
+    path: "{{ REDIS_BASE_DIR }}/conf/redis.conf"
+    # 默认将redishosts组中第一个节点作为master节点
+    block: |
+      replicaof {{ groups["redishosts"]|first }} {{ REDIS_LISTEN_PORT }}
+    insertbefore: "# replicaof <masterip> <masterport>"
+  when: REDIS_ROLE == "slave"
+
+- name: Set masterauth master-password info
+  ansible.builtin.blockinfile:
+    path: "{{ REDIS_BASE_DIR }}/conf/redis.conf"
+    # 默认将redishosts组中第一个节点作为master节点
+    block: |
+      masterauth {{ REDIS_PASSWORD }}
+    insertbefore: "# masterauth <master-password>"
+  when: REDIS_ROLE == "slave"
+
 - name: Change the redis log file Permission
   ansible.builtin.file:
     path: "{{ item }}"
