@@ -22,13 +22,13 @@
 
 ### 1.1 VirtualBox虚拟机信息记录
 
+
 | 序号 | 虚拟机         | 主机名  | IP             | CPU  | 内存 | 说明             |
 | ---- | -------------- | ------- | -------------- | ---- | ---- | ---------------- |
 | 1    | ansible-master | ansible | 192.168.56.120 | 2核  | 4G   | Ansible控制节点  |
 | 2    | ansible-node1  | node1   | 192.168.56.121 | 2核  | 2G   | Ansible工作节点1 |
 | 3    | ansible-node2  | node2   | 192.168.56.122 | 2核  | 2G   | Ansible工作节点2 |
 | 4    | ansible-node3  | node3   | 192.168.56.123 | 2核  | 2G   | Ansible工作节点3 |
-
 
 
 
@@ -1658,6 +1658,70 @@ tcp        0      0 192.168.56.121:29736    0.0.0.0:*               LISTEN      
 ```
 
 可以看到redis正常运行，并且日志中没有异常警告信息。
+
+
+
+## 3. Redis主从模式配置
+
+在前面的讲解中，ansible使用redis角色剧本，可以在各节点上面创建并启动一个redis实例，相互之间没有关联。
+
+假设我们已经使用前面的剧本将三个节点上面的redis正常启动了。
+
+我们手动配置一下主机模式。
+
+
+| 序号 | 虚拟机        | IP             | 角色             |
+| ---- | ------------- | -------------- | ---------------- |
+| 1    | ansible-node1 | 192.168.56.121 | Redis master主   |
+| 2    | ansible-node2 | 192.168.56.122 | Redis slave1 从1 |
+| 3    | ansible-node3 | 192.168.56.123 | Redis slave2 从2 |
+
+我们只需要在Redis slave1和Redis slave2节点上面修改一下配置：
+
+```sh
+[root@ansible-node2 ~]# grep -C3 'replicaof <masterip> <masterport>' /srv/redis/conf/redis.conf
+#    network partition replicas automatically try to reconnect to masters
+#    and resynchronize with them.
+#
+# replicaof <masterip> <masterport>
+# BEGIN MEIZHAOHUI COMMENTS
+#   关于 Redis 复制，有几件事需要尽快了解。
+#   1) Redis 复制是异步的，但您可以配置主服务器，如果它似乎与至少给定数量的副本没有连接，则停止接受写入。
+[root@ansible-node2 ~]# grep -C3 'masterauth <master-password>' /srv/redis/conf/redis.conf
+# starting the replication synchronization process, otherwise the master will
+# refuse the replica request.
+#
+# masterauth <master-password>
+#
+# BEGIN MEIZHAOHUI COMMENTS
+#   masterauth配置指令用于设置连接到主节点（如果Redis实例是复制的从节点）时所需的密码。
+[root@ansible-node2 ~]#
+```
+
+- 在`# replicaof <masterip> <masterport>` 上一行增加`replicaof 192.168.56.121 29736`。
+- 在`# masterauth <master-password>` 上一行增加`masterauth .N5VknxU0L4DbLsB,b.LOd6UJKULzYIe`。
+
+注意上面的`masterauth`后面的密码可以在配置文件里面查`requirepass`的值查到。
+
+配置后，然后重启节点redis服务：
+
+```sh
+# 节点2和节点3做相同的操作
+[root@ansible-node2 ~]# spstatus
+redis                            RUNNING   pid 2629, uptime 0:14:51
+testapp                          RUNNING   pid 2630, uptime 0:14:51
+[root@ansible-node2 ~]# spctl restart redis
+redis: stopped
+redis: started
+[root@ansible-node2 ~]# spstatus
+redis                            RUNNING   pid 2661, uptime 0:00:04
+testapp                          RUNNING   pid 2630, uptime 0:14:59
+[root@ansible-node2 ~]#
+```
+
+
+
+
 
 
 
