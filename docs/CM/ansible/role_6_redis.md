@@ -2323,6 +2323,531 @@ repl_backlog_histlen:364
 
 ![](/img/Snipaste_2024-07-21_11-22-24.png)
 
+在重新执行剧本前，先将三个节点上面的相关文件删除掉：
+
+```sh
+spctl stop redis && rm -rf /etc/supervisord.d/redis.ini && rm -rf /srv/redis* && spctl update && spstatus
+```
+
+```sh
+# 三个节点都执行命令，清除之前的redis相关文件
+[root@ansible-node1 ~]# spctl stop redis && rm -rf /etc/supervisord.d/redis.ini && rm -rf /srv/redis* && spctl update && spstatus
+redis: stopped
+redis: stopped
+redis: removed process group
+testapp                          RUNNING   pid 1527, uptime 1:10:00
+[root@ansible-node1 ~]#
+```
+
+
+
+修改后的`hosts.ini`配置文件：
+
+```ini
+[supervisorhosts]
+192.168.56.121 hostname=ansible-node1
+192.168.56.122 hostname=ansible-node2
+192.168.56.123 hostname=ansible-node3
+
+[redishosts]
+192.168.56.121 hostname=ansible-node1 REDIS_ROLE=master REDIS_APP_NAME=redis-master
+192.168.56.122 hostname=ansible-node2 REDIS_ROLE=slave  REDIS_APP_NAME=redis-slave1
+192.168.56.123 hostname=ansible-node3 REDIS_ROLE=slave  REDIS_APP_NAME=redis-slave2
+
+```
+
+此时增加了个`REDIS_APP_NAME`变量，用来标记supervisor管理的应用名称。
+
+`roles/redis/tasks/supervisor.yaml`配置文件中修改目录配置文件名称：
+
+```yaml {6}
+---
+# roles/redis/tasks/supervisor.yaml
+- name: Copy redis app config
+  ansible.builtin.template:
+    src: redis.ini.j2
+    dest: /etc/supervisord.d/redis_{{ REDIS_LISTEN_PORT }}.ini
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Start service supervisord, in all cases
+  ansible.builtin.service:
+    name: supervisord
+    state: restarted
+    # 开机启动
+    enabled: yes
+
+```
+
+
+
+`roles/redis/templates/redis.ini.j2`模板文件，修改应用名称和启动命令：
+
+```ini {2,3}
+# roles/redis/templates/redis.ini.j2
+[program:{{ REDIS_APP_NAME }}]
+command = {{ REDIS_BASE_DIR }}/bin/redis-server {{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_LISTEN_PORT }}.conf
+directory = {{ REDIS_BASE_DIR }}
+user = {{ REDIS_RUNNING_USER }}
+stdout_logfile = {{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_LISTEN_PORT }}.log
+stdout_logfile_maxbytes = 50MB
+stdout_logfile_backups = 10
+redirect_stderr = true
+autorestart = true
+autostart=true
+
+```
+
+
+
+`roles/redis/templates/redis.conf.j2`配置文件中，修改`dbfilename`和`appendfilename`参数的值：
+
+```sh
+[root@ansible ansible_playbooks]# grep REDIS_LISTEN_PORT roles/redis/templates/redis.conf.j2
+port {{ REDIS_LISTEN_PORT }}
+dbfilename dump_{{ REDIS_LISTEN_PORT }}.rdb
+appendfilename "appendonly_{{ REDIS_LISTEN_PORT }}.aof"
+[root@ansible ansible_playbooks]#
+```
+
+
+
+`roles/redis/tasks/redis.yaml`  redis安装任务中，修改配置文件路径，带上端口号信息：
+
+```yaml {59,68,79}
+---
+# roles/redis/tasks/redis.yaml
+- name: Add the user with a specific shell
+  ansible.builtin.user:
+    name: "{{ REDIS_RUNNING_USER }}"
+    comment: Redis Database Server
+    create_home: no
+    shell: /sbin/nologin
+
+# 归档文件复制到远程主机时，会自动解压
+- name: Unarchive the source package
+  ansible.builtin.unarchive:
+    src: redis-6.2.14.tar.gz
+    dest: /srv
+    remote_src: no
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
+
+- name: Create a symbolic link
+  ansible.builtin.file:
+    src: /srv/redis-6.2.14
+    dest: /srv/redis
+    state: link
+
+- name: Create a directory if it does not exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
+  with_items:
+    - "{{ REDIS_BASE_DIR }}"
+    - "{{ REDIS_BASE_DIR }}/conf"
+    - "{{ REDIS_BASE_DIR }}/pid"
+    - "{{ REDIS_BASE_DIR }}/logs"
+    - "{{ REDIS_BASE_DIR }}/data"
+
+- name: Create a random password
+  ansible.builtin.set_fact:
+    # 创建一个长度为128位的随机密码用作redis服务的认证密码
+    # 密码要足够复杂(64个字符以上)，因为redis的性能很高
+    # 如果密码比较简单，完全是可以在一段时间内通过暴力来破译密码
+    REDIS_PASSWORD: "{{ lookup('ansible.builtin.password', '/dev/null length=128') }}"
+  changed_when: false
+  # 委派给ansible控制节点
+  delegate_to: localhost
+  # 且只运行一次
+  run_once: true
+
+- name: Display the redis password
+  ansible.builtin.debug:
+    msg: "{{ REDIS_PASSWORD }}"
+  changed_when: false
+
+- name: Copy redis.conf file
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_LISTEN_PORT }}.conf"
+    mode: '0600'
+    force: yes
+    remote_src: no
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
+
+- name: Set replicaof masterip masterport info
+  ansible.builtin.blockinfile:
+    path: "{{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_LISTEN_PORT }}.conf"
+    # 默认将redishosts组中第一个节点作为master节点
+    block: |
+      replicaof {{ groups["redishosts"]|first }} {{ REDIS_LISTEN_PORT }}
+    insertbefore: "# replicaof <masterip> <masterport>"
+    # 注意，需要设置不同的marker标记，否则会修改以前存在的默认标记
+    marker: "# {mark} meizhaohui add replicaof masterip masterport"
+  when: REDIS_ROLE == "slave"
+
+- name: Set masterauth master-password info
+  ansible.builtin.blockinfile:
+    path: "{{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_LISTEN_PORT }}.conf"
+    # 默认将redishosts组中第一个节点作为master节点
+    block: |
+      masterauth {{ REDIS_PASSWORD }}
+    insertbefore: "# masterauth <master-password>"
+    # 注意，需要设置不同的marker标记，否则会修改以前存在的默认标记
+    marker: "# {mark} meizhaohui add masterauth master-password"
+  when: REDIS_ROLE == "slave"
+
+- name: Change the redis log file Permission
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: touch
+    mode: '0644'
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
+  with_items:
+    - "{{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_LISTEN_PORT }}.log"
+
+```
+
+
+
+然后执行剧本：
+
+```sh
+[root@ansible ansible_playbooks]# ansible-playbook -i hosts.ini redis.yml
+
+PLAY [redishosts] *************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ********************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122]
+ok: [192.168.56.123]
+ok: [192.168.56.121]
+
+TASK [redis : Add the user with a specific shell] *****************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122]
+ok: [192.168.56.121]
+ok: [192.168.56.123]
+
+TASK [redis : Unarchive the source package] ***********************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121]
+changed: [192.168.56.122]
+changed: [192.168.56.123]
+
+TASK [redis : Create a symbolic link] *****************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121]
+changed: [192.168.56.123]
+changed: [192.168.56.122]
+
+TASK [redis : Create a directory if it does not exist] ************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => (item=/srv/redis)
+changed: [192.168.56.123] => (item=/srv/redis)
+changed: [192.168.56.122] => (item=/srv/redis)
+changed: [192.168.56.123] => (item=/srv/redis/conf)
+changed: [192.168.56.121] => (item=/srv/redis/conf)
+changed: [192.168.56.122] => (item=/srv/redis/conf)
+changed: [192.168.56.123] => (item=/srv/redis/pid)
+changed: [192.168.56.121] => (item=/srv/redis/pid)
+changed: [192.168.56.122] => (item=/srv/redis/pid)
+changed: [192.168.56.121] => (item=/srv/redis/logs)
+changed: [192.168.56.123] => (item=/srv/redis/logs)
+changed: [192.168.56.122] => (item=/srv/redis/logs)
+changed: [192.168.56.123] => (item=/srv/redis/data)
+changed: [192.168.56.121] => (item=/srv/redis/data)
+changed: [192.168.56.122] => (item=/srv/redis/data)
+
+TASK [redis : Create a random password] ***************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121 -> localhost]
+
+TASK [Display the redis password] *********************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {
+    "msg": "EvtoIl9H6fjsQlsfUOv43MX9jHQmgEExcViOaKG.m2Yv.v1293jD,Fdd8vUlSgDuQw6MC3:t__r,tvWut71Y,U9:,b-v8kIAZQMwLH983b:OaUzR6mOXMsVcllgyJRE6"
+}
+ok: [192.168.56.122] => {
+    "msg": "EvtoIl9H6fjsQlsfUOv43MX9jHQmgEExcViOaKG.m2Yv.v1293jD,Fdd8vUlSgDuQw6MC3:t__r,tvWut71Y,U9:,b-v8kIAZQMwLH983b:OaUzR6mOXMsVcllgyJRE6"
+}
+ok: [192.168.56.123] => {
+    "msg": "EvtoIl9H6fjsQlsfUOv43MX9jHQmgEExcViOaKG.m2Yv.v1293jD,Fdd8vUlSgDuQw6MC3:t__r,tvWut71Y,U9:,b-v8kIAZQMwLH983b:OaUzR6mOXMsVcllgyJRE6"
+}
+
+TASK [Copy redis.conf file] ***************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.122]
+changed: [192.168.56.121]
+changed: [192.168.56.123]
+
+TASK [redis : Set replicaof masterip masterport info] *************************************************************************************************************************************************************************************************************************
+skipping: [192.168.56.121]
+changed: [192.168.56.122]
+changed: [192.168.56.123]
+
+TASK [redis : Set masterauth master-password info] ****************************************************************************************************************************************************************************************************************************
+skipping: [192.168.56.121]
+changed: [192.168.56.123]
+changed: [192.168.56.122]
+
+TASK [Change the redis log file Permission] ***********************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => (item=/srv/redis/logs/redis_29736.log)
+changed: [192.168.56.122] => (item=/srv/redis/logs/redis_29736.log)
+changed: [192.168.56.123] => (item=/srv/redis/logs/redis_29736.log)
+
+TASK [redis : Set vm.overcommit_memory value] *********************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121]
+ok: [192.168.56.123]
+ok: [192.168.56.122]
+
+TASK [redis : Set net.core.somaxconn value] ***********************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122]
+ok: [192.168.56.121]
+ok: [192.168.56.123]
+
+TASK [Set redis open files] ***************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122]
+ok: [192.168.56.121]
+ok: [192.168.56.123]
+
+TASK [Copy redis app config] **************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.123]
+changed: [192.168.56.121]
+changed: [192.168.56.122]
+
+TASK [redis : Start service supervisord, in all cases] ************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.122]
+changed: [192.168.56.123]
+changed: [192.168.56.121]
+
+TASK [redis : Copy alias config] **********************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122]
+ok: [192.168.56.123]
+ok: [192.168.56.121]
+
+TASK [redis : Insert block to .bashrc] ****************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122]
+ok: [192.168.56.121]
+ok: [192.168.56.123]
+
+PLAY RECAP ********************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=16   changed=7    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+192.168.56.122             : ok=17   changed=9    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+192.168.56.123             : ok=17   changed=9    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+Playbook run took 0 days, 0 hours, 0 minutes, 12 seconds
+[root@ansible ansible_playbooks]# 
+```
+
+然后，在节点检查：
+
+```sh
+[root@ansible-node1 ~]# spstatus
+redis-master                     RUNNING   pid 5095, uptime 0:00:11
+testapp                          RUNNING   pid 5096, uptime 0:00:11
+[root@ansible-node1 ~]# ll /srv/redis/conf/
+total 144
+-rw------- 1 redis redis 143633 Jul 21 11:48 redis_29736.conf
+[root@ansible-node1 ~]# ll /srv/redis/data/
+total 4
+-rw-r--r-- 1 redis redis   0 Jul 21 11:48 appendonly_29736.aof
+-rw-r--r-- 1 redis redis 176 Jul 21 11:49 dump_29736.rdb
+[root@ansible-node1 ~]# ll /etc/supervisord.d/
+total 12
+-rw-r--r-- 1 root root  36 Apr 24 22:36 app.ini
+-rw-r--r-- 1 root root 333 Jul 21 11:48 redis_29736.ini
+-rw-r--r-- 1 root root 269 Jul  7 18:20 redis.ini.3180.2024-07-14@09:49:46~
+[root@ansible-node1 ~]# grep '^requirepass' /srv/redis/conf/redis_29736.conf
+requirepass EvtoIl9H6fjsQlsfUOv43MX9jHQmgEExcViOaKG.m2Yv.v1293jD,Fdd8vUlSgDuQw6MC3:t__r,tvWut71Y,U9:,b-v8kIAZQMwLH983b:OaUzR6mOXMsVcllgyJRE6
+[root@ansible-node1 ~]# /srv/redis/bin/redis-cli -p 29736
+127.0.0.1:29736> auth EvtoIl9H6fjsQlsfUOv43MX9jHQmgEExcViOaKG.m2Yv.v1293jD,Fdd8vUlSgDuQw6MC3:t__r,tvWut71Y,U9:,b-v8kIAZQMwLH983b:OaUzR6mOXMsVcllgyJRE6
+OK
+127.0.0.1:29736> info memory
+# Memory
+used_memory:1964872
+used_memory_human:1.87M
+used_memory_rss:10420224
+used_memory_rss_human:9.94M
+used_memory_peak:1984880
+used_memory_peak_human:1.89M
+used_memory_peak_perc:98.99%
+used_memory_overhead:1922384
+used_memory_startup:812272
+used_memory_dataset:42488
+used_memory_dataset_perc:3.69%
+allocator_allocated:2162480
+allocator_active:2449408
+allocator_resident:4816896
+total_system_memory:8201236480
+total_system_memory_human:7.64G
+used_memory_lua:30720
+used_memory_lua_human:30.00K
+used_memory_scripts:0
+used_memory_scripts_human:0B
+number_of_cached_scripts:0
+maxmemory:1073741824
+maxmemory_human:1.00G
+maxmemory_policy:noeviction
+allocator_frag_ratio:1.13
+allocator_frag_bytes:286928
+allocator_rss_ratio:1.97
+allocator_rss_bytes:2367488
+rss_overhead_ratio:2.16
+rss_overhead_bytes:5603328
+mem_fragmentation_ratio:5.30
+mem_fragmentation_bytes:8455416
+mem_not_counted_for_evict:4
+mem_replication_backlog:1048576
+mem_clients_slaves:41024
+mem_clients_normal:20504
+mem_aof_buffer:8
+mem_allocator:jemalloc-5.1.0
+active_defrag_running:0
+lazyfree_pending_objects:0
+lazyfreed_objects:0
+127.0.0.1:29736> info replication
+# Replication
+role:master
+connected_slaves:2
+slave0:ip=192.168.56.123,port=29736,state=online,offset=154,lag=1
+slave1:ip=192.168.56.122,port=29736,state=online,offset=154,lag=0
+master_failover_state:no-failover
+master_replid:92734da33e6878504a76c2d381527b01a3b79bbe
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:154
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:154
+127.0.0.1:29736>
+```
+
+![](/img/Snipaste_2024-07-21_12-00-21.png)
+
+节点2和节点3上面也可以正常看到redis启动成功的：
+
+```sh
+# 节点2
+[root@ansible-node2 ~]# spstatus
+redis-slave1                     RUNNING   pid 5340, uptime 0:00:16
+testapp                          RUNNING   pid 5341, uptime 0:00:16
+[root@ansible-node2 ~]# /srv/redis/bin/redis-cli -p 29736
+127.0.0.1:29736> auth EvtoIl9H6fjsQlsfUOv43MX9jHQmgEExcViOaKG.m2Yv.v1293jD,Fdd8vUlSgDuQw6MC3:t__r,tvWut71Y,U9:,b-v8kIAZQMwLH983b:OaUzR6mOXMsVcllgyJRE6
+OK
+127.0.0.1:29736> get name
+"redis"
+127.0.0.1:29736> info memory
+# Memory
+used_memory:1944352
+used_memory_human:1.85M
+used_memory_rss:10539008
+used_memory_rss_human:10.05M
+used_memory_peak:1944512
+used_memory_peak_human:1.85M
+used_memory_peak_perc:99.99%
+used_memory_overhead:1902224
+used_memory_startup:812448
+used_memory_dataset:42128
+used_memory_dataset_perc:3.72%
+allocator_allocated:2156912
+allocator_active:2449408
+allocator_resident:4927488
+total_system_memory:1927098368
+total_system_memory_human:1.79G
+used_memory_lua:30720
+used_memory_lua_human:30.00K
+used_memory_scripts:0
+used_memory_scripts_human:0B
+number_of_cached_scripts:0
+maxmemory:1073741824
+maxmemory_human:1.00G
+maxmemory_policy:noeviction
+allocator_frag_ratio:1.14
+allocator_frag_bytes:292496
+allocator_rss_ratio:2.01
+allocator_rss_bytes:2478080
+rss_overhead_ratio:2.14
+rss_overhead_bytes:5611520
+mem_fragmentation_ratio:5.54
+mem_fragmentation_bytes:8635672
+mem_not_counted_for_evict:124
+mem_replication_backlog:1048576
+mem_clients_slaves:0
+mem_clients_normal:41000
+mem_aof_buffer:128
+mem_allocator:jemalloc-5.1.0
+active_defrag_running:0
+lazyfree_pending_objects:0
+lazyfreed_objects:0
+127.0.0.1:29736> info replication
+# Replication
+role:slave
+master_host:192.168.56.121
+master_port:29736
+master_link_status:up
+master_last_io_seconds_ago:2
+master_sync_in_progress:0
+slave_read_repl_offset:1163
+slave_repl_offset:1163
+slave_priority:100
+slave_read_only:1
+replica_announced:1
+connected_slaves:0
+master_failover_state:no-failover
+master_replid:92734da33e6878504a76c2d381527b01a3b79bbe
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:1163
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:1163
+127.0.0.1:29736>
+```
+
+
+
+节点3查看：
+
+```sh
+[root@ansible-node3 ~]# /srv/redis/bin/redis-cli -p 29736
+127.0.0.1:29736> auth EvtoIl9H6fjsQlsfUOv43MX9jHQmgEExcViOaKG.m2Yv.v1293jD,Fdd8vUlSgDuQw6MC3:t__r,tvWut71Y,U9:,b-v8kIAZQMwLH983b:OaUzR6mOXMsVcllgyJRE6
+OK
+127.0.0.1:29736> get name
+"redis"
+127.0.0.1:29736> info replication
+# Replication
+role:slave
+master_host:192.168.56.121
+master_port:29736
+master_link_status:up
+master_last_io_seconds_ago:5
+master_sync_in_progress:0
+slave_read_repl_offset:1247
+slave_repl_offset:1247
+slave_priority:100
+slave_read_only:1
+replica_announced:1
+connected_slaves:0
+master_failover_state:no-failover
+master_replid:92734da33e6878504a76c2d381527b01a3b79bbe
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:1247
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:1247
+127.0.0.1:29736> 
+```
+
+
+
+可以看到，相关文件名中已经带上了端口号，并且redis主从信息正常。
+
+
+
 
 
 
