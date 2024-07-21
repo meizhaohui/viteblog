@@ -2876,3 +2876,14 @@ jemalloc-bg-thread yes
 # to suppress
 #
 # ignore-warnings ARM64-COW-BUG
+
+# 设置主服务器的名字，以及其地址和端口。
+# 2 是最少需要多少个哨兵同意主服务器已经失效才会进行故障转移
+sentinel monitor mymaster 192.168.56.121 29736 2
+# 如果一个服务器在指定的毫秒数内没有响应，则认为它是不可用的
+sentinel down-after-milliseconds mymaster 30000
+# 在故障转移期间，可以有几个从服务器同时进行同步
+sentinel parallel-syncs mymaster 1
+# 如果故障转移超过这个时间，则认为故障转移失败
+sentinel failover-timeout mymaster 180000
+sentinel auth-pass mymaster EvtoIl9H6fjsQlsfUOv43MX9jHQmgEExcViOaKG.m2Yv.v1293jD,Fdd8vUlSgDuQw6MC3:t__r,tvWut71Y,U9:,b-v8kIAZQMwLH983b:OaUzR6mOXMsVcllgyJRE6
