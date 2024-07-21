@@ -3,3 +3,5 @@
 alias redisStatus='ps -ef|grep --color=always redis-server && ps -ef|grep -v grep|grep -c redis-server && echo "以上数字为1，则说明redis-server服务进程数正常"'
 alias redisPort='netstat -tunlp|grep redis-server && echo "正常监听 {{ REDIS_LISTEN_PORT }} 则说明redis-server端口正常"'
 alias cdRedis='cd {{ REDIS_BASE_DIR }} && pwd && ls -lah'
+alias cmdRedis='{{ REDIS_BASE_DIR }}/bin/redis-cli -p {{ REDIS_LISTEN_PORT }} -a {{ REDIS_PASSWORD }}'
+alias cmdRedisSentinel='{{ REDIS_BASE_DIR }}/bin/redis-cli -p {{ REDIS_SENTINEL_LISTEN_PORT }} -a {{ REDIS_PASSWORD }}'

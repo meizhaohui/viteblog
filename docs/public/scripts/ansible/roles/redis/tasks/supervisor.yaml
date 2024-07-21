@@ -1,5 +1,13 @@
 ---
-# roles/redis/templates/redis.ini.j2
+# roles/redis/tasks/supervisor.yaml
+- name: Copy redis app config
+  ansible.builtin.template:
+    src: redis.ini.j2
+    dest: /etc/supervisord.d/redis_{{ REDIS_LISTEN_PORT }}.ini
+    force: yes
+    backup: yes
+    remote_src: no
+
 - name: Copy redis app config
   ansible.builtin.template:
     src: redis.ini.j2

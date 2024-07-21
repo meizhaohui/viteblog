@@ -2875,8 +2875,46 @@ repl_backlog_histlen:1247
 
 
 
+启动哨兵模式的步骤如下：
+
+- 先按正常流程启动1主2从的Redis主从集群。
+- 三个节点，复制一份原来的`/srv/redis/conf/redis_29736.conf`配置文件，假设哨兵程序监听端口是`39736`，则哨兵程序的配置文件为`/srv/redis/conf/redis_39736.conf`。
+- 然后三个节点分别启动哨兵程序。
+
+
+
+配置哨兵模式时，需要在原来主从模式的配置的基础上，增加以下一些内容：
+
+```
+# 设置主服务器的名字，以及其地址和端口。
+# 2 是最少需要多少个哨兵同意主服务器已经失效才会进行故障转移
+# 假设192.168.56.121为redis的主节点
+sentinel monitor mymaster 192.168.56.121 29736 2
+# 如果一个服务器在指定的毫秒数内没有响应，则认为它是不可用的
+sentinel down-after-milliseconds mymaster 30000
+# 在故障转移期间，可以有几个从服务器同时进行同步
+sentinel parallel-syncs mymaster 1
+# 如果故障转移超过这个时间，则认为故障转移失败
+sentinel failover-timeout mymaster 180000
+# 配置主节点的密码，防止哨兵节点对主节点无法监控
+sentinel auth-pass mymaster EvtoIl9H6fjsQlsfUOv43MX9jHQmgEExcViOaKG.m2Yv.v1293jD,Fdd8vUlSgDuQw6MC3:t__r,tvWut71Y,U9:,b-v8kIAZQMwLH983b:OaUzR6mOXMsVcllgyJRE6
+```
+
+另外，由于主节点配置了`requirepass`参数，建议除了从节点配置`masterauth`配置主节点密码外，主节点以及三个哨兵节点也配置`masterauth`配置主节点密码。
+
+```
+masterauth EvtoIl9H6fjsQlsfUOv43MX9jHQmgEExcViOaKG.m2Yv.v1293jD,Fdd8vUlSgDuQw6MC3:t__r,tvWut71Y,U9:,b-v8kIAZQMwLH983b:OaUzR6mOXMsVcllgyJRE6
+```
+
+另外，在哨兵配置文件中，**不要**设置`replicaof <masterip> <masterport>`，避免出现不必要的从节点。
+
+
+
+这时需要考虑Ansible该如何配置哨兵节点的任务了。
+
 
 
 参考：
 
 - [Redis集群部署的三种模式](https://cloud.tencent.com/developer/article/2169883)
+- [你管这破玩意叫哨兵？](https://mp.weixin.qq.com/s/6qhK1oHXP_VzfgR9BjYVJg)

@@ -19,3 +19,8 @@ REDIS_RUNNING_USER: redis
 NET_CORE_SOMAXCONN_VALUE: 511
 # redis open files
 REDIS_OPEN_FILES_VALUE: 10032
+
+# redis哨兵程序服务监听端口，默认26379
+# 使用默认的端口号不是很安全，为了安全一点，需要修改默认的端口号
+# 建议修改为10000以上，60000以下的端口，我这里设置为49736
+REDIS_SENTINEL_LISTEN_PORT: 49736

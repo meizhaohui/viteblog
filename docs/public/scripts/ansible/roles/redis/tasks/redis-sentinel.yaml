@@ -1,0 +1,50 @@
+---
+# roles/redis/tasks/redis-sentinel.yaml
+- name: Display the redis password
+  ansible.builtin.debug:
+    msg: "{{ REDIS_PASSWORD }}"
+  changed_when: false
+
+- name: Copy sentinel redis.conf file
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_SENTINEL_LISTEN_PORT }}.conf"
+    mode: '0600'
+    force: yes
+    remote_src: no
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
+
+- name: Set sentinel monitor info
+  ansible.builtin.blockinfile:
+    path: "{{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_SENTINEL_LISTEN_PORT }}.conf"
+    # 默认将redishosts组中第一个节点作为master节点
+    block: |
+      sentinel monitor mymaster {{ groups["redishosts"]|first }} {{ REDIS_SENTINEL_LISTEN_PORT }} 2
+      sentinel down-after-milliseconds mymaster 30000
+      sentinel parallel-syncs mymaster 1
+      sentinel failover-timeout mymaster 180000
+      sentinel auth-pass mymaster {{ REDIS_PASSWORD }}
+    # 注意，需要设置不同的marker标记，否则会修改以前存在的默认标记
+    marker: "# {mark} meizhaohui add replicaof masterip masterport"
+
+- name: Set masterauth master-password info
+  ansible.builtin.blockinfile:
+    path: "{{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_SENTINEL_LISTEN_PORT }}.conf"
+    # 默认将redishosts组中第一个节点作为master节点
+    block: |
+      masterauth {{ REDIS_PASSWORD }}
+    insertbefore: "# masterauth <master-password>"
+    # 注意，需要设置不同的marker标记，否则会修改以前存在的默认标记
+    marker: "# {mark} meizhaohui add masterauth master-password"
+
+
+- name: Change the redis log file Permission
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: touch
+    mode: '0644'
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
+  with_items:
+    - "{{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_SENTINEL_LISTEN_PORT }}.log"

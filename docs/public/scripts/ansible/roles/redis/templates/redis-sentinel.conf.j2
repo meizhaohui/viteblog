@@ -1,4 +1,4 @@
-# roles/redis/templates/redis.conf.j2
+# roles/redis/templates/redis-sentinel.conf.j2
 # Redis configuration file example.
 #
 # Note that in order to read the configuration file, Redis must be
@@ -108,16 +108,16 @@ bind {{ HOST_IP }} 127.0.0.1
 # END MEIZHAOHUI COMMENTS
 protected-mode no
 
-# Accept connections on the specified port, default is 6379 (IANA #815344).
+# Accept connections on the specified port, default is 26379 (IANA #815344).
 # If port 0 is specified Redis will not listen on a TCP socket.
-# port 6379
+# port 26379
 
 # BEGIN MEIZHAOHUI COMMENTS
-#   redis服务监听端口，默认6379
+#   redis服务监听端口，默认26379
 #   使用默认的端口号不是很安全，为了安全一点，需要修改默认的端口号
-#   建议修改为10000以上，60000以下的端口，我这里设置为{{ REDIS_LISTEN_PORT }}
+#   建议修改为10000以上，60000以下的端口，我这里设置为{{ REDIS_SENTINEL_LISTEN_PORT }}
 # END MEIZHAOHUI COMMENTS
-port {{ REDIS_LISTEN_PORT }}
+port {{ REDIS_SENTINEL_LISTEN_PORT }}
 
 # TCP listen() backlog.
 #
@@ -348,13 +348,13 @@ daemonize no
 #
 # Note that on modern Linux systems "/run/redis.pid" is more conforming
 # and should be used instead.
-# pidfile /var/run/redis_6379.pid
+# pidfile /var/run/redis_26379.pid
 
 # BEGIN MEIZHAOHUI COMMENTS
 #   设置PID文件，我将redis相关的文件都放在 /srv/redis 目录下
 # END MEIZHAOHUI COMMENTS
-# pidfile /srv/redis/pid/redis_6379.pid
-pidfile {{ REDIS_BASE_DIR }}/pid/redis_{{ REDIS_LISTEN_PORT }}.pid
+# pidfile /srv/redis/pid/redis_26379.pid
+pidfile {{ REDIS_BASE_DIR }}/pid/redis_{{ REDIS_SENTINEL_LISTEN_PORT }}.pid
 
 # Specify the server verbosity level.
 # This can be one of:
@@ -379,8 +379,8 @@ loglevel notice
 #   redis 在运行过程中，会输出一些日志信息；默认情况下，这些日志信息会输出到控制台；
 #   我们可以使用 logfile 配置日志文件，使 redis 把日志信息输出到指定文件中
 # END MEIZHAOHUI COMMENTS
-# logfile "/srv/redis/logs/redis_6379.log"
-logfile "{{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_LISTEN_PORT }}.log"
+# logfile "/srv/redis/logs/redis_26379.log"
+logfile "{{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_SENTINEL_LISTEN_PORT }}.log"
 
 # To enable logging to the system logger, just set 'syslog-enabled' to yes,
 # and optionally update the other syslog parameters to suit your needs.
@@ -583,7 +583,7 @@ rdbchecksum yes
 # END MEIZHAOHUI COMMENTS
 
 # The filename where to dump the DB
-dbfilename dump_{{ REDIS_LISTEN_PORT }}.rdb
+dbfilename dump_{{ REDIS_SENTINEL_LISTEN_PORT }}.rdb
 # BEGIN MEIZHAOHUI COMMENTS
 #   数据库文件名，也就是RDB持久化时Dump文件的名字。
 #   保持默认即可。
@@ -1772,7 +1772,7 @@ appendonly yes
 
 # The name of the append only file (default: "appendonly.aof")
 
-appendfilename "appendonly_{{ REDIS_LISTEN_PORT }}.aof"
+appendfilename "appendonly_{{ REDIS_SENTINEL_LISTEN_PORT }}.aof"
 # BEGIN MEIZHAOHUI COMMENTS
 #   AOF持久化文件名
 # END MEIZHAOHUI COMMENTS
