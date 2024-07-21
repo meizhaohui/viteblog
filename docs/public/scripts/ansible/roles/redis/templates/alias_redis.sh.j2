@@ -5,3 +5,4 @@ alias redisPort='netstat -tunlp|grep redis-server && echo "正常监听 {{ REDIS
 alias cdRedis='cd {{ REDIS_BASE_DIR }} && pwd && ls -lah'
 alias cmdRedis='{{ REDIS_BASE_DIR }}/bin/redis-cli -p {{ REDIS_LISTEN_PORT }} -a {{ REDIS_PASSWORD }}'
 alias cmdRedisSentinel='{{ REDIS_BASE_DIR }}/bin/redis-cli -p {{ REDIS_SENTINEL_LISTEN_PORT }} -a {{ REDIS_PASSWORD }}'
+alias cleanRedisTemplate='spctl stop all && rm -rf /etc/supervisord.d/redis*.ini && rm -rf /srv/redis* && spctl update && spctl start testapp && spstatus'

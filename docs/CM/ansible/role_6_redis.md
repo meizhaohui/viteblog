@@ -2910,7 +2910,105 @@ masterauth EvtoIl9H6fjsQlsfUOv43MX9jHQmgEExcViOaKG.m2Yv.v1293jD,Fdd8vUlSgDuQw6MC
 
 
 
+
+
 这时需要考虑Ansible该如何配置哨兵节点的任务了。
+
+- 优化redis主从和redis哨兵模式的supervisor管理的应用的启动顺序。
+- 增加一个redis哨兵模式的任务，仅当定义了`REDIS_SENTINEL_APP_NAME`环境变量时才执行这些任务。
+- 优化快捷命令。
+
+第二步需要使用`include_tasks`关键字和`when`条件判断。第一次使用时，可以简单测试一下：
+
+```sh
+[root@ansible ansible_playbooks]# cat hosts.ini
+[supervisorhosts]
+192.168.56.121 hostname=ansible-node1
+192.168.56.122 hostname=ansible-node2
+192.168.56.123 hostname=ansible-node3
+
+[redishosts]
+# REDIS_ROLE 代表主从节点的角色
+#   REDIS_ROLE=master 则表明该节点部署redis主节点
+#   REDIS_ROLE=slave  则表明该节点部署redis从节点
+# REDIS_APP_NAME          代表使用supervisor管理的redis主从应用的名称，主从模式时，必须配置这个环境变量
+# REDIS_SENTINEL_APP_NAME 代表使用supervisor管理的redis哨兵应用的名称，哨兵模式时，必须配置这个环境变量
+
+192.168.56.121 hostname=ansible-node1 REDIS_ROLE=master REDIS_APP_NAME=redis-master REDIS_SENTINEL_APP_NAME=sentinel1
+192.168.56.122 hostname=ansible-node2 REDIS_ROLE=slave  REDIS_APP_NAME=redis-slave1 REDIS_SENTINEL_APP_NAME=sentinel2
+192.168.56.123 hostname=ansible-node3 REDIS_ROLE=slave  REDIS_APP_NAME=redis-slave2 REDIS_SENTINEL_APP_NAME=sentinel3
+
+
+[root@ansible ansible_playbooks]# cat roles/redis/tasks/main.yml
+---
+# redis角色任务
+# 安装redis
+#- include: redis.yaml
+# 优化系统设置
+#- include: sysctl.yaml
+# 使用supervisor进程管理工具配置redis app
+#- include: supervisor.yaml
+# 创建快捷命令
+#- include: alias.yaml
+- name: Config redis sentinel tasks
+  include_tasks: redis-sentinel.yaml
+  when: REDIS_SENTINEL_APP_NAME is defined
+[root@ansible ansible_playbooks]# cat roles/redis/tasks/redis-sentinel.yaml
+---
+# roles/redis/tasks/redis-sentinel.yaml
+- name: Display the redis password
+  ansible.builtin.debug:
+    msg: "{{ REDIS_PASSWORD }}"
+  changed_when: false
+
+[root@ansible ansible_playbooks]#
+```
+
+以上将不相关的任务注释掉了。
+
+然后执行测试：
+
+```sh
+[root@ansible ansible_playbooks]# ansible-playbook -i hosts.ini redis.yml -v -e REDIS_PASSWORD=123456
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [redishosts] *************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ********************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122]
+ok: [192.168.56.121]
+ok: [192.168.56.123]
+
+TASK [Config redis sentinel tasks] ********************************************************************************************************************************************************************************************************************************************
+included: /root/ansible_playbooks/roles/redis/tasks/redis-sentinel.yaml for 192.168.56.123, 192.168.56.122, 192.168.56.121
+
+TASK [Display the redis password] *********************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {
+    "msg": "123456"
+}
+ok: [192.168.56.123] => {
+    "msg": "123456"
+}
+ok: [192.168.56.122] => {
+    "msg": "123456"
+}
+
+PLAY RECAP ********************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+192.168.56.122             : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+192.168.56.123             : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+Playbook run took 0 days, 0 hours, 0 minutes, 2 seconds
+[root@ansible ansible_playbooks]# 
+```
+
+![](/img/Snipaste_2024-07-21_23-01-16.png)
+
+可以看到，能够正常判断环境变量是否定义，并调用相关任务文件。
+
+
+
+
 
 
 
