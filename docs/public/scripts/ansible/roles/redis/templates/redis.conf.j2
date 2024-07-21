@@ -582,7 +582,7 @@ rdbchecksum yes
 # END MEIZHAOHUI COMMENTS
 
 # The filename where to dump the DB
-dbfilename dump.rdb
+dbfilename dump_{{ REDIS_LISTEN_PORT }}.rdb
 # BEGIN MEIZHAOHUI COMMENTS
 #   数据库文件名，也就是RDB持久化时Dump文件的名字。
 #   保持默认即可。
@@ -1771,7 +1771,7 @@ appendonly yes
 
 # The name of the append only file (default: "appendonly.aof")
 
-appendfilename "appendonly.aof"
+appendfilename "appendonly_{{ REDIS_LISTEN_PORT }}.aof"
 # BEGIN MEIZHAOHUI COMMENTS
 #   AOF持久化文件名
 # END MEIZHAOHUI COMMENTS

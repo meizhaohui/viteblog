@@ -2316,12 +2316,14 @@ repl_backlog_histlen:364
 主要涉及以下几个配置：
 
 - `/srv/redis/redis.conf`，将这个配置文件修改为带端口的名称，如`/srv/redis/redis_29736.conf`。
-
 - `/srv/redis/redis.conf`配置文件中涉及持久化的文件名称，如`appendonly.aof`和`dump.rdb`,也加上端口号信息，如`appendonly_29736.aof`和`dump_29736.rdb`。
-
 - supervisor进程管理工具的应用配置文件`/etc/supervisord.d/redis.ini`，也带上端口号，如`/etc/supervisord.d/redis_29736.ini`。并且该配置文件中指定应用名称`[program:redis]`的配置和启动命令配置`command = /srv/redis/bin/redis-server /srv/redis/conf/redis.conf`也需要做相应修改。
 
-  
+对剧本文件进行一些修改，以下截图是修改点：
+
+![](/img/Snipaste_2024-07-21_11-22-24.png)
+
+
 
 
 

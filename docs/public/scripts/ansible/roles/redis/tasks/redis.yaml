@@ -56,7 +56,7 @@
 - name: Copy redis.conf file
   ansible.builtin.template:
     src: redis.conf.j2
-    dest: "{{ REDIS_BASE_DIR }}/conf/redis.conf"
+    dest: "{{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_LISTEN_PORT }}.conf"
     mode: '0600'
     force: yes
     remote_src: no
@@ -65,7 +65,7 @@
 
 - name: Set replicaof masterip masterport info
   ansible.builtin.blockinfile:
-    path: "{{ REDIS_BASE_DIR }}/conf/redis.conf"
+    path: "{{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_LISTEN_PORT }}.conf"
     # 默认将redishosts组中第一个节点作为master节点
     block: |
       replicaof {{ groups["redishosts"]|first }} {{ REDIS_LISTEN_PORT }}
@@ -76,7 +76,7 @@
 
 - name: Set masterauth master-password info
   ansible.builtin.blockinfile:
-    path: "{{ REDIS_BASE_DIR }}/conf/redis.conf"
+    path: "{{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_LISTEN_PORT }}.conf"
     # 默认将redishosts组中第一个节点作为master节点
     block: |
       masterauth {{ REDIS_PASSWORD }}

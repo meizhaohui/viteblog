@@ -1,6 +1,6 @@
 # roles/redis/templates/redis.ini.j2
-[program:redis]
-command = {{ REDIS_BASE_DIR }}/bin/redis-server {{ REDIS_BASE_DIR }}/conf/redis.conf
+[program:{{ REDIS_APP_NAME }}]
+command = {{ REDIS_BASE_DIR }}/bin/redis-server {{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_LISTEN_PORT }}.conf
 directory = {{ REDIS_BASE_DIR }}
 user = {{ REDIS_RUNNING_USER }}
 stdout_logfile = {{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_LISTEN_PORT }}.log
