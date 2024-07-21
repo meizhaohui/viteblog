@@ -38,8 +38,10 @@
 
 - name: Create a random password
   ansible.builtin.set_fact:
-    # 创建一个长度为32位的随机密码用作redis服务的认证密码
-    REDIS_PASSWORD: "{{ lookup('ansible.builtin.password', '/dev/null length=32') }}"
+    # 创建一个长度为128位的随机密码用作redis服务的认证密码
+    # 密码要足够复杂(64个字符以上)，因为redis的性能很高
+    # 如果密码比较简单，完全是可以在一段时间内通过暴力来破译密码
+    REDIS_PASSWORD: "{{ lookup('ansible.builtin.password', '/dev/null length=128') }}"
   changed_when: false
   # 委派给ansible控制节点
   delegate_to: localhost

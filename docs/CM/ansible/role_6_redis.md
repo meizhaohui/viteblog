@@ -1661,7 +1661,9 @@ tcp        0      0 192.168.56.121:29736    0.0.0.0:*               LISTEN      
 
 
 
-## 3. Redis主从模式配置
+## 3. Redis多节点集群配置
+
+### 3.1 Redis主从模式配置
 
 在前面的讲解中，ansible使用redis角色剧本，可以在各节点上面创建并启动一个redis实例，相互之间没有关联。
 
@@ -2307,7 +2309,19 @@ repl_backlog_histlen:364
 
 可以看到，一主两从的redis集群生效了！
 
+### 3.2 优化Redis主从模式配置
 
+如果我们想通过redis这一个ansible role角色来写成redis主从模式、哨兵模式和集群模式的配置，由于后面哨兵模式和集群模式配置，每个节点上面都会起至少两个redis实例，为了避免配置文件名重复之类的问题，我们将相关配置文件名都加上端口号信息。
+
+主要涉及以下几个配置：
+
+- `/srv/redis/redis.conf`，将这个配置文件修改为带端口的名称，如`/srv/redis/redis_29736.conf`。
+
+- `/srv/redis/redis.conf`配置文件中涉及持久化的文件名称，如`appendonly.aof`和`dump.rdb`,也加上端口号信息，如`appendonly_29736.aof`和`dump_29736.rdb`。
+
+- supervisor进程管理工具的应用配置文件`/etc/supervisord.d/redis.ini`，也带上端口号，如`/etc/supervisord.d/redis_29736.ini`。并且该配置文件中指定应用名称`[program:redis]`的配置和启动命令配置`command = /srv/redis/bin/redis-server /srv/redis/conf/redis.conf`也需要做相应修改。
+
+  
 
 
 
