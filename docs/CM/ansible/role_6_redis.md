@@ -3779,9 +3779,214 @@ master0:name=mymaster,status=ok,address=192.168.56.121:29736,slaves=2,sentinels=
 
 
 
-### 3.3.7 测试哨兵模式的自动切换
+#### 3.3.7 测试哨兵模式的自动切换
+
+编写一个python连接哨兵模式的程序`test_redis_sentinel.py`:
+
+```py
+# filename: test_redis_sentinel.py
+# pip install redis
+from redis import Sentinel
+ 
+# 哨兵的地址和端口，格式为(host, port)
+sentinels = [('192.168.56.121', 49736), ('192.168.56.122', 49736), ('192.168.56.123', 49736)]
+password = "JeaAG-aTBYq4XVjY3dmygoyvdkWyn-yu3msMsG-1JbTLMKQyLFcs_Lo1mcs-pNpVvxDO:cnJZciXlYJoSNBosAiLhPG,sZXGXsBBc0h-xHVnFNTF.31m3visfh0NheJI"
+service_name = 'mymaster'
+# 创建Sentinel实例
+# sentinel_kwargs 用来配置哨兵的密码。password用来配置redis密码
+sentinel = Sentinel(sentinels, socket_timeout=0.1, sentinel_kwargs={'password': password}, password=password)
+ 
+# 获取主服务器
+master = sentinel.master_for(service_name, socket_timeout=0.1, password=password)
+print(f'master:{master}')
+master_info = sentinel.discover_master(service_name)
+master_ip = master_info[0]
+master_port = master_info[1]
+print(f'master ip:{master_ip}')
+print(f'master port:{master_port}')
+ 
+# 获取从服务器
+slave = sentinel.slave_for(service_name, socket_timeout=0.1, password=password)
+ 
+# 使用主服务器或从服务器进行操作
+master.set('key', 'value')
+print(master.get('key'))
+print(master.get('name'))
+print(master.get('num'))
+```
+
+然后执行python程序：
+
+![](/img/Snipaste_2024-07-22_23-18-23.png)
+
+可以看到，能够正常获取到集群的主节点，并能完成数据的读和写。
 
 
+
+此时，我们尝试将节点1上的的`redis-master`程序关掉：
+
+```sh
+# 查看当前程序运行状态
+[root@ansible-node1 ~]# spstatus
+redis-master                     RUNNING   pid 3290, uptime 0:18:31
+sentinel1                        RUNNING   pid 3291, uptime 0:18:31
+testapp                          RUNNING   pid 3292, uptime 0:18:31
+
+# 停止redis-master主程序
+[root@ansible-node1 ~]# spctl stop redis-master
+redis-master: stopped
+
+# 再次查看当前程序运行状态
+[root@ansible-node1 ~]# spstatus
+redis-master                     STOPPED   Jul 22 11:20 PM
+sentinel1                        RUNNING   pid 3291, uptime 0:18:45
+testapp                          RUNNING   pid 3292, uptime 0:18:45
+
+# 进入到哨兵模式命令行
+[root@ansible-node1 ~]# cmdRedisSentinel
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+# 查看哨兵信息
+# 刚开始执行几次，还是发现当前主节点是192.168.56.121:29736
+# 多执行几次，发现主节点发生变化 
+127.0.0.1:49736> info sentinel
+# Sentinel
+sentinel_masters:1
+sentinel_tilt:0
+sentinel_running_scripts:0
+sentinel_scripts_queue_length:0
+sentinel_simulate_failure_flags:0
+master0:name=mymaster,status=ok,address=192.168.56.121:29736,slaves=2,sentinels=3
+127.0.0.1:49736> info sentinel
+# Sentinel
+sentinel_masters:1
+sentinel_tilt:0
+sentinel_running_scripts:0
+sentinel_scripts_queue_length:0
+sentinel_simulate_failure_flags:0
+master0:name=mymaster,status=ok,address=192.168.56.121:29736,slaves=2,sentinels=3
+
+# 过一会再查看，发现主节点已经切换到192.168.56.122:29736了
+127.0.0.1:49736> info sentinel
+# Sentinel
+sentinel_masters:1
+sentinel_tilt:0
+sentinel_running_scripts:0
+sentinel_scripts_queue_length:0
+sentinel_simulate_failure_flags:0
+master0:name=mymaster,status=ok,address=192.168.56.122:29736,slaves=2,sentinels=3
+127.0.0.1:49736> info sentinel
+# Sentinel
+sentinel_masters:1
+sentinel_tilt:0
+sentinel_running_scripts:0
+sentinel_scripts_queue_length:0
+sentinel_simulate_failure_flags:0
+master0:name=mymaster,status=ok,address=192.168.56.122:29736,slaves=2,sentinels=3
+127.0.0.1:49736>
+
+```
+
+我们客户端程序再执行一次：
+
+
+![](/img/Snipaste_2024-07-22_23-24-31.png)
+
+中以看到，执行成功了，客户端程序并没有做什么变更。
+
+此时，在节点2上面查看集群主从信息：
+
+```sh
+[root@ansible-node2 ~]# cmdRedis
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+127.0.0.1:29736> info replication
+# Replication
+role:master
+connected_slaves:1
+slave0:ip=192.168.56.123,port=29736,state=online,offset=310086,lag=1
+master_failover_state:no-failover
+master_replid:8d8c74c5556afff89f66ee57bb33c209f4460c5a
+master_replid2:b946962afd176a9de504e0dc8111e2b2e7d9b8ff
+master_repl_offset:310086
+second_repl_offset:233811
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:310086
+127.0.0.1:29736>
+```
+
+可以看到，此时只有一个从节点。
+
+此时，把节点1上面的`redis-master`程序启动起来：
+
+```sh
+[root@ansible-node1 ~]# spstatus
+redis-master                     STOPPED   Jul 22 11:20 PM
+sentinel1                        RUNNING   pid 3291, uptime 0:24:51
+testapp                          RUNNING   pid 3292, uptime 0:24:51
+[root@ansible-node1 ~]# spctl start redis-master
+redis-master: started
+[root@ansible-node1 ~]# spstatus
+redis-master                     RUNNING   pid 3339, uptime 0:00:07
+sentinel1                        RUNNING   pid 3291, uptime 0:26:36
+testapp                          RUNNING   pid 3292, uptime 0:26:36
+[root@ansible-node1 ~]# cmdRedis
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+127.0.0.1:29736> info replication
+# Replication
+role:slave
+master_host:192.168.56.122
+master_port:29736
+master_link_status:up
+master_last_io_seconds_ago:0
+master_sync_in_progress:0
+slave_read_repl_offset:331677
+slave_repl_offset:331677
+slave_priority:100
+slave_read_only:1
+replica_announced:1
+connected_slaves:0
+master_failover_state:no-failover
+master_replid:8d8c74c5556afff89f66ee57bb33c209f4460c5a
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:331677
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:328905
+repl_backlog_histlen:2773
+127.0.0.1:29736>
+```
+
+可以看到，新启动的节点已经变成新主节点的从节点了。
+
+此时再在节点2上面查看集群信息：
+
+```sh
+127.0.0.1:29736> info replication
+# Replication
+role:master
+connected_slaves:2
+slave0:ip=192.168.56.123,port=29736,state=online,offset=342259,lag=1
+slave1:ip=192.168.56.121,port=29736,state=online,offset=342259,lag=1
+master_failover_state:no-failover
+master_replid:8d8c74c5556afff89f66ee57bb33c209f4460c5a
+master_replid2:b946962afd176a9de504e0dc8111e2b2e7d9b8ff
+master_repl_offset:342259
+second_repl_offset:233811
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:342259
+127.0.0.1:29736>
+
+```
+
+此时，可以看到`192.168.56.121`已经变成新主的slave了！
+
+这就完成了一次主从的自动切换。
+
+相应的，你可以再进行其他测试，看看主节点有没有自动切换。
 
 
 

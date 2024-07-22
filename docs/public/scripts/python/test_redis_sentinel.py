@@ -1,3 +1,5 @@
+# filename: test_redis_sentinel.py
+# pip install redis
 from redis import Sentinel
  
 # 哨兵的地址和端口，格式为(host, port)
@@ -25,3 +27,4 @@ master.set('key', 'value')
 print(master.get('key'))
 print(master.get('name'))
 print(master.get('num'))
+master.set('client', 'client')
