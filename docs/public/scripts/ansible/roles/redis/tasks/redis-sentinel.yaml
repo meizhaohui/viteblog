@@ -27,7 +27,7 @@
       sentinel failover-timeout mymaster 180000
       sentinel auth-pass mymaster {{ REDIS_PASSWORD }}
     # 注意，需要设置不同的marker标记，否则会修改以前存在的默认标记
-    marker: "# {mark} meizhaohui add replicaof masterip masterport"
+    marker: "# {mark} meizhaohui add sentinel monitor info"
 
 - name: Set masterauth master-password info
   ansible.builtin.blockinfile:
@@ -37,7 +37,7 @@
       masterauth {{ REDIS_PASSWORD }}
     insertbefore: "# masterauth <master-password>"
     # 注意，需要设置不同的marker标记，否则会修改以前存在的默认标记
-    marker: "# {mark} meizhaohui add masterauth master-password"
+    marker: "# {mark} meizhaohui add masterauth master-password info"
 
 # 确保master主节点也配置了masterauth参数，这样就算自动切换主备后，原来的主节点还是可以与新的主节点正常连接
 - name: Set masterauth master-password info by sentinel task

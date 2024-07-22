@@ -1,4 +1,5 @@
 ---
+# roles/redis/tasks/main.yml
 # redis角色任务
 # 安装redis
 - include: redis.yaml
