@@ -3982,11 +3982,148 @@ repl_backlog_histlen:342259
 
 ```
 
-此时，可以看到`192.168.56.121`已经变成新主的slave了！
+此时，可以看到`192.168.56.122`已经变成新主的slave了！
 
 这就完成了一次主从的自动切换。
 
 相应的，你可以再进行其他测试，看看主节点有没有自动切换。
+
+
+
+再尝试把节点2上面的`redis-slave1`程序停掉，看看哨兵集群是否能自动切换主节点：
+
+```sh
+[root@ansible-node2 ~]# spstatus
+redis-slave1                     RUNNING   pid 1539, uptime 0:24:27
+sentinel2                        RUNNING   pid 1540, uptime 0:24:27
+testapp                          RUNNING   pid 1541, uptime 0:24:27
+[root@ansible-node2 ~]# spctl stop redis-slave1
+redis-slave1: stopped
+[root@ansible-node2 ~]# spstatus
+redis-slave1                     STOPPED   Jul 23 08:32 PM
+sentinel2                        RUNNING   pid 1540, uptime 0:25:23
+testapp                          RUNNING   pid 1541, uptime 0:25:23
+[root@ansible-node2 ~]# cmdRedis
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+Could not connect to Redis at 127.0.0.1:29736: Connection refused
+not connected> exit
+[root@ansible-node2 ~]# cmdRedisSentinel
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+127.0.0.1:49736> info sentinel
+# Sentinel
+sentinel_masters:1
+sentinel_tilt:0
+sentinel_running_scripts:0
+sentinel_scripts_queue_length:0
+sentinel_simulate_failure_flags:0
+master0:name=mymaster,status=odown,address=192.168.56.122:29736,slaves=2,sentinels=3
+127.0.0.1:49736> info sentinel
+# Sentinel
+sentinel_masters:1
+sentinel_tilt:0
+sentinel_running_scripts:0
+sentinel_scripts_queue_length:0
+sentinel_simulate_failure_flags:0
+master0:name=mymaster,status=ok,address=192.168.56.121:29736,slaves=2,sentinels=3
+127.0.0.1:49736>
+```
+
+可以看到，此时主节点又切到第1个节点`192.168.56.121`上面去了。
+
+在应用端测试，可以看到能正常读写：
+
+![](/img/Snipaste_2024-07-23_20-35-37.png)
+
+再次将节点2上面的redis-slave1应用程序启动起来：
+
+```sh
+
+[root@ansible-node2 ~]# spctl start redis-slave1
+redis-slave1: started
+[root@ansible-node2 ~]# spstatus
+redis-slave1                     RUNNING   pid 1606, uptime 0:00:04
+sentinel2                        RUNNING   pid 1540, uptime 0:29:16
+testapp                          RUNNING   pid 1541, uptime 0:29:16
+[root@ansible-node2 ~]# cmdRedis
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+
+# 再次查看主从信息
+127.0.0.1:29736> info replication
+# Replication
+role:slave
+master_host:192.168.56.121
+master_port:29736
+master_link_status:up
+master_last_io_seconds_ago:2
+master_sync_in_progress:0
+slave_read_repl_offset:366934
+slave_repl_offset:366934
+slave_priority:100
+slave_read_only:1
+replica_announced:1
+connected_slaves:0
+master_failover_state:no-failover
+master_replid:6de1fb8743e4ad1d2df9ffa207f40074116d8aad
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:366934
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:365602
+repl_backlog_histlen:1333
+127.0.0.1:29736> get client
+"New"
+127.0.0.1:29736>
+```
+
+可以看到，节点2又变成了从节点了。
+
+而节点1此时可以看到两个从节点：
+
+```sh
+[root@ansible-node1 ~]# cmdRedis
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+127.0.0.1:29736> info replication
+# Replication
+role:master
+connected_slaves:1
+slave0:ip=192.168.56.123,port=29736,state=online,offset=356185,lag=0
+master_failover_state:no-failover
+master_replid:6de1fb8743e4ad1d2df9ffa207f40074116d8aad
+master_replid2:5fa790a931d3bac3bff6dad30b6e9a4379bed2de
+master_repl_offset:356185
+second_repl_offset:320539
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:356185
+127.0.0.1:29736> get client
+"New"
+127.0.0.1:29736> get name
+"redis"
+127.0.0.1:29736> get num
+"1"
+127.0.0.1:29736> info replication
+# Replication
+role:master
+connected_slaves:2
+slave0:ip=192.168.56.123,port=29736,state=online,offset=368662,lag=0
+slave1:ip=192.168.56.122,port=29736,state=online,offset=368662,lag=0
+master_failover_state:no-failover
+master_replid:6de1fb8743e4ad1d2df9ffa207f40074116d8aad
+master_replid2:5fa790a931d3bac3bff6dad30b6e9a4379bed2de
+master_repl_offset:368662
+second_repl_offset:320539
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:368662
+127.0.0.1:29736>
+```
+
+也说说明哨兵模式下主节点挂了后，可以自动切换主节点，不需要人工干预，对应用没多大影响。
+
+
 
 
 
