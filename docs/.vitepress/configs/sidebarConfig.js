@@ -187,6 +187,7 @@ module.exports = {
       text: 'MySQL',
       collapsed: true, // 是否可折叠，默认可折叠true 
       items: [
+        { text: 'CentOS7安装mysql', link: '/database/mysql/X_00_install_mysql' },
         { text: 'mysql数据库的创建、删除与使用', link: '/database/mysql/X_01_insert_select_update_delete' },
         { text: 'mysql数据库求字段的总和、总数与均值', link: '/database/mysql/X_02_sum_count_avg' },
         { text: 'mysql数据库求字段的最大值和最小值', link: '/database/mysql/X_03_greatest_least' },
