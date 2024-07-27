@@ -12,4 +12,8 @@
 # 根据是否定义REDIS_SENTINEL_APP_NAME环境变量决定是否要部署Redis哨兵模式
 - name: Config redis sentinel tasks
   include_tasks: redis-sentinel.yaml
-  when: REDIS_SENTINEL_APP_NAME is defined
+  when: REDIS_SENTINEL_APP_NAME is defined and REDIS_CLUSTER_APP_NAME is not defined
+# 根据是否定义REDIS_CLUSTER_APP_NAME环境变量决定是否要部署Redis哨兵模式
+- name: Config redis cluster tasks
+  include_tasks: redis-cluster.yaml
+  when: REDIS_SENTINEL_APP_NAME is not defined and REDIS_CLUSTER_APP_NAME is defined

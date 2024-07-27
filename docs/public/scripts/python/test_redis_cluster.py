@@ -22,7 +22,7 @@ rc = RedisCluster(startup_nodes=startup_nodes,
                   password=password)
 
 # 使用Redis集群
-rc.set("foo", "barbar")
+rc.set("foo", "bar")
 print(rc.get("foo"))
 print(rc.get("name"))
 print(rc.get("num"))

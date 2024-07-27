@@ -24,3 +24,7 @@ REDIS_OPEN_FILES_VALUE: 10032
 # 使用默认的端口号不是很安全，为了安全一点，需要修改默认的端口号
 # 建议修改为10000以上，60000以下的端口，我这里设置为49736
 REDIS_SENTINEL_LISTEN_PORT: 49736
+
+# Redis集群模式下主程序监听端口,使用REDIS_LISTEN_PORT变量定义的值
+# Redis集群模式下从程序监听端口
+REDIS_CLUSTER_SLAVE_LISTEN_PORT: 29737

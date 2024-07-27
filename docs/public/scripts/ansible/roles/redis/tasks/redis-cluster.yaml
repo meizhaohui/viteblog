@@ -1,0 +1,82 @@
+---
+# roles/redis/tasks/redis-cluster.yaml
+- name: Display the redis password
+  ansible.builtin.debug:
+    msg: "{{ REDIS_PASSWORD }}"
+  changed_when: false
+
+- name: Copy cluster redis-cluster.conf file
+  ansible.builtin.template:
+    # 这个地方注意，如果使用with_items来循环变量，
+    # 则在模板文件redis-cluster.conf.j2中是使用`{{ item }}` 来代替端口号变量的
+    # 为了让模板文件里面的意义更明确，我使用loop方式来循环变量
+    # 然后使用loop_control来设置loop_var来代替item变量，并配置到模板文件中
+    # 详细可参考 https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_loops.html#accessing-the-name-of-your-loop-var
+    src: redis-cluster.conf.j2
+    # dest: "{{ REDIS_BASE_DIR }}/conf/redis_{{ item }}.conf"
+    dest: "{{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_CLUSTER_LISTEN_PORT }}.conf"
+    mode: '0600'
+    force: yes
+    remote_src: no
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
+  # with_items:
+  loop:
+    - "{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}"
+  loop_control:
+    loop_var: REDIS_CLUSTER_LISTEN_PORT
+
+- name: Set redis cluster info
+  ansible.builtin.blockinfile:
+    path: "{{ REDIS_BASE_DIR }}/conf/redis_{{ item }}.conf"
+    # 默认将redishosts组中第一个节点作为master节点
+    # 注意此处sentinel monitor mymaster后面要用 REDIS_LISTEN_PORT 这个变量
+    block: |
+      # 开启集群模式
+      cluster-enabled yes
+      # 集群内部配置文件名称，由redis自动管理
+      cluster-config-file nodes-{{ item }}.conf
+      # 节点超时时间，单位毫秒
+      cluster-node-timeout 15000
+    # 注意，需要设置不同的marker标记，否则会修改以前存在的默认标记
+    marker: "# {mark} meizhaohui add sentinel monitor info"
+  loop:
+    - "{{ REDIS_LISTEN_PORT }}"
+    - "{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}"
+
+- name: Change the redis log file Permission
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: touch
+    mode: '0644'
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
+  with_items:
+    - "{{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.log"
+
+- name: Copy redis cluster app config
+  ansible.builtin.template:
+    src: redis-cluster.ini.j2
+    dest: /etc/supervisord.d/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.ini
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Start service supervisord, in all cases
+  ansible.builtin.service:
+    name: supervisord
+    state: restarted
+    # 开机启动
+    enabled: yes
+
+- name: Print create cluster command
+  ansible.builtin.debug:
+    # --cluster-yes 参数会自动地回答 "yes" 
+    msg: |
+        Please run the follow command to create cluster:
+        {{ REDIS_BASE_DIR }}/bin/redis-cli -a {{ REDIS_PASSWORD }} --cluster-yes --cluster-replicas 1 --cluster create {{ groups["redishosts"]|first }}:{{ REDIS_LISTEN_PORT }} {{ groups["redishosts"]|first }}:{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }} {{ groups["redishosts"][1] }}:{{ REDIS_LISTEN_PORT }} {{ groups["redishosts"][1] }}:{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }} {{ groups["redishosts"][2] }}:{{ REDIS_LISTEN_PORT }} {{ groups["redishosts"][2] }}:{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}
+  changed_when: false
+  # 委派给ansible控制节点
+  delegate_to: "{{ groups['redishosts']|first }}"
+  # 且只运行一次
+  run_once: true
