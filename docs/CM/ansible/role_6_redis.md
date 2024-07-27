@@ -4125,6 +4125,254 @@ repl_backlog_histlen:368662
 
 
 
+### 3.4 Redis cluster集群模式配置
+
+#### 3.4.1 单主机测试Redis集群模式
+
+当遇到单机内存、并发、流量等瓶颈时，可以采用Redis Cluster集群架构方案达到负载均衡的目的。
+
+> - Redis Cluster 集群节点最小配置 6 个节点以上(3 主 3 从)，其中主节点提供读写操作，从节点作为备用节点，不提供请求，只作为故障转移使用。
+> - Redis Cluster 采用虚拟槽分区，所有的键根据哈希函数映射到 0～16383 个（2的14次幂）整数槽内，每个节点负责维护一部分槽以及槽所印映射的键值数据。 
+
+ Redis cluster集群模式一般由多个节点组成，节点数量至少为6个才能保证组成完整高可用的集群。
+
+- 每个节点需要开启配置`cluster-enabled yes`，让Redis运行在集群模式下。
+- 建议为集群内所有节点统一目录，一般分为4个目录：conf、data、logs、pid，分别存放配置、数据、日志和PID文件。（这与之前的主从模式、哨兵模式是一样的。）
+- 把6个节点的配置统一放在`conf`目录下。
+
+集群模式下，相对于普通的主从模式，需要特别关注以下几个配置：
+
+```ini
+# 端口
+port 6379
+# redis认证密码
+requirepass “alonglonglongpassword”
+# redis主节点认证密码
+masterauth “alonglonglongpassword”
+# PID文件
+pidfile "/srv/redis/pid/redis_6379.pid"
+# 日志文件
+logfile "/srv/redis/logs/redis_6379.log"
+# 数据文件夹
+dir "/srv/redis/data"
+# 开启集群模式
+cluster-enabled yes
+# 集群内部配置文件名称，由redis自动管理
+cluster-config-file nodes-6379.conf
+# 节点超时时间，单位毫秒
+cluster-node-timeout 15000
+```
+
+如果我们在单个虚拟机上面测试，节点端口分别是6379、6380、6381、6382、6383和6384。
+
+
+
+supervisord管理的redis集群配置文件：
+
+```sh
+[root@ansible-node1 ~]# cat /etc/supervisord.d/redis_6379.ini
+# roles/redis/templates/redis.ini.j2
+[program:redis-6379]
+command = /srv/redis/bin/redis-server /srv/redis/conf/redis_6379.conf
+directory = /srv/redis
+user = redis
+stdout_logfile = /srv/redis/logs/redis_6379.log
+stdout_logfile_maxbytes = 50MB
+stdout_logfile_backups = 10
+redirect_stderr = true
+autorestart = true
+autostart = true
+# 设置优先级，程序启停的优先级，数字越小优先级越高，默认999
+priority = 981
+[root@ansible-node1 ~]# cat /etc/supervisord.d/redis_6380.ini
+# roles/redis/templates/redis.ini.j2
+[program:redis-6380]
+command = /srv/redis/bin/redis-server /srv/redis/conf/redis_6380.conf
+directory = /srv/redis
+user = redis
+stdout_logfile = /srv/redis/logs/redis_6380.log
+stdout_logfile_maxbytes = 50MB
+stdout_logfile_backups = 10
+redirect_stderr = true
+autorestart = true
+autostart = true
+# 设置优先级，程序启停的优先级，数字越小优先级越高，默认999
+priority = 982
+[root@ansible-node1 ~]#
+```
+
+
+
+6个配置文件：
+
+```sh
+[root@ansible-node1 ~]# ll /srv/redis/conf/redis_6*.conf
+-rw-r--r-- 1 redis redis 144108 Jul 23 21:38 /srv/redis/conf/redis_6379.conf
+-rw-r--r-- 1 redis redis 144108 Jul 23 21:39 /srv/redis/conf/redis_6380.conf
+-rw-r--r-- 1 redis redis 144108 Jul 23 21:39 /srv/redis/conf/redis_6381.conf
+-rw-r--r-- 1 redis redis 144108 Jul 23 21:39 /srv/redis/conf/redis_6382.conf
+-rw-r--r-- 1 redis redis 144108 Jul 23 21:39 /srv/redis/conf/redis_6383.conf
+-rw-r--r-- 1 redis redis 144108 Jul 23 21:39 /srv/redis/conf/redis_6384.conf
+[root@ansible-node1 ~]#
+```
+
+
+
+然后启动6个redis应用：
+
+```sh
+[root@ansible-node1 ~]# spstatus
+redis-6379                       RUNNING   pid 1822, uptime 3:28:21
+redis-6380                       RUNNING   pid 1823, uptime 3:28:21
+redis-6381                       RUNNING   pid 1824, uptime 3:28:21
+redis-6382                       RUNNING   pid 1825, uptime 3:28:21
+redis-6383                       RUNNING   pid 1826, uptime 3:28:21
+redis-6384                       RUNNING   pid 1827, uptime 3:28:21
+redis-master                     RUNNING   pid 1828, uptime 3:28:21
+sentinel1                        RUNNING   pid 1829, uptime 3:28:21
+testapp                          RUNNING   pid 1830, uptime 3:28:21
+```
+
+6个节点启动后，需要使用以下命令创建集群：
+
+```sh
+/srv/redis/bin/redis-cli -a JeaAG-aTBYq4XVjY3dmygoyvdkWyn-yu3msMsG-1JbTLMKQyLFcs_Lo1mcs-pNpVvxDO:cnJZciXlYJoSNBosAiLhPG,sZXGXsBBc0h-xHVnFNTF.31m3visfh0NheJI --cluster create 192.168.56.121:6379 192.168.56.121:6380 192.168.56.121:6381  192.168.56.121:6382 192.168.56.121:6383 192.168.56.121:6384 --cluster-replicas 1
+```
+
+
+
+
+
+然后登陆Redis集群：
+
+```sh
+# 如果像之前一样，仅修改一下连接的redis端口
+# 获取键值时，会提示 `(error) MOVED 5798 192.168.56.121:6380` 之类的异常
+[root@ansible-node1 ~]# /srv/redis/bin/redis-cli -p 6379 -a JeaAG-aTBYq4XVjY3dmygoyvdkWyn-yu3msMsG-1JbTLMKQyLFcs_Lo1mcs-pNpVvxDO:cnJZciXlYJoSNBosAiLhPG,sZXGXsBBc0h-xHVnFNTF.31m3visfh0NheJI
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+127.0.0.1:6379> get name
+(error) MOVED 5798 192.168.56.121:6380
+127.0.0.1:6379> get num
+"2"
+127.0.0.1:6379> exit
+
+# 集群模式登陆，应加上-c参数
+[root@ansible-node1 ~]# /srv/redis/bin/redis-cli -p 6379 -a JeaAG-aTBYq4XVjY3dmygoyvdkWyn-yu3msMsG-1JbTLMKQyLFcs_Lo1mcs-pNpVvxDO:cnJZciXlYJoSNBosAiLhPG,sZXGXsBBc0h-xHVnFNTF.31m3visfh0NheJI -c
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+127.0.0.1:6379> get name
+-> Redirected to slot [5798] located at 192.168.56.121:6380
+"redis"
+192.168.56.121:6380> get num
+-> Redirected to slot [2765] located at 192.168.56.121:6379
+"2"
+192.168.56.121:6379>
+
+```
+
+查看集群相关的信息：
+
+```sh
+# 查看节点主从信息
+192.168.56.121:6379> info replication
+# Replication
+role:master
+connected_slaves:1
+slave0:ip=192.168.56.121,port=6384,state=online,offset=14504,lag=1
+master_failover_state:no-failover
+master_replid:ca2eb58e2282600fb969469e5ad09d1a807ef179
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:14504
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:14504
+
+
+# 实例是否启用集群模式：0-否，1-是
+192.168.56.121:6379> info cluster
+# Cluster
+cluster_enabled:1
+
+
+# 查看集群当前状态
+192.168.56.121:6379> cluster info
+cluster_state:ok
+cluster_slots_assigned:16384
+cluster_slots_ok:16384
+cluster_slots_pfail:0
+cluster_slots_fail:0
+cluster_known_nodes:6
+cluster_size:3
+cluster_current_epoch:6
+cluster_my_epoch:1
+cluster_stats_messages_ping_sent:10569
+cluster_stats_messages_pong_sent:11096
+cluster_stats_messages_sent:21665
+cluster_stats_messages_ping_received:11096
+cluster_stats_messages_pong_received:10569
+cluster_stats_messages_received:21665
+
+
+# 查看集群节点信息
+192.168.56.121:6379> cluster nodes
+b1bce5bf7382a021199c8e17d6a205e41773ac2e 192.168.56.121:6384@16384 slave 6bdee7485abec10b60749e491711fd901ca1d7f4 0 1722090816000 1 connected
+c88f61a916a41ae950c5c3fbcd358daf6aa367bd 192.168.56.121:6382@16382 slave 61c6d15057db3108c80729916fa4a98e49fbb1b7 0 1722090817000 2 connected
+61c6d15057db3108c80729916fa4a98e49fbb1b7 192.168.56.121:6380@16380 master - 0 1722090816766 2 connected 5461-10922
+54e0a585328f639e8ed1157441096e699c579219 192.168.56.121:6381@16381 master - 0 1722090817782 3 connected 10923-16383
+6bdee7485abec10b60749e491711fd901ca1d7f4 192.168.56.121:6379@16379 myself,master - 0 1722090816000 1 connected 0-5460
+6fc4ab4b958ce58f4c258806183e08fbd7610d41 192.168.56.121:6383@16383 slave 54e0a585328f639e8ed1157441096e699c579219 0 1722090819362 3 connected
+192.168.56.121:6379>
+```
+
+
+
+节点连接redis集群：
+
+```py
+# filename: test_redis_cluster.py
+# pip install redis
+from redis import RedisCluster
+from redis.cluster import ClusterNode
+
+password = "JeaAG-aTBYq4XVjY3dmygoyvdkWyn-yu3msMsG-1JbTLMKQyLFcs_Lo1mcs-" \
+           "pNpVvxDO:cnJZciXlYJoSNBosAiLhPG,sZXGXsBBc0h-xHVnFNTF.31m3visfh0NheJI"
+# 假设你的Redis集群节点在本地的6379, 6380, 6381, 6382, 6383, 6384端口上
+startup_nodes = [
+    ClusterNode(host="192.168.56.121", port="6379"),
+    ClusterNode(host="192.168.56.121", port="6380"),
+    ClusterNode(host="192.168.56.121", port="6381"),
+    ClusterNode(host="192.168.56.121", port="6382"),
+    ClusterNode(host="192.168.56.121", port="6383"),
+    ClusterNode(host="192.168.56.121", port="6384"),
+
+]
+
+# 连接到Redis集群
+rc = RedisCluster(startup_nodes=startup_nodes,
+                  decode_responses=True,
+                  password=password)
+
+# 使用Redis集群
+rc.set("foo", "barbar")
+print(rc.get("foo"))
+print(rc.get("name"))
+print(rc.get("num"))
+
+```
+
+
+
+![](/img/Snipaste_2024-07-27_22-46-20.png)
+
+可以看到，程序能够正常读写Redis集群。
+
+
+
+
+
+
+
 
 
 参考：

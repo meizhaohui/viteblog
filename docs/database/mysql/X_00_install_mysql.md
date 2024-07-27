@@ -384,7 +384,7 @@ Thanks for using MariaDB!
 
 
 
-```mysql
+```sql
 [root@ansible ~]# mysql -u root -p
 Enter password:  # <–-- 输入root用户的密码
 Welcome to the MariaDB monitor.  Commands end with ; or \g.
@@ -427,7 +427,7 @@ mysql  Ver 15.1 Distrib 5.5.68-MariaDB, for Linux (x86_64) using readline 5.1
 
 - 使用命令`show databases;`显示所有数据库。
 
-```mariadb
+```sql
 MariaDB [(none)]> show databases;
 +--------------------+
 | Database           |
@@ -447,7 +447,7 @@ MariaDB [(none)]>
 
 - 使用命令`SHOW VARIABLES LIKE 'character%';`可以查看当前使用的字符集。
 
-```mariadb
+```sql
 MariaDB [(none)]> SHOW VARIABLES LIKE 'character%';
 +--------------------------+----------------------------+
 | Variable_name            | Value                      |
@@ -477,7 +477,7 @@ MariaDB [(none)]>
 - 创建新数据库，假设数据库名为semaphore，则命令为`CREATE DATABASE semaphore;`。
 - 查看创建的数据库的定义信息，使用`SHOW CREATE DATABASE db_name`。
 
-```mariadb
+```sql
 MariaDB [(none)]> CREATE DATABASE semaphore;
 Query OK, 1 row affected (0.00 sec)
 
@@ -500,13 +500,13 @@ MariaDB [(none)]>
 
 - 创建新用户并设置密码，假设用户名为`myuser`，密码为`mypassword`，则应使用以下命令：
 
-```mariadb
+```sql
 CREATE USER 'myuser'@'localhost' IDENTIFIED BY 'mypassword';
 ```
 
 我创建一个用户名`ansibleui`，密码为`mypassword`的用户：
 
-```mariadb
+```sql
 # 创建新户
 MariaDB [(none)]> CREATE USER 'ansibleui'@'localhost' IDENTIFIED BY 'mypassword';
 Query OK, 0 rows affected (0.00 sec)
@@ -567,13 +567,13 @@ MariaDB [(none)]>
 
 - 授权`myuser`用户在`mydb`数据库上具有所有权限，则应使用以下命令：
 
-```mariadb
+```sql
 GRANT ALL PRIVILEGES ON mydb.* TO 'myuser'@'localhost';
 ```
 
 我给`ansibleui`用户授权，拥有`semaphore`数据库所有权限：
 
-```mariadb
+```sql
 MariaDB [(none)]> GRANT ALL PRIVILEGES ON semaphore.* TO 'ansibleui'@'localhost';
 Query OK, 0 rows affected (0.00 sec)
 ```
@@ -586,7 +586,7 @@ Query OK, 0 rows affected (0.00 sec)
 
 使用以下命令`FLUSH PRIVILEGES;`刷新权限表。
 
-```mariadb
+```sql
 MariaDB [(none)]> FLUSH PRIVILEGES;
 Query OK, 0 rows affected (0.00 sec)
 ```
@@ -636,7 +636,7 @@ MariaDB [(none)]> show databases;
 
 - 使用`use db_name`可以切换到名称为`db_name`的数据库。
 
-```mariadb
+```sql
 MariaDB [(none)]> use semaphore
 Reading table information for completion of table and column names
 You can turn off this feature to get a quicker startup with -A
@@ -653,7 +653,7 @@ MariaDB [semaphore]>
 
 - 使用`show tables;`;`可以显示数据库下所有的表。
 
-```sh
+```sql
 MariaDB [semaphore]> show tables;
 +------------------------------------+
 | Tables_in_semaphore                |
