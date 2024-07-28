@@ -71,7 +71,8 @@
 
 - name: Print create cluster command
   ansible.builtin.debug:
-    # --cluster-yes 参数会自动地回答 "yes" 
+    # --cluster-yes 参数会自动地回答 "yes"
+    # 此除不自动创建集群，而是生成创建集群的命令，便于部署后，记录部署命令，方便后期查询Redis命令过程
     msg: |
         Please run the follow command to create cluster:
         {{ REDIS_BASE_DIR }}/bin/redis-cli -a {{ REDIS_PASSWORD }} --cluster-yes --cluster-replicas 1 --cluster create {{ groups["redishosts"]|first }}:{{ REDIS_LISTEN_PORT }} {{ groups["redishosts"]|first }}:{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }} {{ groups["redishosts"][1] }}:{{ REDIS_LISTEN_PORT }} {{ groups["redishosts"][1] }}:{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }} {{ groups["redishosts"][2] }}:{{ REDIS_LISTEN_PORT }} {{ groups["redishosts"][2] }}:{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}

@@ -660,6 +660,7 @@ dir {{ REDIS_BASE_DIR }}/data
 # starting the replication synchronization process, otherwise the master will
 # refuse the replica request.
 #
+masterauth {{ REDIS_PASSWORD }}
 # masterauth <master-password>
 #
 # BEGIN MEIZHAOHUI COMMENTS

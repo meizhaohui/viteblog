@@ -4367,9 +4367,18 @@ print(rc.get("num"))
 
 可以看到，程序能够正常读写Redis集群。
 
+#### 3.4.2 三虚拟机部署三主三从6节点集群
 
 
 
+三主三从6节点的集群模式。
+
+
+| 序号 | 虚拟机        | IP             | 角色                             |
+| ---- | ------------- | -------------- | -------------------------------- |
+| 1    | ansible-node1 | 192.168.56.121 | redis-cluster-1、redis-cluster-2 |
+| 2    | ansible-node2 | 192.168.56.122 | redis-cluster-3、redis-cluster-4 |
+| 3    | ansible-node3 | 192.168.56.123 | redis-cluster-5、redis-cluster-6 |
 
 
 
