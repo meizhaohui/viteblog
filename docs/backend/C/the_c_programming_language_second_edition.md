@@ -1184,7 +1184,7 @@ power(-2, 3) = -8
 - 使用下划线可以提高变量名的可读性。
 - 不要使用C语言关键字(类似`if`、`else`、`int`、`float`等等)作为变量名。
 - 名字大小写敏感的。
-- 变量名使用使用小写字母(lower_case_with_underline)，符号常量名全部使用大写字母(UPPER_CASE_WITH_UNDERLINE)。
+- 变量名使用小写字母(lower_case_with_underline)，符号常量名全部使用大写字母(UPPER_CASE_WITH_UNDERLINE)。
 - 名称要能够尽可能从字面上表达变量的用途。
 - 局部变量一般使用较短的变量名，外部变量使用较长的名字。
 - 变量在使用前，需要先声明，并初始化。未初始化的变量在使用时，如果变量i未初始化，会提示`Variable 'i' is uninitialized when used here`异常。
