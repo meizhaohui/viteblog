@@ -1,23 +1,39 @@
 # roles/redis/templates/alias_redis.sh.j2
 # meizhaohui add this
 # redis相关的快捷命令
-# 主从模式下的查看Redis服务进程和端口状态
-alias redisStatus='ps -ef|grep -v grep|grep --color=always redis-server && ps -ef|grep -v grep|grep -c redis-server && echo "以上数字为1，则说明redis-server服务进程数正常"'
-alias redisPort='netstat -tunlp|grep -v grep|grep --color=always redis-server && echo "正常监听 {{ REDIS_LISTEN_PORT }} 则说明redis-server端口正常"'
-# 哨兵模式下的查看Redis服务进程和端口状态
-alias redisSentinelStatus='ps -ef|grep -v grep|grep --color=always redis-server && ps -ef|grep -v grep|grep -c redis-server && echo "以上数字为2，则说明redis-server哨兵模式进程数正常"'
-alias redisSentinelPort='netstat -tunlp|grep -v grep|grep --color=always redis-server|grep --color=always -E "{{ REDIS_LISTEN_PORT }}|{{ REDIS_SENTINEL_LISTEN_PORT }}" && echo "正常监听 {{ REDIS_LISTEN_PORT }} 和 {{ REDIS_SENTINEL_LISTEN_PORT }} 则说明redis-server哨兵模式端口正常"'
-# 集群模式下的查看Redis服务进程和端口状态
-alias redisClusterStatus='ps -ef|grep -v grep|grep --color=always redis-server && ps -ef|grep -v grep|grep -c redis-server && echo "以上数字为2，则说明redis-server集群模式进程数正常"'
-alias redisClusterPort='netstat -tunlp|grep -v grep|grep --color=always redis-server|grep --color=always -E "{{ REDIS_LISTEN_PORT }}|{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}" && echo "正常监听 {{ REDIS_LISTEN_PORT }} 和 {{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }} 则说明redis-server集群模式端口正常"'
+# 快速切换到Redis工作目录
 alias cdRedis='cd {{ REDIS_BASE_DIR }} && pwd && ls -lah'
-# Redis主从模式命令行
-alias cmdRedis='{{ REDIS_BASE_DIR }}/bin/redis-cli -p {{ REDIS_LISTEN_PORT }} -a {{ REDIS_PASSWORD }}'
-# Redis哨兵模式命令行
-alias cmdRedisSentinel='{{ REDIS_BASE_DIR }}/bin/redis-cli -p {{ REDIS_SENTINEL_LISTEN_PORT }} -a {{ REDIS_PASSWORD }}'
-# Redis集群模式命令行
-alias cmdRedisCluster='{{ REDIS_BASE_DIR }}/bin/redis-cli -p {{ REDIS_LISTEN_PORT }} -a {{ REDIS_PASSWORD }} -c'
-# 快速清理Redis测试数据，生产环境谨慎使用
+# !!!! 快速清理Redis测试数据，生产环境谨慎使用
 alias cleanRedisTemplate='spctl stop all && rm -rf /etc/supervisord.d/redis*.ini && rm -rf /srv/redis* && spctl update && spctl start testapp && spstatus'
 # 快速获取Redis密码
 alias getRedisPassword='grep "^requirepass" {{ REDIS_BASE_DIR }}/conf/redis*|head -n 1'
+
+# Redis三种部署模式下的快捷命令
+##############################################
+# 主从模式下的查看Redis服务进程和端口状态
+# 三种部署模式下，主从模式的快捷命令是一直存在的
+alias redisStatus='ps -ef|grep -v grep|grep --color=always redis-server && ps -ef|grep -v grep|grep -c redis-server && echo "以上数字为1，则说明redis-server服务进程数正常"'
+alias redisPort='netstat -tunlp|grep -v grep|grep --color=always redis-server && echo "正常监听 {{ REDIS_LISTEN_PORT }} 则说明redis-server端口正常"'
+# Redis主从模式命令行
+alias cmdRedis='{{ REDIS_BASE_DIR }}/bin/redis-cli -p {{ REDIS_LISTEN_PORT }} -a {{ REDIS_PASSWORD }}'
+##############################################
+
+{% if REDIS_SENTINEL_APP_NAME is defined %}
+##############################################
+# 哨兵模式下的查看Redis服务进程和端口状态
+alias redisSentinelStatus='ps -ef|grep -v grep|grep --color=always redis-server && ps -ef|grep -v grep|grep -c redis-server && echo "以上数字为2，则说明redis-server哨兵模式进程数正常"'
+alias redisSentinelPort='netstat -tunlp|grep -v grep|grep --color=always redis-server|grep --color=always -E "{{ REDIS_LISTEN_PORT }}|{{ REDIS_SENTINEL_LISTEN_PORT }}" && echo "正常监听 {{ REDIS_LISTEN_PORT }} 和 {{ REDIS_SENTINEL_LISTEN_PORT }} 则说明redis-server哨兵模式端口正常"'
+# Redis哨兵模式命令行
+alias cmdRedisSentinel='{{ REDIS_BASE_DIR }}/bin/redis-cli -p {{ REDIS_SENTINEL_LISTEN_PORT }} -a {{ REDIS_PASSWORD }}'
+##############################################
+{% endif %}
+
+{% if REDIS_CLUSTER_APP_NAME is defined %}
+##############################################
+# 集群模式下的查看Redis服务进程和端口状态
+alias redisClusterStatus='ps -ef|grep -v grep|grep --color=always redis-server && ps -ef|grep -v grep|grep -c redis-server && echo "以上数字为2，则说明redis-server集群模式进程数正常"'
+alias redisClusterPort='netstat -tunlp|grep -v grep|grep --color=always redis-server|grep --color=always -E "{{ REDIS_LISTEN_PORT }}|{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}" && echo "正常监听 {{ REDIS_LISTEN_PORT }} 和 {{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }} 则说明redis-server集群模式端口正常"'
+# Redis集群模式命令行
+alias cmdRedisCluster='{{ REDIS_BASE_DIR }}/bin/redis-cli -p {{ REDIS_LISTEN_PORT }} -a {{ REDIS_PASSWORD }} -c'
+##############################################
+{% endif %}

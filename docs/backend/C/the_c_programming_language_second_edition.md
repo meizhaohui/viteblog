@@ -4140,7 +4140,7 @@ double atof(char s[]);
 int main(int argc, char *argv[])
 {
     int i;    // 记录参数序号
-    double stof(char[]);    // 显式声明atof函数
+    double atof(char[]);    // 显式声明atof函数
     for (i = 1; i < argc; i++) {
         char s[MAX];
         strcpy(s, argv[i]);    // string.h头文件中定义的函数，将参数值赋值给字符数组
@@ -4206,7 +4206,7 @@ int atoi(char s[]);
 int main(int argc, char *argv[])
 {
     int i;    // 记录参数序号
-    double stof(char[]);    // 显式声明atof函数
+    double atof(char[]);    // 显式声明atof函数
     for (i = 1; i < argc; i++) {
         char s[MAX];
         strcpy(s, argv[i]);    // string.h头文件中定义的函数，将参数值赋值给字符数组

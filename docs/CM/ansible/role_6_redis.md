@@ -4382,6 +4382,143 @@ print(rc.get("num"))
 
 
 
+#### 3.4.3 默认变量修改
+
+默认变量配置文件`roles/redis/defaults/main.yml`中增加了`REDIS_CLUSTER_SLAVE_LISTEN_PORT: 29737`配置：
+
+```yaml {28-30}
+---
+# roles/redis/defaults/main.yml
+# redis服务监听端口，默认6379
+# 使用默认的端口号不是很安全，为了安全一点，需要修改默认的端口号
+# 建议修改为10000以上，60000以下的端口，我这里设置为29736
+REDIS_LISTEN_PORT: 29736
+# redis服务基础目录，会在访目录下面创建conf、pid、data、logs等目录，存放redis相关文件
+REDIS_BASE_DIR: /srv/redis
+# redis运行用户
+REDIS_RUNNING_USER: redis
+# BEGIN MEIZHAOHUI COMMENTS
+# net.core.somaxconn参数优化，与redis配置文件中tcp-backlog参数对应
+#   在linux系统中控制tcp三次握手已完成连接队列的长度
+#   在高并发系统中，你需要设置一个较高的tcp-backlog来避免客户端连接速度慢的问题（三次握手的速度）
+#   取 /proc/sys/net/core/somaxconn 和 tcp-backlog 配置两者中的小值
+#   对于负载很大的服务程序来说一般会将它修改为2048或者更大。
+#   在/etc/sysctl.conf中添加:net.core.somaxconn = 2048，然后在终端中执行sysctl -p
+# END MEIZHAOHUI COMMENTS
+NET_CORE_SOMAXCONN_VALUE: 511
+# redis open files
+REDIS_OPEN_FILES_VALUE: 10032
+
+# redis哨兵程序服务监听端口，默认26379
+# 使用默认的端口号不是很安全，为了安全一点，需要修改默认的端口号
+# 建议修改为10000以上，60000以下的端口，我这里设置为49736
+REDIS_SENTINEL_LISTEN_PORT: 49736
+
+# Redis集群模式下主程序监听端口,使用REDIS_LISTEN_PORT变量定义的值
+# Redis集群模式下从程序监听端口
+REDIS_CLUSTER_SLAVE_LISTEN_PORT: 29737
+
+```
+
+增加第28-30行的变量`REDIS_CLUSTER_SLAVE_LISTEN_PORT`，用于指定Redis集群模式下从程序监听端口。
+
+而Redis集群模式下master主节点的监听端口仍然使用`REDIS_LISTEN_PORT`变量定义的端口号。
+
+
+
+#### 3.4.4 增加集群程序配置文件模板
+
+
+
+增加集群程序配置文件模板`roles/redis/templates/redis-cluster.conf.j2`，差不多是直接从文件模板`roles/redis/templates/redis.conf.j2`复制过来的，只有少许修改，主要是跟端口`REDIS_CLUSTER_SLAVE_LISTEN_PORT`相关的配置:
+
+```sh
+[root@ansible ansible_playbooks]# grep REDIS_CLUSTER_SLAVE_LISTEN_PORT roles/redis/templates/redis-cluster.conf.j2
+#   建议修改为10000以上，60000以下的端口，我这里设置为{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}
+port {{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}
+pidfile {{ REDIS_BASE_DIR }}/pid/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.pid
+# logfile "/srv/redis/logs/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.log"
+logfile "{{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.log"
+dbfilename dump_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.rdb
+appendfilename "appendonly_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.aof"
+[root@ansible ansible_playbooks]#
+```
+
+对比两个模板文件的差异：
+
+![](/img/Snipaste_2024-07-31_21-47-46.png)
+
+
+
+而下面几个跟集群强相关的配置，在集群配置任务文件`roles/redis/tasks/redis-cluster.yaml`中指定：
+
+```ini
+# 开启集群模式
+cluster-enabled yes
+# 集群内部配置文件名称，由redis自动管理
+cluster-config-file nodes-6379.conf
+# 节点超时时间，单位毫秒
+cluster-node-timeout 15000
+```
+
+
+
+#### 3.4.5 快捷命令修改
+
+随着Ansible角色的功能越来越多，我增加了更多的快捷命令。下面是修改后的`roles/redis/templates/alias_redis.sh.j2`快捷命令的模板文件。
+
+```sh {21,29,31,39}
+# roles/redis/templates/alias_redis.sh.j2
+# meizhaohui add this
+# redis相关的快捷命令
+# 快速切换到Redis工作目录
+alias cdRedis='cd {{ REDIS_BASE_DIR }} && pwd && ls -lah'
+# !!!! 快速清理Redis测试数据，生产环境谨慎使用
+alias cleanRedisTemplate='spctl stop all && rm -rf /etc/supervisord.d/redis*.ini && rm -rf /srv/redis* && spctl update && spctl start testapp && spstatus'
+# 快速获取Redis密码
+alias getRedisPassword='grep "^requirepass" {{ REDIS_BASE_DIR }}/conf/redis*|head -n 1'
+
+# Redis三种部署模式下的快捷命令
+##############################################
+# 主从模式下的查看Redis服务进程和端口状态
+# 三种部署模式下，主从模式的快捷命令是一直存在的
+alias redisStatus='ps -ef|grep -v grep|grep --color=always redis-server && ps -ef|grep -v grep|grep -c redis-server && echo "以上数字为1，则说明redis-server服务进程数正常"'
+alias redisPort='netstat -tunlp|grep -v grep|grep --color=always redis-server && echo "正常监听 {{ REDIS_LISTEN_PORT }} 则说明redis-server端口正常"'
+# Redis主从模式命令行
+alias cmdRedis='{{ REDIS_BASE_DIR }}/bin/redis-cli -p {{ REDIS_LISTEN_PORT }} -a {{ REDIS_PASSWORD }}'
+##############################################
+
+{% if REDIS_SENTINEL_APP_NAME is defined %}
+##############################################
+# 哨兵模式下的查看Redis服务进程和端口状态
+alias redisSentinelStatus='ps -ef|grep -v grep|grep --color=always redis-server && ps -ef|grep -v grep|grep -c redis-server && echo "以上数字为2，则说明redis-server哨兵模式进程数正常"'
+alias redisSentinelPort='netstat -tunlp|grep -v grep|grep --color=always redis-server|grep --color=always -E "{{ REDIS_LISTEN_PORT }}|{{ REDIS_SENTINEL_LISTEN_PORT }}" && echo "正常监听 {{ REDIS_LISTEN_PORT }} 和 {{ REDIS_SENTINEL_LISTEN_PORT }} 则说明redis-server哨兵模式端口正常"'
+# Redis哨兵模式命令行
+alias cmdRedisSentinel='{{ REDIS_BASE_DIR }}/bin/redis-cli -p {{ REDIS_SENTINEL_LISTEN_PORT }} -a {{ REDIS_PASSWORD }}'
+##############################################
+{% endif %}
+
+{% if REDIS_CLUSTER_APP_NAME is defined %}
+##############################################
+# 集群模式下的查看Redis服务进程和端口状态
+alias redisClusterStatus='ps -ef|grep -v grep|grep --color=always redis-server && ps -ef|grep -v grep|grep -c redis-server && echo "以上数字为2，则说明redis-server集群模式进程数正常"'
+alias redisClusterPort='netstat -tunlp|grep -v grep|grep --color=always redis-server|grep --color=always -E "{{ REDIS_LISTEN_PORT }}|{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}" && echo "正常监听 {{ REDIS_LISTEN_PORT }} 和 {{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }} 则说明redis-server集群模式端口正常"'
+# Redis集群模式命令行
+alias cmdRedisCluster='{{ REDIS_BASE_DIR }}/bin/redis-cli -p {{ REDIS_LISTEN_PORT }} -a {{ REDIS_PASSWORD }} -c'
+##############################################
+{% endif %}
+
+```
+
+在快捷命令模板文件中第21行和31行，分别增加了`if REDIS_SENTINEL_APP_NAME is defined`和`if REDIS_CLUSTER_APP_NAME is defined`判断语句，用于确认到底设置哨兵模式下的快捷命令还是设置集群模式下的快捷命令。
+
+
+
+
+
+
+
+
 
 
 参考：
