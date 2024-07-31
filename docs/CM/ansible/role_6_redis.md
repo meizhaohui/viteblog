@@ -4514,6 +4514,36 @@ alias cmdRedisCluster='{{ REDIS_BASE_DIR }}/bin/redis-cli -p {{ REDIS_LISTEN_POR
 
 
 
+#### 3.4.6 supervisor应用配置文件修改
+
+由于在3.3.4节已经修改了`roles/redis/templates/redis.ini.j2`文件，并增加了启动优先级参数配置`priority = 991`。这个配置在集群模式下不用再修改。
+
+新增一个集群模板下的从节点的supervisor应用配置文件`roles/redis/templates/redis-cluster.ini.j2`：
+
+```ini
+# roles/redis/templates/redis-cluster.ini.j2
+[program:{{ REDIS_CLUSTER_APP_NAME }}]
+command = {{ REDIS_BASE_DIR }}/bin/redis-server {{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.conf
+directory = {{ REDIS_BASE_DIR }}
+user = {{ REDIS_RUNNING_USER }}
+stdout_logfile = {{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.log
+stdout_logfile_maxbytes = 50MB
+stdout_logfile_backups = 10
+redirect_stderr = true
+autorestart = true
+autostart = true
+# 设置优先级，程序启停的优先级，数字越小优先级越高，默认999
+# 集群从节点程序要在主节点启动后再启动
+priority = 992
+
+```
+
+也就是先启动集群master主节点后，再启动slave从节点。
+
+
+
+
+
 
 
 
