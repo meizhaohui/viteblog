@@ -4716,6 +4716,62 @@ appendfilename "appendonly_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.aof"
 - 当`REDIS_SENTINEL_APP_NAME`变量定义了，`REDIS_CLUSTER_APP_NAME`变量未定义时，就按哨兵模式部署。
 - 当`REDIS_SENTINEL_APP_NAME`变量未定义，`REDIS_CLUSTER_APP_NAME`变量定义了时，就按集群模式部署。
 
+
+
+此时优化后的`hosts.ini`配置文件如下：
+
+```ini
+[supervisorhosts]
+192.168.56.121 hostname=ansible-node1
+192.168.56.122 hostname=ansible-node2
+192.168.56.123 hostname=ansible-node3
+
+[redishosts]
+# !!!! redis部署的时候，三种类型不能都配置，应选择其中一种配置
+
+# 类型1，主从模式配置
+# REDIS_ROLE 代表主从节点的角色
+#   REDIS_ROLE=master 则表明该节点部署redis主节点
+#   REDIS_ROLE=slave  则表明该节点部署redis从节点
+# REDIS_APP_NAME          代表使用supervisor管理的redis主从应用的名称，主从模式时，必须配置这个环境变量
+# REDIS_SENTINEL_APP_NAME 代表使用supervisor管理的redis哨兵应用的名称，哨兵模式时，必须配置这个环境变量
+# 192.168.56.121 hostname=ansible-node1 REDIS_ROLE=master
+# 192.168.56.122 hostname=ansible-node2 REDIS_ROLE=slave
+# 192.168.56.123 hostname=ansible-node3 REDIS_ROLE=slave
+#----------------------------------------------------------------------------------------------------------
+
+
+#----------------------------------------------------------------------------------------------------------
+# 类型2，哨兵模式配置
+# REDIS_ROLE 代表主从节点的角色
+#   REDIS_ROLE=master 则表明该节点部署redis主节点
+#   REDIS_ROLE=slave  则表明该节点部署redis从节点
+# REDIS_APP_NAME          代表使用supervisor管理的redis主从应用的名称，主从模式时，必须配置这个环境变量
+# REDIS_SENTINEL_APP_NAME 代表使用supervisor管理的redis哨兵应用的名称，哨兵模式时，必须配置这个环境变量
+# 192.168.56.121 hostname=ansible-node1 REDIS_ROLE=master REDIS_APP_NAME=redis-master REDIS_SENTINEL_APP_NAME=sentinel1
+# 192.168.56.122 hostname=ansible-node2 REDIS_ROLE=slave  REDIS_APP_NAME=redis-slave1 REDIS_SENTINEL_APP_NAME=sentinel2
+# 192.168.56.123 hostname=ansible-node3 REDIS_ROLE=slave  REDIS_APP_NAME=redis-slave2 REDIS_SENTINEL_APP_NAME=sentinel3
+#----------------------------------------------------------------------------------------------------------
+
+
+#----------------------------------------------------------------------------------------------------------
+# 类型3，集群模式配置
+# REDIS_ROLE 代表主从节点的角色
+#   REDIS_ROLE=master 则表明该节点部署redis主节点
+#   REDIS_ROLE=slave  则表明该节点部署redis从节点
+# REDIS_APP_NAME          代表使用supervisor管理的redis主从应用master的名称，主从模式时，必须配置这个环境变量
+# REDIS_CLUSTER_APP_NAME  代表使用supervisor管理的redis集群应用slave的名称， 集群模式时，必须配置这个环境变量
+192.168.56.121 hostname=ansible-node1 REDIS_ROLE=master REDIS_APP_NAME=redis-cluster-1 REDIS_CLUSTER_APP_NAME=redis-cluster-2
+192.168.56.122 hostname=ansible-node2 REDIS_ROLE=master REDIS_APP_NAME=redis-cluster-3 REDIS_CLUSTER_APP_NAME=redis-cluster-4
+192.168.56.123 hostname=ansible-node3 REDIS_ROLE=master REDIS_APP_NAME=redis-cluster-5 REDIS_CLUSTER_APP_NAME=redis-cluster-6
+#----------------------------------------------------------------------------------------------------------
+
+```
+
+
+
+
+
 整体修改完成后，就可以再执行一次剧本：
 
 ```sh
@@ -5082,7 +5138,7 @@ cluster_stats_messages_received:638
 
 
 
-#### 3.4.9  测试集群模式的自动切换
+#### 3.4.9  测试集群模式读写
 
 编写一个python连接集群模式的程序`test_redis_3master_3slave_cluster.py`:
 
