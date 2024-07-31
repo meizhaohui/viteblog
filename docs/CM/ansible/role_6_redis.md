@@ -5074,7 +5074,7 @@ cluster_stats_messages_received:638
 127.0.0.1:29736>
 ```
 
-可以看到快捷命令可以使用，但`redisStatus`和`redisPort`的输出稍微有点不对，因为这两个命令之前是给Redis主从节点配置的。
+可以看到快捷命令可以使用，但`redisStatus`和`redisPort`的输出稍微有点不对，因为这两个命令之前是给Redis主从节点配置的。（少许差异此处不作修复，可以手动修改一下！）
 
 而`cmdRedisCluster`是正常可以用的。
 
