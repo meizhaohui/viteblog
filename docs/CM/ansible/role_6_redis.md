@@ -4430,17 +4430,17 @@ REDIS_CLUSTER_SLAVE_LISTEN_PORT: 29737
 
 
 
-增加集群程序配置文件模板`roles/redis/templates/redis-cluster.conf.j2`，差不多是直接从文件模板`roles/redis/templates/redis.conf.j2`复制过来的，只有少许修改，主要是跟端口`REDIS_CLUSTER_SLAVE_LISTEN_PORT`相关的配置:
+增加集群程序配置文件模板`roles/redis/templates/redis-cluster.conf.j2`，差不多是直接从文件模板`roles/redis/templates/redis.conf.j2`复制过来的，只有少许修改，主要是跟端口`REDIS_CLUSTER_LISTEN_PORT`相关的配置:
 
 ```sh
-[root@ansible ansible_playbooks]# grep REDIS_CLUSTER_SLAVE_LISTEN_PORT roles/redis/templates/redis-cluster.conf.j2
-#   建议修改为10000以上，60000以下的端口，我这里设置为{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}
-port {{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}
-pidfile {{ REDIS_BASE_DIR }}/pid/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.pid
-# logfile "/srv/redis/logs/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.log"
-logfile "{{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.log"
-dbfilename dump_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.rdb
-appendfilename "appendonly_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.aof"
+[root@ansible ansible_playbooks]# grep REDIS_CLUSTER_LISTEN_PORT roles/redis/templates/redis-cluster.conf.j2
+#   建议修改为10000以上，60000以下的端口，我这里设置为{{ REDIS_CLUSTER_LISTEN_PORT }}
+port {{ REDIS_CLUSTER_LISTEN_PORT }}
+pidfile {{ REDIS_BASE_DIR }}/pid/redis_{{ REDIS_CLUSTER_LISTEN_PORT }}.pid
+# logfile "/srv/redis/logs/redis_{{ REDIS_CLUSTER_LISTEN_PORT }}.log"
+logfile "{{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_CLUSTER_LISTEN_PORT }}.log"
+dbfilename dump_{{ REDIS_CLUSTER_LISTEN_PORT }}.rdb
+appendfilename "appendonly_{{ REDIS_CLUSTER_LISTEN_PORT }}.aof"
 [root@ansible ansible_playbooks]#
 ```
 
@@ -4542,7 +4542,599 @@ priority = 992
 
 
 
+#### 3.4.7 增加集群程序任务配置文件
 
+增加集群程序任务配置文件`roles/redis/tasks/redis-cluster.yaml`:
+
+```yaml
+---
+# roles/redis/tasks/redis-cluster.yaml
+- name: Display the redis password
+  ansible.builtin.debug:
+    msg: "{{ REDIS_PASSWORD }}"
+  changed_when: false
+
+- name: Copy cluster redis-cluster.conf file
+  ansible.builtin.template:
+    # 这个地方注意，如果使用with_items来循环变量，
+    # 则在模板文件redis-cluster.conf.j2中是使用`{{ item }}` 来代替端口号变量的
+    # 为了让模板文件里面的意义更明确，我使用loop方式来循环变量
+    # 然后使用loop_control来设置loop_var来代替item变量，并配置到模板文件中
+    # 详细可参考 https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_loops.html#accessing-the-name-of-your-loop-var
+    src: redis-cluster.conf.j2
+    # dest: "{{ REDIS_BASE_DIR }}/conf/redis_{{ item }}.conf"
+    dest: "{{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_CLUSTER_LISTEN_PORT }}.conf"
+    mode: '0600'
+    force: yes
+    remote_src: no
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
+  # with_items:
+  loop:
+    - "{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}"
+  loop_control:
+    loop_var: REDIS_CLUSTER_LISTEN_PORT
+
+- name: Set redis cluster info
+  ansible.builtin.blockinfile:
+    path: "{{ REDIS_BASE_DIR }}/conf/redis_{{ item }}.conf"
+    # 默认将redishosts组中第一个节点作为master节点
+    # 注意此处sentinel monitor mymaster后面要用 REDIS_LISTEN_PORT 这个变量
+    block: |
+      # 开启集群模式
+      cluster-enabled yes
+      # 集群内部配置文件名称，由redis自动管理
+      cluster-config-file nodes-{{ item }}.conf
+      # 节点超时时间，单位毫秒
+      cluster-node-timeout 15000
+    # 注意，需要设置不同的marker标记，否则会修改以前存在的默认标记
+    marker: "# {mark} meizhaohui add sentinel monitor info"
+  loop:
+    - "{{ REDIS_LISTEN_PORT }}"
+    - "{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}"
+
+- name: Change the redis log file Permission
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: touch
+    mode: '0644'
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
+  with_items:
+    - "{{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.log"
+
+- name: Copy redis cluster app config
+  ansible.builtin.template:
+    src: redis-cluster.ini.j2
+    dest: /etc/supervisord.d/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.ini
+    force: yes
+    backup: yes
+    remote_src: no
+
+- name: Start service supervisord, in all cases
+  ansible.builtin.service:
+    name: supervisord
+    state: restarted
+    # 开机启动
+    enabled: yes
+
+- name: Print create cluster command
+  ansible.builtin.debug:
+    # --cluster-yes 参数会自动地回答 "yes"
+    # 此除不自动创建集群，而是生成创建集群的命令，便于部署后，记录部署命令，方便后期查询Redis命令过程
+    msg: |
+        Please run the follow command to create cluster:
+        {{ REDIS_BASE_DIR }}/bin/redis-cli -a {{ REDIS_PASSWORD }} --cluster-yes --cluster-replicas 1 --cluster create {{ groups["redishosts"]|first }}:{{ REDIS_LISTEN_PORT }} {{ groups["redishosts"]|first }}:{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }} {{ groups["redishosts"][1] }}:{{ REDIS_LISTEN_PORT }} {{ groups["redishosts"][1] }}:{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }} {{ groups["redishosts"][2] }}:{{ REDIS_LISTEN_PORT }} {{ groups["redishosts"][2] }}:{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}
+  changed_when: false
+  # 委派给Redis第一个主机
+  delegate_to: "{{ groups['redishosts']|first }}"
+  # 且只运行一次
+  run_once: true
+
+```
+
+
+
+这一节的集群任务配置比较特别，最开始想着设置集群模式Ansible任务时不在主从模式的基础配置上配置，自己单独创建一个任务，用来设置集群主节点和从节点。所以有了最开始的`Copy cluster redis-cluster.conf file`任务来循环两个变量，一个是Redis集群模式下主程序监听端口`REDIS_CLUSTER_MASTER_LISTEN_PORT: 29736`，另一个是Redis集群模式下从程序监听端口`REDIS_CLUSTER_SLAVE_LISTEN_PORT: 29737`,此时就要根据端口不同，在Redis程序的配置文件里面使用不同的端口变量。因此就有了使用`loop`和`loop_control.loop_var`来设置循环变量名的任务配置。
+
+这个时候配置文件里面跟自定义循环变量`REDIS_CLUSTER_LISTEN_PORT`相关的配置：
+
+```sh
+[root@ansible ansible_playbooks]# grep REDIS_CLUSTER_LISTEN_PORT roles/redis/templates/redis-cluster.conf.j2
+#   建议修改为10000以上，60000以下的端口，我这里设置为{{ REDIS_CLUSTER_LISTEN_PORT }}
+port {{ REDIS_CLUSTER_LISTEN_PORT }}
+pidfile {{ REDIS_BASE_DIR }}/pid/redis_{{ REDIS_CLUSTER_LISTEN_PORT }}.pid
+# logfile "/srv/redis/logs/redis_{{ REDIS_CLUSTER_LISTEN_PORT }}.log"
+logfile "{{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_CLUSTER_LISTEN_PORT }}.log"
+dbfilename dump_{{ REDIS_CLUSTER_LISTEN_PORT }}.rdb
+appendfilename "appendonly_{{ REDIS_CLUSTER_LISTEN_PORT }}.aof"
+[root@ansible ansible_playbooks]#
+```
+
+
+
+后来发现，我不需要再单独配置三个节点上的Redis master任务，因为主从任务第一步就是这样做过了。
+
+如果`Copy cluster redis-cluster.conf file`任务不用`loop`循环，其实可以直接使用`REDIS_CLUSTER_SLAVE_LISTEN_PORT`这个变量配置即可。
+
+```yaml
+- name: Copy cluster redis-cluster.conf file
+  ansible.builtin.template:
+    src: redis-cluster.conf.j2
+    dest: "{{ REDIS_BASE_DIR }}/conf/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.conf"
+    mode: '0600'
+    force: yes
+    remote_src: no
+    owner: "{{ REDIS_RUNNING_USER }}"
+    group: "{{ REDIS_RUNNING_USER }}"
+```
+
+相应的任务就像上面这样简单。然后配置文件中跟端口相关的，就用`REDIS_CLUSTER_SLAVE_LISTEN_PORT`变量代替就行了。
+
+此时，只用将模板文件里面的`REDIS_CLUSTER_LISTEN_PORT`替换成`REDIS_CLUSTER_SLAVE_LISTEN_PORT`即可，就像下面这样：
+
+```sh
+[root@ansible ansible_playbooks]# grep REDIS_CLUSTER_SLAVE_LISTEN_PORT roles/redis/templates/redis-cluster.conf.j2
+#   建议修改为10000以上，60000以下的端口，我这里设置为{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}
+port {{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}
+pidfile {{ REDIS_BASE_DIR }}/pid/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.pid
+# logfile "/srv/redis/logs/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.log"
+logfile "{{ REDIS_BASE_DIR }}/logs/redis_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.log"
+dbfilename dump_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.rdb
+appendfilename "appendonly_{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}.aof"
+[root@ansible ansible_playbooks]#
+```
+
+#### 3.4.8  角色入口main.yml修改
+
+角色入口配置文件`roles/redis/tasks/main.yml`:
+
+```yaml
+---
+# roles/redis/tasks/main.yml
+# redis角色任务
+# 安装redis
+- include: redis.yaml
+# 优化系统设置
+- include: sysctl.yaml
+# 使用supervisor进程管理工具配置redis app
+- include: supervisor.yaml
+# 创建快捷命令
+- include: alias.yaml
+# 根据是否定义REDIS_SENTINEL_APP_NAME环境变量决定是否要部署Redis哨兵模式
+- name: Config redis sentinel tasks
+  include_tasks: redis-sentinel.yaml
+  when: REDIS_SENTINEL_APP_NAME is defined and REDIS_CLUSTER_APP_NAME is not defined
+# 根据是否定义REDIS_CLUSTER_APP_NAME环境变量决定是否要部署Redis集群模式
+- name: Config redis cluster tasks
+  include_tasks: redis-cluster.yaml
+  when: REDIS_SENTINEL_APP_NAME is not defined and REDIS_CLUSTER_APP_NAME is defined
+```
+
+由于哨兵模式和集群模式不能同时步骤，因此在角色入口中增加了两个`when`条件判断。
+
+- 当`REDIS_SENTINEL_APP_NAME`变量定义了，`REDIS_CLUSTER_APP_NAME`变量未定义时，就按哨兵模式部署。
+- 当`REDIS_SENTINEL_APP_NAME`变量未定义，`REDIS_CLUSTER_APP_NAME`变量定义了时，就按集群模式部署。
+
+整体修改完成后，就可以再执行一次剧本：
+
+```sh
+[root@ansible ansible_playbooks]# ansible-playbook -i hosts.ini redis.yml -v
+Using /etc/ansible/ansible.cfg as config file
+
+PLAY [redishosts] *************************************************************************************************************************************************************************************************************************************************************
+
+TASK [Gathering Facts] ********************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122]
+ok: [192.168.56.123]
+ok: [192.168.56.121]
+
+TASK [redis : Add the user with a specific shell] *****************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {"append": false, "changed": false, "comment": "Redis Database Server", "group": 1001, "home": "/home/redis", "move_home": false, "name": "redis", "shell": "/sbin/nologin", "state": "present", "uid": 1001}
+ok: [192.168.56.122] => {"append": false, "changed": false, "comment": "Redis Database Server", "group": 1001, "home": "/home/redis", "move_home": false, "name": "redis", "shell": "/sbin/nologin", "state": "present", "uid": 1001}
+ok: [192.168.56.123] => {"append": false, "changed": false, "comment": "Redis Database Server", "group": 1001, "home": "/home/redis", "move_home": false, "name": "redis", "shell": "/sbin/nologin", "state": "present", "uid": 1001}
+
+TASK [redis : Unarchive the source package] ***********************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.123] => {"changed": true, "dest": "/srv", "extract_results": {"cmd": ["/usr/bin/gtar", "--extract", "-C", "/srv", "-z", "--owner=redis", "--group=redis", "-f", "/root/.ansible/tmp/ansible-tmp-1722438276.17-3712-90570485465826/source"], "err": "", "out": "", "rc": 0}, "gid": 0, "group": "root", "handler": "TgzArchive", "mode": "0755", "owner": "root", "size": 79, "src": "/root/.ansible/tmp/ansible-tmp-1722438276.17-3712-90570485465826/source", "state": "directory", "uid": 0}
+changed: [192.168.56.122] => {"changed": true, "dest": "/srv", "extract_results": {"cmd": ["/usr/bin/gtar", "--extract", "-C", "/srv", "-z", "--owner=redis", "--group=redis", "-f", "/root/.ansible/tmp/ansible-tmp-1722438276.17-3710-113782554686148/source"], "err": "", "out": "", "rc": 0}, "gid": 0, "group": "root", "handler": "TgzArchive", "mode": "0755", "owner": "root", "size": 79, "src": "/root/.ansible/tmp/ansible-tmp-1722438276.17-3710-113782554686148/source", "state": "directory", "uid": 0}
+changed: [192.168.56.121] => {"changed": true, "dest": "/srv", "extract_results": {"cmd": ["/usr/bin/gtar", "--extract", "-C", "/srv", "-z", "--owner=redis", "--group=redis", "-f", "/root/.ansible/tmp/ansible-tmp-1722438276.15-3709-169842930830397/source"], "err": "", "out": "", "rc": 0}, "gid": 0, "group": "root", "handler": "TgzArchive", "mode": "0755", "owner": "root", "size": 62, "src": "/root/.ansible/tmp/ansible-tmp-1722438276.15-3709-169842930830397/source", "state": "directory", "uid": 0}
+
+TASK [redis : Create a symbolic link] *****************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.123] => {"changed": true, "dest": "/srv/redis", "gid": 0, "group": "root", "mode": "0777", "owner": "root", "size": 17, "src": "/srv/redis-6.2.14", "state": "link", "uid": 0}
+changed: [192.168.56.121] => {"changed": true, "dest": "/srv/redis", "gid": 0, "group": "root", "mode": "0777", "owner": "root", "size": 17, "src": "/srv/redis-6.2.14", "state": "link", "uid": 0}
+changed: [192.168.56.122] => {"changed": true, "dest": "/srv/redis", "gid": 0, "group": "root", "mode": "0777", "owner": "root", "size": 17, "src": "/srv/redis-6.2.14", "state": "link", "uid": 0}
+
+TASK [redis : Create a directory if it does not exist] ************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => (item=/srv/redis) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis", "mode": "0755", "owner": "redis", "path": "/srv/redis-6.2.14", "size": 17, "state": "directory", "uid": 1001}
+changed: [192.168.56.122] => (item=/srv/redis) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis", "mode": "0755", "owner": "redis", "path": "/srv/redis-6.2.14", "size": 17, "state": "directory", "uid": 1001}
+changed: [192.168.56.123] => (item=/srv/redis) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis", "mode": "0755", "owner": "redis", "path": "/srv/redis-6.2.14", "size": 17, "state": "directory", "uid": 1001}
+changed: [192.168.56.121] => (item=/srv/redis/conf) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis/conf", "mode": "0755", "owner": "redis", "path": "/srv/redis/conf", "size": 6, "state": "directory", "uid": 1001}
+changed: [192.168.56.122] => (item=/srv/redis/conf) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis/conf", "mode": "0755", "owner": "redis", "path": "/srv/redis/conf", "size": 6, "state": "directory", "uid": 1001}
+changed: [192.168.56.123] => (item=/srv/redis/conf) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis/conf", "mode": "0755", "owner": "redis", "path": "/srv/redis/conf", "size": 6, "state": "directory", "uid": 1001}
+changed: [192.168.56.121] => (item=/srv/redis/pid) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis/pid", "mode": "0755", "owner": "redis", "path": "/srv/redis/pid", "size": 6, "state": "directory", "uid": 1001}
+changed: [192.168.56.122] => (item=/srv/redis/pid) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis/pid", "mode": "0755", "owner": "redis", "path": "/srv/redis/pid", "size": 6, "state": "directory", "uid": 1001}
+changed: [192.168.56.123] => (item=/srv/redis/pid) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis/pid", "mode": "0755", "owner": "redis", "path": "/srv/redis/pid", "size": 6, "state": "directory", "uid": 1001}
+changed: [192.168.56.121] => (item=/srv/redis/logs) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis/logs", "mode": "0755", "owner": "redis", "path": "/srv/redis/logs", "size": 6, "state": "directory", "uid": 1001}
+changed: [192.168.56.122] => (item=/srv/redis/logs) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis/logs", "mode": "0755", "owner": "redis", "path": "/srv/redis/logs", "size": 6, "state": "directory", "uid": 1001}
+changed: [192.168.56.123] => (item=/srv/redis/logs) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis/logs", "mode": "0755", "owner": "redis", "path": "/srv/redis/logs", "size": 6, "state": "directory", "uid": 1001}
+changed: [192.168.56.121] => (item=/srv/redis/data) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis/data", "mode": "0755", "owner": "redis", "path": "/srv/redis/data", "size": 6, "state": "directory", "uid": 1001}
+changed: [192.168.56.122] => (item=/srv/redis/data) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis/data", "mode": "0755", "owner": "redis", "path": "/srv/redis/data", "size": 6, "state": "directory", "uid": 1001}
+changed: [192.168.56.123] => (item=/srv/redis/data) => {"ansible_loop_var": "item", "changed": true, "gid": 1001, "group": "redis", "item": "/srv/redis/data", "mode": "0755", "owner": "redis", "path": "/srv/redis/data", "size": 6, "state": "directory", "uid": 1001}
+
+TASK [redis : Create a random password] ***************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121 -> localhost] => {"ansible_facts": {"REDIS_PASSWORD": "fKYeyA5br3rL7hN.nVykeyz:cFfhn5G,NJ_WwPbpRA5c5xdi66s1gyuvYZMVi8E6.rvGN4Hft_0.:pKbB6kfLWend96MvJgWNyNd386xnwV1NDHHMeGnB-rs7xneAL2R"}, "changed": false}
+
+TASK [Display the redis password] *********************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {
+    "msg": "fKYeyA5br3rL7hN.nVykeyz:cFfhn5G,NJ_WwPbpRA5c5xdi66s1gyuvYZMVi8E6.rvGN4Hft_0.:pKbB6kfLWend96MvJgWNyNd386xnwV1NDHHMeGnB-rs7xneAL2R"
+}
+ok: [192.168.56.122] => {
+    "msg": "fKYeyA5br3rL7hN.nVykeyz:cFfhn5G,NJ_WwPbpRA5c5xdi66s1gyuvYZMVi8E6.rvGN4Hft_0.:pKbB6kfLWend96MvJgWNyNd386xnwV1NDHHMeGnB-rs7xneAL2R"
+}
+ok: [192.168.56.123] => {
+    "msg": "fKYeyA5br3rL7hN.nVykeyz:cFfhn5G,NJ_WwPbpRA5c5xdi66s1gyuvYZMVi8E6.rvGN4Hft_0.:pKbB6kfLWend96MvJgWNyNd386xnwV1NDHHMeGnB-rs7xneAL2R"
+}
+
+TASK [Copy redis.conf file] ***************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.122] => {"changed": true, "checksum": "980092dc52696352ac293e540c41d136f2d5cd16", "dest": "/srv/redis/conf/redis_29736.conf", "gid": 1001, "group": "redis", "md5sum": "5e90d4ac18075b4117ace021d2f41229", "mode": "0600", "owner": "redis", "size": 143862, "src": "/root/.ansible/tmp/ansible-tmp-1722438279.59-3904-106712456085095/source", "state": "file", "uid": 1001}
+changed: [192.168.56.123] => {"changed": true, "checksum": "a821a334242c9ea24fd69a8d74cc4a2ddb0cf74f", "dest": "/srv/redis/conf/redis_29736.conf", "gid": 1001, "group": "redis", "md5sum": "5b5c03adbe2a4a62bc6db8a8acdbe53b", "mode": "0600", "owner": "redis", "size": 143862, "src": "/root/.ansible/tmp/ansible-tmp-1722438279.61-3905-3570142264372/source", "state": "file", "uid": 1001}
+changed: [192.168.56.121] => {"changed": true, "checksum": "f6b51861b7a18be98ed91c6beae308ccd40e17c1", "dest": "/srv/redis/conf/redis_29736.conf", "gid": 1001, "group": "redis", "md5sum": "3d72ee68a72632a4afbef70ef4946933", "mode": "0600", "owner": "redis", "size": 143862, "src": "/root/.ansible/tmp/ansible-tmp-1722438279.6-3903-277467351838764/source", "state": "file", "uid": 1001}
+
+TASK [redis : Set replicaof masterip masterport info] *************************************************************************************************************************************************************************************************************************
+skipping: [192.168.56.121] => {"changed": false, "skip_reason": "Conditional result was False"}
+skipping: [192.168.56.122] => {"changed": false, "skip_reason": "Conditional result was False"}
+skipping: [192.168.56.123] => {"changed": false, "skip_reason": "Conditional result was False"}
+
+TASK [redis : Set masterauth master-password info] ****************************************************************************************************************************************************************************************************************************
+skipping: [192.168.56.121] => {"changed": false, "skip_reason": "Conditional result was False"}
+skipping: [192.168.56.122] => {"changed": false, "skip_reason": "Conditional result was False"}
+skipping: [192.168.56.123] => {"changed": false, "skip_reason": "Conditional result was False"}
+
+TASK [Change the redis log file Permission] ***********************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => (item=/srv/redis/logs/redis_29736.log) => {"ansible_loop_var": "item", "changed": true, "dest": "/srv/redis/logs/redis_29736.log", "gid": 1001, "group": "redis", "item": "/srv/redis/logs/redis_29736.log", "mode": "0644", "owner": "redis", "size": 0, "state": "file", "uid": 1001}
+changed: [192.168.56.122] => (item=/srv/redis/logs/redis_29736.log) => {"ansible_loop_var": "item", "changed": true, "dest": "/srv/redis/logs/redis_29736.log", "gid": 1001, "group": "redis", "item": "/srv/redis/logs/redis_29736.log", "mode": "0644", "owner": "redis", "size": 0, "state": "file", "uid": 1001}
+changed: [192.168.56.123] => (item=/srv/redis/logs/redis_29736.log) => {"ansible_loop_var": "item", "changed": true, "dest": "/srv/redis/logs/redis_29736.log", "gid": 1001, "group": "redis", "item": "/srv/redis/logs/redis_29736.log", "mode": "0644", "owner": "redis", "size": 0, "state": "file", "uid": 1001}
+
+TASK [redis : Set vm.overcommit_memory value] *********************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122] => {"changed": false}
+ok: [192.168.56.123] => {"changed": false}
+ok: [192.168.56.121] => {"changed": false}
+
+TASK [redis : Set net.core.somaxconn value] ***********************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122] => {"changed": false}
+ok: [192.168.56.121] => {"changed": false}
+ok: [192.168.56.123] => {"changed": false}
+
+TASK [Set redis open files] ***************************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122] => {"changed": false, "msg": ""}
+ok: [192.168.56.121] => {"changed": false, "msg": ""}
+ok: [192.168.56.123] => {"changed": false, "msg": ""}
+
+TASK [Copy redis app config] **************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => {"changed": true, "checksum": "e010505123d4902d0b111b152967c20d945d877e", "dest": "/etc/supervisord.d/redis_29736.ini", "gid": 0, "group": "root", "md5sum": "a4bb01a35d72b9d92eb873a6e934598a", "mode": "0644", "owner": "root", "size": 439, "src": "/root/.ansible/tmp/ansible-tmp-1722438282.04-4071-191268302655959/source", "state": "file", "uid": 0}
+changed: [192.168.56.123] => {"changed": true, "checksum": "d1387c58d0b676d8c1c5d31627d52e7a3ae1d395", "dest": "/etc/supervisord.d/redis_29736.ini", "gid": 0, "group": "root", "md5sum": "d6c2cfa3fd42b39297fd5ab00d69e4de", "mode": "0644", "owner": "root", "size": 439, "src": "/root/.ansible/tmp/ansible-tmp-1722438282.06-4074-170174061044641/source", "state": "file", "uid": 0}
+changed: [192.168.56.122] => {"changed": true, "checksum": "72185daa846522823689a7f6d62df55ad7ee4b9d", "dest": "/etc/supervisord.d/redis_29736.ini", "gid": 0, "group": "root", "md5sum": "3e2f53bc88c9aaafeed3f3549247f3da", "mode": "0644", "owner": "root", "size": 439, "src": "/root/.ansible/tmp/ansible-tmp-1722438282.05-4072-114502681878553/source", "state": "file", "uid": 0}
+
+TASK [redis : Start service supervisord, in all cases] ************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.123] => {"changed": true, "enabled": true, "name": "supervisord", "state": "started", "status": {"ActiveEnterTimestamp": "Wed 2024-07-31 22:17:05 CST", "ActiveEnterTimestampMonotonic": "2592716734", "ActiveExitTimestamp": "Wed 2024-07-31 22:17:05 CST", "ActiveExitTimestampMonotonic": "2592493536", "ActiveState": "active", "After": "systemd-journald.socket system.slice nss-user-lookup.target rc-local.service basic.target", "AllowIsolate": "no", "AmbientCapabilities": "0", "AssertResult": "yes", "AssertTimestamp": "Wed 2024-07-31 22:17:05 CST", "AssertTimestampMonotonic": "2592591538", "Before": "shutdown.target multi-user.target", "BlockIOAccounting": "no", "BlockIOWeight": "18446744073709551615", "CPUAccounting": "no", "CPUQuotaPerSecUSec": "infinity", "CPUSchedulingPolicy": "0", "CPUSchedulingPriority": "0", "CPUSchedulingResetOnFork": "no", "CPUShares": "18446744073709551615", "CanIsolate": "no", "CanReload": "no", "CanStart": "yes", "CanStop": "yes", "CapabilityBoundingSet": "18446744073709551615", "CollectMode": "inactive", "ConditionResult": "yes", "ConditionTimestamp": "Wed 2024-07-31 22:17:05 CST", "ConditionTimestampMonotonic": "2592591537", "Conflicts": "shutdown.target", "ControlGroup": "/system.slice/supervisord.service", "ControlPID": "0", "DefaultDependencies": "yes", "Delegate": "no", "Description": "Process Monitoring and Control Daemon", "DevicePolicy": "auto", "ExecMainCode": "0", "ExecMainExitTimestampMonotonic": "0", "ExecMainPID": "4580", "ExecMainStartTimestamp": "Wed 2024-07-31 22:17:05 CST", "ExecMainStartTimestampMonotonic": "2592716717", "ExecMainStatus": "0", "ExecStart": "{ path=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord ; argv[]=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf ; ignore_errors=no ; start_time=[Wed 2024-07-31 22:17:05 CST] ; stop_time=[Wed 2024-07-31 22:17:05 CST] ; pid=4578 ; code=exited ; status=0 }", "FailureAction": "none", "FileDescriptorStoreMax": "0", "FragmentPath": "/usr/lib/systemd/system/supervisord.service", "GuessMainPID": "yes", "IOScheduling": "0", "Id": "supervisord.service", "IgnoreOnIsolate": "no", "IgnoreOnSnapshot": "no", "IgnoreSIGPIPE": "yes", "InactiveEnterTimestamp": "Wed 2024-07-31 22:17:05 CST", "InactiveEnterTimestampMonotonic": "2592591280", "InactiveExitTimestamp": "Wed 2024-07-31 22:17:05 CST", "InactiveExitTimestampMonotonic": "2592591832", "JobTimeoutAction": "none", "JobTimeoutUSec": "0", "KillMode": "control-group", "KillSignal": "15", "LimitAS": "18446744073709551615", "LimitCORE": "18446744073709551615", "LimitCPU": "18446744073709551615", "LimitDATA": "18446744073709551615", "LimitFSIZE": "18446744073709551615", "LimitLOCKS": "18446744073709551615", "LimitMEMLOCK": "65536", "LimitMSGQUEUE": "819200", "LimitNICE": "0", "LimitNOFILE": "65535", "LimitNPROC": "7259", "LimitRSS": "18446744073709551615", "LimitRTPRIO": "0", "LimitRTTIME": "18446744073709551615", "LimitSIGPENDING": "7259", "LimitSTACK": "18446744073709551615", "LoadState": "loaded", "MainPID": "4580", "MemoryAccounting": "no", "MemoryCurrent": "18446744073709551615", "MemoryLimit": "18446744073709551615", "MountFlags": "0", "Names": "supervisord.service", "NeedDaemonReload": "no", "Nice": "0", "NoNewPrivileges": "no", "NonBlocking": "no", "NotifyAccess": "none", "OOMScoreAdjust": "0", "OnFailureJobMode": "replace", "PermissionsStartOnly": "no", "PrivateDevices": "no", "PrivateNetwork": "no", "PrivateTmp": "no", "ProtectHome": "no", "ProtectSystem": "no", "RefuseManualStart": "no", "RefuseManualStop": "no", "RemainAfterExit": "no", "Requires": "basic.target system.slice", "Restart": "no", "RestartUSec": "100ms", "Result": "success", "RootDirectoryStartOnly": "no", "RuntimeDirectoryMode": "0755", "SameProcessGroup": "no", "SecureBits": "0", "SendSIGHUP": "no", "SendSIGKILL": "yes", "Slice": "system.slice", "StandardError": "inherit", "StandardInput": "null", "StandardOutput": "journal", "StartLimitAction": "none", "StartLimitBurst": "5", "StartLimitInterval": "10000000", "StartupBlockIOWeight": "18446744073709551615", "StartupCPUShares": "18446744073709551615", "StatusErrno": "0", "StopWhenUnneeded": "no", "SubState": "running", "SyslogLevelPrefix": "yes", "SyslogPriority": "30", "SystemCallErrorNumber": "0", "TTYReset": "no", "TTYVHangup": "no", "TTYVTDisallocate": "no", "TasksAccounting": "no", "TasksCurrent": "18446744073709551615", "TasksMax": "18446744073709551615", "TimeoutStartUSec": "1min 30s", "TimeoutStopUSec": "1min 30s", "TimerSlackNSec": "50000", "Transient": "no", "Type": "forking", "UMask": "0022", "UnitFilePreset": "disabled", "UnitFileState": "enabled", "WantedBy": "multi-user.target", "WatchdogTimestamp": "Wed 2024-07-31 22:17:05 CST", "WatchdogTimestampMonotonic": "2592716725", "WatchdogUSec": "0"}}
+changed: [192.168.56.122] => {"changed": true, "enabled": true, "name": "supervisord", "state": "started", "status": {"ActiveEnterTimestamp": "Wed 2024-07-31 22:17:05 CST", "ActiveEnterTimestampMonotonic": "2594915411", "ActiveExitTimestamp": "Wed 2024-07-31 22:17:05 CST", "ActiveExitTimestampMonotonic": "2594724784", "ActiveState": "active", "After": "system.slice nss-user-lookup.target systemd-journald.socket basic.target rc-local.service", "AllowIsolate": "no", "AmbientCapabilities": "0", "AssertResult": "yes", "AssertTimestamp": "Wed 2024-07-31 22:17:05 CST", "AssertTimestampMonotonic": "2594791251", "Before": "shutdown.target multi-user.target", "BlockIOAccounting": "no", "BlockIOWeight": "18446744073709551615", "CPUAccounting": "no", "CPUQuotaPerSecUSec": "infinity", "CPUSchedulingPolicy": "0", "CPUSchedulingPriority": "0", "CPUSchedulingResetOnFork": "no", "CPUShares": "18446744073709551615", "CanIsolate": "no", "CanReload": "no", "CanStart": "yes", "CanStop": "yes", "CapabilityBoundingSet": "18446744073709551615", "CollectMode": "inactive", "ConditionResult": "yes", "ConditionTimestamp": "Wed 2024-07-31 22:17:05 CST", "ConditionTimestampMonotonic": "2594791251", "Conflicts": "shutdown.target", "ControlGroup": "/system.slice/supervisord.service", "ControlPID": "0", "DefaultDependencies": "yes", "Delegate": "no", "Description": "Process Monitoring and Control Daemon", "DevicePolicy": "auto", "ExecMainCode": "0", "ExecMainExitTimestampMonotonic": "0", "ExecMainPID": "4554", "ExecMainStartTimestamp": "Wed 2024-07-31 22:17:05 CST", "ExecMainStartTimestampMonotonic": "2594915393", "ExecMainStatus": "0", "ExecStart": "{ path=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord ; argv[]=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf ; ignore_errors=no ; start_time=[Wed 2024-07-31 22:17:05 CST] ; stop_time=[Wed 2024-07-31 22:17:05 CST] ; pid=4553 ; code=exited ; status=0 }", "FailureAction": "none", "FileDescriptorStoreMax": "0", "FragmentPath": "/usr/lib/systemd/system/supervisord.service", "GuessMainPID": "yes", "IOScheduling": "0", "Id": "supervisord.service", "IgnoreOnIsolate": "no", "IgnoreOnSnapshot": "no", "IgnoreSIGPIPE": "yes", "InactiveEnterTimestamp": "Wed 2024-07-31 22:17:05 CST", "InactiveEnterTimestampMonotonic": "2594790828", "InactiveExitTimestamp": "Wed 2024-07-31 22:17:05 CST", "InactiveExitTimestampMonotonic": "2594791625", "JobTimeoutAction": "none", "JobTimeoutUSec": "0", "KillMode": "control-group", "KillSignal": "15", "LimitAS": "18446744073709551615", "LimitCORE": "18446744073709551615", "LimitCPU": "18446744073709551615", "LimitDATA": "18446744073709551615", "LimitFSIZE": "18446744073709551615", "LimitLOCKS": "18446744073709551615", "LimitMEMLOCK": "65536", "LimitMSGQUEUE": "819200", "LimitNICE": "0", "LimitNOFILE": "65535", "LimitNPROC": "7259", "LimitRSS": "18446744073709551615", "LimitRTPRIO": "0", "LimitRTTIME": "18446744073709551615", "LimitSIGPENDING": "7259", "LimitSTACK": "18446744073709551615", "LoadState": "loaded", "MainPID": "4554", "MemoryAccounting": "no", "MemoryCurrent": "18446744073709551615", "MemoryLimit": "18446744073709551615", "MountFlags": "0", "Names": "supervisord.service", "NeedDaemonReload": "no", "Nice": "0", "NoNewPrivileges": "no", "NonBlocking": "no", "NotifyAccess": "none", "OOMScoreAdjust": "0", "OnFailureJobMode": "replace", "PermissionsStartOnly": "no", "PrivateDevices": "no", "PrivateNetwork": "no", "PrivateTmp": "no", "ProtectHome": "no", "ProtectSystem": "no", "RefuseManualStart": "no", "RefuseManualStop": "no", "RemainAfterExit": "no", "Requires": "basic.target system.slice", "Restart": "no", "RestartUSec": "100ms", "Result": "success", "RootDirectoryStartOnly": "no", "RuntimeDirectoryMode": "0755", "SameProcessGroup": "no", "SecureBits": "0", "SendSIGHUP": "no", "SendSIGKILL": "yes", "Slice": "system.slice", "StandardError": "inherit", "StandardInput": "null", "StandardOutput": "journal", "StartLimitAction": "none", "StartLimitBurst": "5", "StartLimitInterval": "10000000", "StartupBlockIOWeight": "18446744073709551615", "StartupCPUShares": "18446744073709551615", "StatusErrno": "0", "StopWhenUnneeded": "no", "SubState": "running", "SyslogLevelPrefix": "yes", "SyslogPriority": "30", "SystemCallErrorNumber": "0", "TTYReset": "no", "TTYVHangup": "no", "TTYVTDisallocate": "no", "TasksAccounting": "no", "TasksCurrent": "18446744073709551615", "TasksMax": "18446744073709551615", "TimeoutStartUSec": "1min 30s", "TimeoutStopUSec": "1min 30s", "TimerSlackNSec": "50000", "Transient": "no", "Type": "forking", "UMask": "0022", "UnitFilePreset": "disabled", "UnitFileState": "enabled", "WantedBy": "multi-user.target", "WatchdogTimestamp": "Wed 2024-07-31 22:17:05 CST", "WatchdogTimestampMonotonic": "2594915402", "WatchdogUSec": "0"}}
+changed: [192.168.56.121] => {"changed": true, "enabled": true, "name": "supervisord", "state": "started", "status": {"ActiveEnterTimestamp": "Wed 2024-07-31 22:17:05 CST", "ActiveEnterTimestampMonotonic": "2595749152", "ActiveExitTimestamp": "Wed 2024-07-31 22:17:05 CST", "ActiveExitTimestampMonotonic": "2595573329", "ActiveState": "active", "After": "system.slice basic.target systemd-journald.socket rc-local.service nss-user-lookup.target", "AllowIsolate": "no", "AmbientCapabilities": "0", "AssertResult": "yes", "AssertTimestamp": "Wed 2024-07-31 22:17:05 CST", "AssertTimestampMonotonic": "2595630632", "Before": "multi-user.target shutdown.target", "BlockIOAccounting": "no", "BlockIOWeight": "18446744073709551615", "CPUAccounting": "no", "CPUQuotaPerSecUSec": "infinity", "CPUSchedulingPolicy": "0", "CPUSchedulingPriority": "0", "CPUSchedulingResetOnFork": "no", "CPUShares": "18446744073709551615", "CanIsolate": "no", "CanReload": "no", "CanStart": "yes", "CanStop": "yes", "CapabilityBoundingSet": "18446744073709551615", "CollectMode": "inactive", "ConditionResult": "yes", "ConditionTimestamp": "Wed 2024-07-31 22:17:05 CST", "ConditionTimestampMonotonic": "2595630632", "Conflicts": "shutdown.target", "ControlGroup": "/system.slice/supervisord.service", "ControlPID": "0", "DefaultDependencies": "yes", "Delegate": "no", "Description": "Process Monitoring and Control Daemon", "DevicePolicy": "auto", "ExecMainCode": "0", "ExecMainExitTimestampMonotonic": "0", "ExecMainPID": "4587", "ExecMainStartTimestamp": "Wed 2024-07-31 22:17:05 CST", "ExecMainStartTimestampMonotonic": "2595749136", "ExecMainStatus": "0", "ExecStart": "{ path=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord ; argv[]=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf ; ignore_errors=no ; start_time=[Wed 2024-07-31 22:17:05 CST] ; stop_time=[Wed 2024-07-31 22:17:05 CST] ; pid=4586 ; code=exited ; status=0 }", "FailureAction": "none", "FileDescriptorStoreMax": "0", "FragmentPath": "/usr/lib/systemd/system/supervisord.service", "GuessMainPID": "yes", "IOScheduling": "0", "Id": "supervisord.service", "IgnoreOnIsolate": "no", "IgnoreOnSnapshot": "no", "IgnoreSIGPIPE": "yes", "InactiveEnterTimestamp": "Wed 2024-07-31 22:17:05 CST", "InactiveEnterTimestampMonotonic": "2595630431", "InactiveExitTimestamp": "Wed 2024-07-31 22:17:05 CST", "InactiveExitTimestampMonotonic": "2595630877", "JobTimeoutAction": "none", "JobTimeoutUSec": "0", "KillMode": "control-group", "KillSignal": "15", "LimitAS": "18446744073709551615", "LimitCORE": "18446744073709551615", "LimitCPU": "18446744073709551615", "LimitDATA": "18446744073709551615", "LimitFSIZE": "18446744073709551615", "LimitLOCKS": "18446744073709551615", "LimitMEMLOCK": "65536", "LimitMSGQUEUE": "819200", "LimitNICE": "0", "LimitNOFILE": "65535", "LimitNPROC": "31193", "LimitRSS": "18446744073709551615", "LimitRTPRIO": "0", "LimitRTTIME": "18446744073709551615", "LimitSIGPENDING": "31193", "LimitSTACK": "18446744073709551615", "LoadState": "loaded", "MainPID": "4587", "MemoryAccounting": "no", "MemoryCurrent": "18446744073709551615", "MemoryLimit": "18446744073709551615", "MountFlags": "0", "Names": "supervisord.service", "NeedDaemonReload": "no", "Nice": "0", "NoNewPrivileges": "no", "NonBlocking": "no", "NotifyAccess": "none", "OOMScoreAdjust": "0", "OnFailureJobMode": "replace", "PermissionsStartOnly": "no", "PrivateDevices": "no", "PrivateNetwork": "no", "PrivateTmp": "no", "ProtectHome": "no", "ProtectSystem": "no", "RefuseManualStart": "no", "RefuseManualStop": "no", "RemainAfterExit": "no", "Requires": "system.slice basic.target", "Restart": "no", "RestartUSec": "100ms", "Result": "success", "RootDirectoryStartOnly": "no", "RuntimeDirectoryMode": "0755", "SameProcessGroup": "no", "SecureBits": "0", "SendSIGHUP": "no", "SendSIGKILL": "yes", "Slice": "system.slice", "StandardError": "inherit", "StandardInput": "null", "StandardOutput": "journal", "StartLimitAction": "none", "StartLimitBurst": "5", "StartLimitInterval": "10000000", "StartupBlockIOWeight": "18446744073709551615", "StartupCPUShares": "18446744073709551615", "StatusErrno": "0", "StopWhenUnneeded": "no", "SubState": "running", "SyslogLevelPrefix": "yes", "SyslogPriority": "30", "SystemCallErrorNumber": "0", "TTYReset": "no", "TTYVHangup": "no", "TTYVTDisallocate": "no", "TasksAccounting": "no", "TasksCurrent": "18446744073709551615", "TasksMax": "18446744073709551615", "TimeoutStartUSec": "1min 30s", "TimeoutStopUSec": "1min 30s", "TimerSlackNSec": "50000", "Transient": "no", "Type": "forking", "UMask": "0022", "UnitFilePreset": "disabled", "UnitFileState": "enabled", "WantedBy": "multi-user.target", "WatchdogTimestamp": "Wed 2024-07-31 22:17:05 CST", "WatchdogTimestampMonotonic": "2595749144", "WatchdogUSec": "0"}}
+
+TASK [redis : Copy alias config] **********************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.123] => {"backup_file": "/root/.alias_redis.sh.5725.2024-07-31@23:04:44~", "changed": true, "checksum": "8440d69c007b7d7388ae44766e3a6b7bf8f69c6d", "dest": "/root/.alias_redis.sh", "gid": 0, "group": "root", "md5sum": "3217d6d8e5ae24dc9d2ebdff9a1c4241", "mode": "0644", "owner": "root", "size": 2099, "src": "/root/.ansible/tmp/ansible-tmp-1722438283.62-4151-50395483474870/source", "state": "file", "uid": 0}
+changed: [192.168.56.122] => {"backup_file": "/root/.alias_redis.sh.5776.2024-07-31@23:04:44~", "changed": true, "checksum": "8440d69c007b7d7388ae44766e3a6b7bf8f69c6d", "dest": "/root/.alias_redis.sh", "gid": 0, "group": "root", "md5sum": "3217d6d8e5ae24dc9d2ebdff9a1c4241", "mode": "0644", "owner": "root", "size": 2099, "src": "/root/.ansible/tmp/ansible-tmp-1722438283.61-4148-79565800441436/source", "state": "file", "uid": 0}
+changed: [192.168.56.121] => {"backup_file": "/root/.alias_redis.sh.5769.2024-07-31@23:04:44~", "changed": true, "checksum": "8440d69c007b7d7388ae44766e3a6b7bf8f69c6d", "dest": "/root/.alias_redis.sh", "gid": 0, "group": "root", "md5sum": "3217d6d8e5ae24dc9d2ebdff9a1c4241", "mode": "0644", "owner": "root", "size": 2099, "src": "/root/.ansible/tmp/ansible-tmp-1722438283.59-4146-28763835120711/source", "state": "file", "uid": 0}
+
+TASK [redis : Insert block to .bashrc] ****************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.122] => {"changed": false, "msg": ""}
+ok: [192.168.56.121] => {"changed": false, "msg": ""}
+ok: [192.168.56.123] => {"changed": false, "msg": ""}
+
+TASK [Config redis sentinel tasks] ********************************************************************************************************************************************************************************************************************************************
+skipping: [192.168.56.121] => {"changed": false, "skip_reason": "Conditional result was False"}
+skipping: [192.168.56.122] => {"changed": false, "skip_reason": "Conditional result was False"}
+skipping: [192.168.56.123] => {"changed": false, "skip_reason": "Conditional result was False"}
+
+TASK [Config redis cluster tasks] *********************************************************************************************************************************************************************************************************************************************
+included: /root/ansible_playbooks/roles/redis/tasks/redis-cluster.yaml for 192.168.56.121, 192.168.56.122, 192.168.56.123
+
+TASK [Display the redis password] *********************************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121] => {
+    "msg": "fKYeyA5br3rL7hN.nVykeyz:cFfhn5G,NJ_WwPbpRA5c5xdi66s1gyuvYZMVi8E6.rvGN4Hft_0.:pKbB6kfLWend96MvJgWNyNd386xnwV1NDHHMeGnB-rs7xneAL2R"
+}
+ok: [192.168.56.122] => {
+    "msg": "fKYeyA5br3rL7hN.nVykeyz:cFfhn5G,NJ_WwPbpRA5c5xdi66s1gyuvYZMVi8E6.rvGN4Hft_0.:pKbB6kfLWend96MvJgWNyNd386xnwV1NDHHMeGnB-rs7xneAL2R"
+}
+ok: [192.168.56.123] => {
+    "msg": "fKYeyA5br3rL7hN.nVykeyz:cFfhn5G,NJ_WwPbpRA5c5xdi66s1gyuvYZMVi8E6.rvGN4Hft_0.:pKbB6kfLWend96MvJgWNyNd386xnwV1NDHHMeGnB-rs7xneAL2R"
+}
+
+TASK [Copy cluster redis-cluster.conf file] ***********************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.122] => (item=29737) => {"REDIS_CLUSTER_LISTEN_PORT": 29737, "ansible_loop_var": "REDIS_CLUSTER_LISTEN_PORT", "changed": true, "checksum": "d28095a10ffebba0c29c3e5ff4570d9741769bb4", "dest": "/srv/redis/conf/redis_29737.conf", "gid": 1001, "group": "redis", "md5sum": "bfed3338bd599f109e67729c33e7709b", "mode": "0600", "owner": "redis", "size": 143707, "src": "/root/.ansible/tmp/ansible-tmp-1722438284.97-4240-87903810918065/source", "state": "file", "uid": 1001}
+changed: [192.168.56.121] => (item=29737) => {"REDIS_CLUSTER_LISTEN_PORT": 29737, "ansible_loop_var": "REDIS_CLUSTER_LISTEN_PORT", "changed": true, "checksum": "17af9ffc6723c209cb3d7e30a1d237614b34e493", "dest": "/srv/redis/conf/redis_29737.conf", "gid": 1001, "group": "redis", "md5sum": "eac3d1f60e77232ad607df36da6b1565", "mode": "0600", "owner": "redis", "size": 143707, "src": "/root/.ansible/tmp/ansible-tmp-1722438284.97-4239-232614154171372/source", "state": "file", "uid": 1001}
+changed: [192.168.56.123] => (item=29737) => {"REDIS_CLUSTER_LISTEN_PORT": 29737, "ansible_loop_var": "REDIS_CLUSTER_LISTEN_PORT", "changed": true, "checksum": "340017c9f9a6c0d17b8dd93bf16394f0dbe947bf", "dest": "/srv/redis/conf/redis_29737.conf", "gid": 1001, "group": "redis", "md5sum": "97d30b0d343aa326f4abf4bf9b4140c9", "mode": "0600", "owner": "redis", "size": 143707, "src": "/root/.ansible/tmp/ansible-tmp-1722438284.97-4241-211864853392154/source", "state": "file", "uid": 1001}
+
+TASK [Set redis cluster info] *************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.123] => (item=29736) => {"ansible_loop_var": "item", "changed": true, "item": 29736, "msg": "Block inserted"}
+changed: [192.168.56.122] => (item=29736) => {"ansible_loop_var": "item", "changed": true, "item": 29736, "msg": "Block inserted"}
+changed: [192.168.56.121] => (item=29736) => {"ansible_loop_var": "item", "changed": true, "item": 29736, "msg": "Block inserted"}
+changed: [192.168.56.123] => (item=29737) => {"ansible_loop_var": "item", "changed": true, "item": 29737, "msg": "Block inserted"}
+changed: [192.168.56.122] => (item=29737) => {"ansible_loop_var": "item", "changed": true, "item": 29737, "msg": "Block inserted"}
+changed: [192.168.56.121] => (item=29737) => {"ansible_loop_var": "item", "changed": true, "item": 29737, "msg": "Block inserted"}
+
+TASK [Change the redis log file Permission] ***********************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.121] => (item=/srv/redis/logs/redis_29737.log) => {"ansible_loop_var": "item", "changed": true, "dest": "/srv/redis/logs/redis_29737.log", "gid": 1001, "group": "redis", "item": "/srv/redis/logs/redis_29737.log", "mode": "0644", "owner": "redis", "size": 0, "state": "file", "uid": 1001}
+changed: [192.168.56.122] => (item=/srv/redis/logs/redis_29737.log) => {"ansible_loop_var": "item", "changed": true, "dest": "/srv/redis/logs/redis_29737.log", "gid": 1001, "group": "redis", "item": "/srv/redis/logs/redis_29737.log", "mode": "0644", "owner": "redis", "size": 0, "state": "file", "uid": 1001}
+changed: [192.168.56.123] => (item=/srv/redis/logs/redis_29737.log) => {"ansible_loop_var": "item", "changed": true, "dest": "/srv/redis/logs/redis_29737.log", "gid": 1001, "group": "redis", "item": "/srv/redis/logs/redis_29737.log", "mode": "0644", "owner": "redis", "size": 0, "state": "file", "uid": 1001}
+
+TASK [Copy redis cluster app config] ******************************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.122] => {"changed": true, "checksum": "29540833b5bb7ed2e44155f83c2846e844331953", "dest": "/etc/supervisord.d/redis_29737.ini", "gid": 0, "group": "root", "md5sum": "bcb37b503767f4d8cab2d3eb5983d87b", "mode": "0644", "owner": "root", "size": 504, "src": "/root/.ansible/tmp/ansible-tmp-1722438286.71-4363-76362813721597/source", "state": "file", "uid": 0}
+changed: [192.168.56.121] => {"changed": true, "checksum": "5062428b79f20aa1baa9ffe7203367af51086534", "dest": "/etc/supervisord.d/redis_29737.ini", "gid": 0, "group": "root", "md5sum": "93d8964977507a81fdb3678ee195eeb2", "mode": "0644", "owner": "root", "size": 504, "src": "/root/.ansible/tmp/ansible-tmp-1722438286.72-4362-96347827770081/source", "state": "file", "uid": 0}
+changed: [192.168.56.123] => {"changed": true, "checksum": "877847c18de37d6ac1231447598f423ec7861b56", "dest": "/etc/supervisord.d/redis_29737.ini", "gid": 0, "group": "root", "md5sum": "b183b7a1a79b93951877ac31865fa617", "mode": "0644", "owner": "root", "size": 504, "src": "/root/.ansible/tmp/ansible-tmp-1722438286.76-4364-229139754029966/source", "state": "file", "uid": 0}
+
+TASK [redis : Start service supervisord, in all cases] ************************************************************************************************************************************************************************************************************************
+changed: [192.168.56.123] => {"changed": true, "enabled": true, "name": "supervisord", "state": "started", "status": {"ActiveEnterTimestamp": "Wed 2024-07-31 23:04:43 CST", "ActiveEnterTimestampMonotonic": "5450811189", "ActiveExitTimestamp": "Wed 2024-07-31 23:04:43 CST", "ActiveExitTimestampMonotonic": "5450642051", "ActiveState": "active", "After": "systemd-journald.socket system.slice nss-user-lookup.target rc-local.service basic.target", "AllowIsolate": "no", "AmbientCapabilities": "0", "AssertResult": "yes", "AssertTimestamp": "Wed 2024-07-31 23:04:43 CST", "AssertTimestampMonotonic": "5450672751", "Before": "shutdown.target multi-user.target", "BlockIOAccounting": "no", "BlockIOWeight": "18446744073709551615", "CPUAccounting": "no", "CPUQuotaPerSecUSec": "infinity", "CPUSchedulingPolicy": "0", "CPUSchedulingPriority": "0", "CPUSchedulingResetOnFork": "no", "CPUShares": "18446744073709551615", "CanIsolate": "no", "CanReload": "no", "CanStart": "yes", "CanStop": "yes", "CapabilityBoundingSet": "18446744073709551615", "CollectMode": "inactive", "ConditionResult": "yes", "ConditionTimestamp": "Wed 2024-07-31 23:04:43 CST", "ConditionTimestampMonotonic": "5450672751", "Conflicts": "shutdown.target", "ControlGroup": "/system.slice/supervisord.service", "ControlPID": "0", "DefaultDependencies": "yes", "Delegate": "no", "Description": "Process Monitoring and Control Daemon", "DevicePolicy": "auto", "ExecMainCode": "0", "ExecMainExitTimestampMonotonic": "0", "ExecMainPID": "5636", "ExecMainStartTimestamp": "Wed 2024-07-31 23:04:43 CST", "ExecMainStartTimestampMonotonic": "5450811173", "ExecMainStatus": "0", "ExecStart": "{ path=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord ; argv[]=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf ; ignore_errors=no ; start_time=[Wed 2024-07-31 23:04:43 CST] ; stop_time=[Wed 2024-07-31 23:04:43 CST] ; pid=5635 ; code=exited ; status=0 }", "FailureAction": "none", "FileDescriptorStoreMax": "0", "FragmentPath": "/usr/lib/systemd/system/supervisord.service", "GuessMainPID": "yes", "IOScheduling": "0", "Id": "supervisord.service", "IgnoreOnIsolate": "no", "IgnoreOnSnapshot": "no", "IgnoreSIGPIPE": "yes", "InactiveEnterTimestamp": "Wed 2024-07-31 23:04:43 CST", "InactiveEnterTimestampMonotonic": "5450672510", "InactiveExitTimestamp": "Wed 2024-07-31 23:04:43 CST", "InactiveExitTimestampMonotonic": "5450673051", "JobTimeoutAction": "none", "JobTimeoutUSec": "0", "KillMode": "control-group", "KillSignal": "15", "LimitAS": "18446744073709551615", "LimitCORE": "18446744073709551615", "LimitCPU": "18446744073709551615", "LimitDATA": "18446744073709551615", "LimitFSIZE": "18446744073709551615", "LimitLOCKS": "18446744073709551615", "LimitMEMLOCK": "65536", "LimitMSGQUEUE": "819200", "LimitNICE": "0", "LimitNOFILE": "65535", "LimitNPROC": "7259", "LimitRSS": "18446744073709551615", "LimitRTPRIO": "0", "LimitRTTIME": "18446744073709551615", "LimitSIGPENDING": "7259", "LimitSTACK": "18446744073709551615", "LoadState": "loaded", "MainPID": "5636", "MemoryAccounting": "no", "MemoryCurrent": "18446744073709551615", "MemoryLimit": "18446744073709551615", "MountFlags": "0", "Names": "supervisord.service", "NeedDaemonReload": "no", "Nice": "0", "NoNewPrivileges": "no", "NonBlocking": "no", "NotifyAccess": "none", "OOMScoreAdjust": "0", "OnFailureJobMode": "replace", "PermissionsStartOnly": "no", "PrivateDevices": "no", "PrivateNetwork": "no", "PrivateTmp": "no", "ProtectHome": "no", "ProtectSystem": "no", "RefuseManualStart": "no", "RefuseManualStop": "no", "RemainAfterExit": "no", "Requires": "basic.target system.slice", "Restart": "no", "RestartUSec": "100ms", "Result": "success", "RootDirectoryStartOnly": "no", "RuntimeDirectoryMode": "0755", "SameProcessGroup": "no", "SecureBits": "0", "SendSIGHUP": "no", "SendSIGKILL": "yes", "Slice": "system.slice", "StandardError": "inherit", "StandardInput": "null", "StandardOutput": "journal", "StartLimitAction": "none", "StartLimitBurst": "5", "StartLimitInterval": "10000000", "StartupBlockIOWeight": "18446744073709551615", "StartupCPUShares": "18446744073709551615", "StatusErrno": "0", "StopWhenUnneeded": "no", "SubState": "running", "SyslogLevelPrefix": "yes", "SyslogPriority": "30", "SystemCallErrorNumber": "0", "TTYReset": "no", "TTYVHangup": "no", "TTYVTDisallocate": "no", "TasksAccounting": "no", "TasksCurrent": "18446744073709551615", "TasksMax": "18446744073709551615", "TimeoutStartUSec": "1min 30s", "TimeoutStopUSec": "1min 30s", "TimerSlackNSec": "50000", "Transient": "no", "Type": "forking", "UMask": "0022", "UnitFilePreset": "disabled", "UnitFileState": "enabled", "WantedBy": "multi-user.target", "WatchdogTimestamp": "Wed 2024-07-31 23:04:43 CST", "WatchdogTimestampMonotonic": "5450811181", "WatchdogUSec": "0"}}
+changed: [192.168.56.122] => {"changed": true, "enabled": true, "name": "supervisord", "state": "started", "status": {"ActiveEnterTimestamp": "Wed 2024-07-31 23:04:43 CST", "ActiveEnterTimestampMonotonic": "5453058079", "ActiveExitTimestamp": "Wed 2024-07-31 23:04:43 CST", "ActiveExitTimestampMonotonic": "5452891164", "ActiveState": "active", "After": "system.slice nss-user-lookup.target systemd-journald.socket basic.target rc-local.service", "AllowIsolate": "no", "AmbientCapabilities": "0", "AssertResult": "yes", "AssertTimestamp": "Wed 2024-07-31 23:04:43 CST", "AssertTimestampMonotonic": "5452923734", "Before": "shutdown.target multi-user.target", "BlockIOAccounting": "no", "BlockIOWeight": "18446744073709551615", "CPUAccounting": "no", "CPUQuotaPerSecUSec": "infinity", "CPUSchedulingPolicy": "0", "CPUSchedulingPriority": "0", "CPUSchedulingResetOnFork": "no", "CPUShares": "18446744073709551615", "CanIsolate": "no", "CanReload": "no", "CanStart": "yes", "CanStop": "yes", "CapabilityBoundingSet": "18446744073709551615", "CollectMode": "inactive", "ConditionResult": "yes", "ConditionTimestamp": "Wed 2024-07-31 23:04:43 CST", "ConditionTimestampMonotonic": "5452923734", "Conflicts": "shutdown.target", "ControlGroup": "/system.slice/supervisord.service", "ControlPID": "0", "DefaultDependencies": "yes", "Delegate": "no", "Description": "Process Monitoring and Control Daemon", "DevicePolicy": "auto", "ExecMainCode": "0", "ExecMainExitTimestampMonotonic": "0", "ExecMainPID": "5687", "ExecMainStartTimestamp": "Wed 2024-07-31 23:04:43 CST", "ExecMainStartTimestampMonotonic": "5453058062", "ExecMainStatus": "0", "ExecStart": "{ path=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord ; argv[]=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf ; ignore_errors=no ; start_time=[Wed 2024-07-31 23:04:43 CST] ; stop_time=[Wed 2024-07-31 23:04:43 CST] ; pid=5686 ; code=exited ; status=0 }", "FailureAction": "none", "FileDescriptorStoreMax": "0", "FragmentPath": "/usr/lib/systemd/system/supervisord.service", "GuessMainPID": "yes", "IOScheduling": "0", "Id": "supervisord.service", "IgnoreOnIsolate": "no", "IgnoreOnSnapshot": "no", "IgnoreSIGPIPE": "yes", "InactiveEnterTimestamp": "Wed 2024-07-31 23:04:43 CST", "InactiveEnterTimestampMonotonic": "5452923476", "InactiveExitTimestamp": "Wed 2024-07-31 23:04:43 CST", "InactiveExitTimestampMonotonic": "5452924032", "JobTimeoutAction": "none", "JobTimeoutUSec": "0", "KillMode": "control-group", "KillSignal": "15", "LimitAS": "18446744073709551615", "LimitCORE": "18446744073709551615", "LimitCPU": "18446744073709551615", "LimitDATA": "18446744073709551615", "LimitFSIZE": "18446744073709551615", "LimitLOCKS": "18446744073709551615", "LimitMEMLOCK": "65536", "LimitMSGQUEUE": "819200", "LimitNICE": "0", "LimitNOFILE": "65535", "LimitNPROC": "7259", "LimitRSS": "18446744073709551615", "LimitRTPRIO": "0", "LimitRTTIME": "18446744073709551615", "LimitSIGPENDING": "7259", "LimitSTACK": "18446744073709551615", "LoadState": "loaded", "MainPID": "5687", "MemoryAccounting": "no", "MemoryCurrent": "18446744073709551615", "MemoryLimit": "18446744073709551615", "MountFlags": "0", "Names": "supervisord.service", "NeedDaemonReload": "no", "Nice": "0", "NoNewPrivileges": "no", "NonBlocking": "no", "NotifyAccess": "none", "OOMScoreAdjust": "0", "OnFailureJobMode": "replace", "PermissionsStartOnly": "no", "PrivateDevices": "no", "PrivateNetwork": "no", "PrivateTmp": "no", "ProtectHome": "no", "ProtectSystem": "no", "RefuseManualStart": "no", "RefuseManualStop": "no", "RemainAfterExit": "no", "Requires": "basic.target system.slice", "Restart": "no", "RestartUSec": "100ms", "Result": "success", "RootDirectoryStartOnly": "no", "RuntimeDirectoryMode": "0755", "SameProcessGroup": "no", "SecureBits": "0", "SendSIGHUP": "no", "SendSIGKILL": "yes", "Slice": "system.slice", "StandardError": "inherit", "StandardInput": "null", "StandardOutput": "journal", "StartLimitAction": "none", "StartLimitBurst": "5", "StartLimitInterval": "10000000", "StartupBlockIOWeight": "18446744073709551615", "StartupCPUShares": "18446744073709551615", "StatusErrno": "0", "StopWhenUnneeded": "no", "SubState": "running", "SyslogLevelPrefix": "yes", "SyslogPriority": "30", "SystemCallErrorNumber": "0", "TTYReset": "no", "TTYVHangup": "no", "TTYVTDisallocate": "no", "TasksAccounting": "no", "TasksCurrent": "18446744073709551615", "TasksMax": "18446744073709551615", "TimeoutStartUSec": "1min 30s", "TimeoutStopUSec": "1min 30s", "TimerSlackNSec": "50000", "Transient": "no", "Type": "forking", "UMask": "0022", "UnitFilePreset": "disabled", "UnitFileState": "enabled", "WantedBy": "multi-user.target", "WatchdogTimestamp": "Wed 2024-07-31 23:04:43 CST", "WatchdogTimestampMonotonic": "5453058071", "WatchdogUSec": "0"}}
+changed: [192.168.56.121] => {"changed": true, "enabled": true, "name": "supervisord", "state": "started", "status": {"ActiveEnterTimestamp": "Wed 2024-07-31 23:04:43 CST", "ActiveEnterTimestampMonotonic": "5453905339", "ActiveExitTimestamp": "Wed 2024-07-31 23:04:43 CST", "ActiveExitTimestampMonotonic": "5453735528", "ActiveState": "active", "After": "system.slice basic.target systemd-journald.socket rc-local.service nss-user-lookup.target", "AllowIsolate": "no", "AmbientCapabilities": "0", "AssertResult": "yes", "AssertTimestamp": "Wed 2024-07-31 23:04:43 CST", "AssertTimestampMonotonic": "5453770880", "Before": "multi-user.target shutdown.target", "BlockIOAccounting": "no", "BlockIOWeight": "18446744073709551615", "CPUAccounting": "no", "CPUQuotaPerSecUSec": "infinity", "CPUSchedulingPolicy": "0", "CPUSchedulingPriority": "0", "CPUSchedulingResetOnFork": "no", "CPUShares": "18446744073709551615", "CanIsolate": "no", "CanReload": "no", "CanStart": "yes", "CanStop": "yes", "CapabilityBoundingSet": "18446744073709551615", "CollectMode": "inactive", "ConditionResult": "yes", "ConditionTimestamp": "Wed 2024-07-31 23:04:43 CST", "ConditionTimestampMonotonic": "5453770880", "Conflicts": "shutdown.target", "ControlGroup": "/system.slice/supervisord.service", "ControlPID": "0", "DefaultDependencies": "yes", "Delegate": "no", "Description": "Process Monitoring and Control Daemon", "DevicePolicy": "auto", "ExecMainCode": "0", "ExecMainExitTimestampMonotonic": "0", "ExecMainPID": "5680", "ExecMainStartTimestamp": "Wed 2024-07-31 23:04:43 CST", "ExecMainStartTimestampMonotonic": "5453905321", "ExecMainStatus": "0", "ExecStart": "{ path=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord ; argv[]=/srv/miniconda3/envs/supervisorPython3.10.13/bin/supervisord -c /etc/supervisord.conf ; ignore_errors=no ; start_time=[Wed 2024-07-31 23:04:43 CST] ; stop_time=[Wed 2024-07-31 23:04:43 CST] ; pid=5679 ; code=exited ; status=0 }", "FailureAction": "none", "FileDescriptorStoreMax": "0", "FragmentPath": "/usr/lib/systemd/system/supervisord.service", "GuessMainPID": "yes", "IOScheduling": "0", "Id": "supervisord.service", "IgnoreOnIsolate": "no", "IgnoreOnSnapshot": "no", "IgnoreSIGPIPE": "yes", "InactiveEnterTimestamp": "Wed 2024-07-31 23:04:43 CST", "InactiveEnterTimestampMonotonic": "5453770520", "InactiveExitTimestamp": "Wed 2024-07-31 23:04:43 CST", "InactiveExitTimestampMonotonic": "5453771388", "JobTimeoutAction": "none", "JobTimeoutUSec": "0", "KillMode": "control-group", "KillSignal": "15", "LimitAS": "18446744073709551615", "LimitCORE": "18446744073709551615", "LimitCPU": "18446744073709551615", "LimitDATA": "18446744073709551615", "LimitFSIZE": "18446744073709551615", "LimitLOCKS": "18446744073709551615", "LimitMEMLOCK": "65536", "LimitMSGQUEUE": "819200", "LimitNICE": "0", "LimitNOFILE": "65535", "LimitNPROC": "31193", "LimitRSS": "18446744073709551615", "LimitRTPRIO": "0", "LimitRTTIME": "18446744073709551615", "LimitSIGPENDING": "31193", "LimitSTACK": "18446744073709551615", "LoadState": "loaded", "MainPID": "5680", "MemoryAccounting": "no", "MemoryCurrent": "18446744073709551615", "MemoryLimit": "18446744073709551615", "MountFlags": "0", "Names": "supervisord.service", "NeedDaemonReload": "no", "Nice": "0", "NoNewPrivileges": "no", "NonBlocking": "no", "NotifyAccess": "none", "OOMScoreAdjust": "0", "OnFailureJobMode": "replace", "PermissionsStartOnly": "no", "PrivateDevices": "no", "PrivateNetwork": "no", "PrivateTmp": "no", "ProtectHome": "no", "ProtectSystem": "no", "RefuseManualStart": "no", "RefuseManualStop": "no", "RemainAfterExit": "no", "Requires": "system.slice basic.target", "Restart": "no", "RestartUSec": "100ms", "Result": "success", "RootDirectoryStartOnly": "no", "RuntimeDirectoryMode": "0755", "SameProcessGroup": "no", "SecureBits": "0", "SendSIGHUP": "no", "SendSIGKILL": "yes", "Slice": "system.slice", "StandardError": "inherit", "StandardInput": "null", "StandardOutput": "journal", "StartLimitAction": "none", "StartLimitBurst": "5", "StartLimitInterval": "10000000", "StartupBlockIOWeight": "18446744073709551615", "StartupCPUShares": "18446744073709551615", "StatusErrno": "0", "StopWhenUnneeded": "no", "SubState": "running", "SyslogLevelPrefix": "yes", "SyslogPriority": "30", "SystemCallErrorNumber": "0", "TTYReset": "no", "TTYVHangup": "no", "TTYVTDisallocate": "no", "TasksAccounting": "no", "TasksCurrent": "18446744073709551615", "TasksMax": "18446744073709551615", "TimeoutStartUSec": "1min 30s", "TimeoutStopUSec": "1min 30s", "TimerSlackNSec": "50000", "Transient": "no", "Type": "forking", "UMask": "0022", "UnitFilePreset": "disabled", "UnitFileState": "enabled", "WantedBy": "multi-user.target", "WatchdogTimestamp": "Wed 2024-07-31 23:04:43 CST", "WatchdogTimestampMonotonic": "5453905330", "WatchdogUSec": "0"}}
+
+TASK [redis : Print create cluster command] ***********************************************************************************************************************************************************************************************************************************
+ok: [192.168.56.121 -> 192.168.56.121] => {
+    "msg": "Please run the follow command to create cluster:\n/srv/redis/bin/redis-cli -a fKYeyA5br3rL7hN.nVykeyz:cFfhn5G,NJ_WwPbpRA5c5xdi66s1gyuvYZMVi8E6.rvGN4Hft_0.:pKbB6kfLWend96MvJgWNyNd386xnwV1NDHHMeGnB-rs7xneAL2R --cluster-yes --cluster-replicas 1 --cluster create 192.168.56.121:29736 192.168.56.121:29737 192.168.56.122:29736 192.168.56.122:29737 192.168.56.123:29736 192.168.56.123:29737\n"
+}
+
+PLAY RECAP ********************************************************************************************************************************************************************************************************************************************************************
+192.168.56.121             : ok=24   changed=13   unreachable=0    failed=0    skipped=3    rescued=0    ignored=0
+192.168.56.122             : ok=22   changed=13   unreachable=0    failed=0    skipped=3    rescued=0    ignored=0
+192.168.56.123             : ok=22   changed=13   unreachable=0    failed=0    skipped=3    rescued=0    ignored=0
+
+Playbook run took 0 days, 0 hours, 0 minutes, 13 seconds
+[root@ansible ansible_playbooks]#
+```
+
+执行过程最后几个任务的截图：
+
+![](/img/Snipaste_2024-07-31_23-08-06.png)
+
+
+
+- `Set redis cluster info`这个任务就是在各个配置文件后面增加启用redis集群模式相关的配置项。
+- `Print create cluster command` 这个任务就是打印出来创建Redis三主三从6节点集群模式的命令。
+
+我们在各个节点上检查一下：
+
+```sh
+# 在节点1上面检查
+# 查看运行的应用信息
+[root@ansible-node1 ~]# spstatus
+redis-cluster-1                  RUNNING   pid 6223, uptime 0:09:22
+redis-cluster-2                  RUNNING   pid 6224, uptime 0:09:22
+testapp                          RUNNING   pid 6225, uptime 0:09:22
+
+
+# 查看生成的Redis配置文件最后的集群模式开关信息
+[root@ansible-node1 ~]# tail /srv/redis/conf/redis_29736.conf
+#
+# ignore-warnings ARM64-COW-BUG
+# BEGIN meizhaohui add sentinel monitor info
+# 开启集群模式
+cluster-enabled yes
+# 集群内部配置文件名称，由redis自动管理
+cluster-config-file nodes-29736.conf
+# 节点超时时间，单位毫秒
+cluster-node-timeout 15000
+# END meizhaohui add sentinel monitor info
+[root@ansible-node1 ~]# tail /srv/redis/conf/redis_29737.conf
+#
+# ignore-warnings ARM64-COW-BUG
+# BEGIN meizhaohui add sentinel monitor info
+# 开启集群模式
+cluster-enabled yes
+# 集群内部配置文件名称，由redis自动管理
+cluster-config-file nodes-29737.conf
+# 节点超时时间，单位毫秒
+cluster-node-timeout 15000
+# END meizhaohui add sentinel monitor info
+
+
+# 查看Redis相关的快捷命令
+[root@ansible-node1 ~]# alias|grep -i Redis
+alias cdRedis='cd /srv/redis && pwd && ls -lah'
+alias cleanRedisTemplate='spctl stop all && rm -rf /etc/supervisord.d/redis*.ini && rm -rf /srv/redis* && spctl update && spctl start testapp && spstatus'
+alias cmdRedis='/srv/redis/bin/redis-cli -p 29736 -a fKYeyA5br3rL7hN.nVykeyz:cFfhn5G,NJ_WwPbpRA5c5xdi66s1gyuvYZMVi8E6.rvGN4Hft_0.:pKbB6kfLWend96MvJgWNyNd386xnwV1NDHHMeGnB-rs7xneAL2R'
+alias cmdRedisCluster='/srv/redis/bin/redis-cli -p 29736 -a fKYeyA5br3rL7hN.nVykeyz:cFfhn5G,NJ_WwPbpRA5c5xdi66s1gyuvYZMVi8E6.rvGN4Hft_0.:pKbB6kfLWend96MvJgWNyNd386xnwV1NDHHMeGnB-rs7xneAL2R -c'
+alias getRedisPassword='grep "^requirepass" /srv/redis/conf/redis*|head -n 1'
+alias redisClusterPort='netstat -tunlp|grep -v grep|grep --color=always redis-server|grep --color=always -E "29736|29737" && echo "正常监听 29736 和 29737 则说明redis-server集群模式端口正常"'
+alias redisClusterStatus='ps -ef|grep -v grep|grep --color=always redis-server && ps -ef|grep -v grep|grep -c redis-server && echo "以上数字为2，则说明redis-server集群模式进程数正常"'
+alias redisPort='netstat -tunlp|grep -v grep|grep --color=always redis-server && echo "正常监听 29736 则说明redis-server端口正常"'
+alias redisStatus='ps -ef|grep -v grep|grep --color=always redis-server && ps -ef|grep -v grep|grep -c redis-server && echo "以上数字为1，则说明redis-server服务进程数正常"'
+
+
+# 复制ansible里面的输出，创建Redis集群
+[root@ansible-node1 ~]# /srv/redis/bin/redis-cli -a fKYeyA5br3rL7hN.nVykeyz:cFfhn5G,NJ_WwPbpRA5c5xdi66s1gyuvYZMVi8E6.rvGN4Hft_0.:pKbB6kfLWend96MvJgWNyNd386xnwV1NDHHMeGnB-rs7xneAL2R --cluster-yes --cluster-replicas 1 --cluster create                                        192.168.56.121:29736 192.168.56.121:29737 192.168.56.122:29736 192.168.56.122:29737 192.168.56.123:29736 192.168.56.123:29737
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+>>> Performing hash slots allocation on 6 nodes...
+Master[0] -> Slots 0 - 5460
+Master[1] -> Slots 5461 - 10922
+Master[2] -> Slots 10923 - 16383
+Adding replica 192.168.56.122:29737 to 192.168.56.121:29736
+Adding replica 192.168.56.123:29737 to 192.168.56.122:29736
+Adding replica 192.168.56.121:29737 to 192.168.56.123:29736
+M: 9f28f72e23019d1d8fdacbada6acbf2974b28c33 192.168.56.121:29736
+   slots:[0-5460] (5461 slots) master
+S: 8c46b1b8426b7dce74772fd98d184af3215d7537 192.168.56.121:29737
+   replicates 7c63efd0d2e2da39ab505fc0f7c8c9cd6175067f
+M: 23d7c73e2c31509742a387e7aae60cf7d8a87726 192.168.56.122:29736
+   slots:[5461-10922] (5462 slots) master
+S: 29aa6da47ad27731aa1ebec8c364148e0c4971f0 192.168.56.122:29737
+   replicates 9f28f72e23019d1d8fdacbada6acbf2974b28c33
+M: 7c63efd0d2e2da39ab505fc0f7c8c9cd6175067f 192.168.56.123:29736
+   slots:[10923-16383] (5461 slots) master
+S: 5ffb824a80c004cdf5ff3a97bc090506141e7cbf 192.168.56.123:29737
+   replicates 23d7c73e2c31509742a387e7aae60cf7d8a87726
+>>> Nodes configuration updated
+>>> Assign a different config epoch to each node
+>>> Sending CLUSTER MEET messages to join the cluster
+Waiting for the cluster to join
+.....
+>>> Performing Cluster Check (using node 192.168.56.121:29736)
+M: 9f28f72e23019d1d8fdacbada6acbf2974b28c33 192.168.56.121:29736
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+M: 23d7c73e2c31509742a387e7aae60cf7d8a87726 192.168.56.122:29736
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+S: 8c46b1b8426b7dce74772fd98d184af3215d7537 192.168.56.121:29737
+   slots: (0 slots) slave
+   replicates 7c63efd0d2e2da39ab505fc0f7c8c9cd6175067f
+S: 5ffb824a80c004cdf5ff3a97bc090506141e7cbf 192.168.56.123:29737
+   slots: (0 slots) slave
+   replicates 23d7c73e2c31509742a387e7aae60cf7d8a87726
+M: 7c63efd0d2e2da39ab505fc0f7c8c9cd6175067f 192.168.56.123:29736
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+S: 29aa6da47ad27731aa1ebec8c364148e0c4971f0 192.168.56.122:29737
+   slots: (0 slots) slave
+   replicates 9f28f72e23019d1d8fdacbada6acbf2974b28c33
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+[root@ansible-node1 ~]#
+```
+
+可以看到，集群创建完成了。
+
+
+
+![](/img/Snipaste_2024-07-31_23-17-51.png)
+
+最后，再测试一下快捷命令能不能正常使用：
+
+```sh
+[root@ansible-node1 ~]# getRedisPassword
+/srv/redis/conf/redis_29736.conf:requirepass fKYeyA5br3rL7hN.nVykeyz:cFfhn5G,NJ_WwPbpRA5c5xdi66s1gyuvYZMVi8E6.rvGN4Hft_0.:pKbB6kfLWend96MvJgWNyNd386xnwV1NDHHMeGnB-rs7xneAL2R
+[root@ansible-node1 ~]# redisStatus
+redis     6223  6214  0 23:04 ?        00:00:00 /srv/redis/bin/redis-server /srv/redis/conf/redis_29736.conf
+redis     6224  6214  0 23:04 ?        00:00:00 /srv/redis/bin/redis-server /srv/redis/conf/redis_29737.conf
+2
+以上数字为1，则说明redis-server服务进程数正常
+[root@ansible-node1 ~]# redisPort
+tcp        0      0 127.0.0.1:39736         0.0.0.0:*               LISTEN      6223/redis-server
+tcp        0      0 192.168.56.121:39736    0.0.0.0:*               LISTEN      6223/redis-server
+tcp        0      0 127.0.0.1:39737         0.0.0.0:*               LISTEN      6224/redis-server
+tcp        0      0 192.168.56.121:39737    0.0.0.0:*               LISTEN      6224/redis-server
+tcp        0      0 127.0.0.1:29736         0.0.0.0:*               LISTEN      6223/redis-server
+tcp        0      0 192.168.56.121:29736    0.0.0.0:*               LISTEN      6223/redis-server
+tcp        0      0 127.0.0.1:29737         0.0.0.0:*               LISTEN      6224/redis-server
+tcp        0      0 192.168.56.121:29737    0.0.0.0:*               LISTEN      6224/redis-server
+正常监听 29736 则说明redis-server端口正常
+[root@ansible-node1 ~]# cmdRedis
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+127.0.0.1:29736> info replication
+# Replication
+role:master
+connected_slaves:1
+slave0:ip=192.168.56.122,port=29737,state=online,offset=406,lag=0
+master_failover_state:no-failover
+master_replid:cea936999e901523976cfdb4f14c270bad583fb8
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:406
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:406
+127.0.0.1:29736> exit
+[root@ansible-node1 ~]# cmdRedisCluster
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+127.0.0.1:29736> cluster info
+cluster_state:ok
+cluster_slots_assigned:16384
+cluster_slots_ok:16384
+cluster_slots_pfail:0
+cluster_slots_fail:0
+cluster_known_nodes:6
+cluster_size:3
+cluster_current_epoch:6
+cluster_my_epoch:1
+cluster_stats_messages_ping_sent:323
+cluster_stats_messages_pong_sent:315
+cluster_stats_messages_sent:638
+cluster_stats_messages_ping_received:310
+cluster_stats_messages_pong_received:323
+cluster_stats_messages_meet_received:5
+cluster_stats_messages_received:638
+127.0.0.1:29736> cluster nodes
+23d7c73e2c31509742a387e7aae60cf7d8a87726 192.168.56.122:29736@39736 master - 0 1722439227857 3 connected 5461-10922
+8c46b1b8426b7dce74772fd98d184af3215d7537 192.168.56.121:29737@39737 slave 7c63efd0d2e2da39ab505fc0f7c8c9cd6175067f 1722439228866 1722439224000 5 connected
+5ffb824a80c004cdf5ff3a97bc090506141e7cbf 192.168.56.123:29737@39737 slave 23d7c73e2c31509742a387e7aae60cf7d8a87726 0 1722439227000 3 connected
+7c63efd0d2e2da39ab505fc0f7c8c9cd6175067f 192.168.56.123:29736@39736 master - 0 1722439224828 5 connected 10923-16383
+9f28f72e23019d1d8fdacbada6acbf2974b28c33 192.168.56.121:29736@39736 myself,master - 0 1722439225000 1 connected 0-5460
+29aa6da47ad27731aa1ebec8c364148e0c4971f0 192.168.56.122:29737@39737 slave 9f28f72e23019d1d8fdacbada6acbf2974b28c33 0 1722439226843 1 connected
+127.0.0.1:29736>
+```
+
+可以看到快捷命令可以使用，但`redisStatus`和`redisPort`的输出稍微有点不对，因为这两个命令之前是给Redis主从节点配置的。
+
+而`cmdRedisCluster`是正常可以用的。
+
+
+
+
+
+#### 3.4.9  测试集群模式的自动切换
+
+编写一个python连接集群模式的程序`test_redis_3master_3slave_cluster.py`:
+
+```python
+# filename: test_redis_3master_3slave_cluster.py
+# pip install redis
+from redis import RedisCluster
+from redis.cluster import ClusterNode
+
+password = "fKYeyA5br3rL7hN.nVykeyz:cFfhn5G,NJ_WwPbpRA5c5xdi66s1gyuvYZMV" \
+           "i8E6.rvGN4Hft_0.:pKbB6kfLWend96MvJgWNyNd386xnwV1NDHHMeGnB-rs7xneAL2R"
+# 假设你的Redis集群节点在三个主机上的29736, 29737端口上
+startup_nodes = [
+    ClusterNode(host="192.168.56.121", port="29736"),
+    ClusterNode(host="192.168.56.121", port="29737"),
+    ClusterNode(host="192.168.56.122", port="29736"),
+    ClusterNode(host="192.168.56.122", port="29737"),
+    ClusterNode(host="192.168.56.123", port="29736"),
+    ClusterNode(host="192.168.56.123", port="29737"),
+
+]
+
+# 连接到Redis集群
+rc = RedisCluster(startup_nodes=startup_nodes,
+                  decode_responses=True,
+                  password=password)
+
+# 使用Redis集群
+rc.set("foo", "bar")
+print(rc.get("foo"))
+print(rc.get("name"))
+print(rc.get("num"))
+
+```
+
+
+
+执行脚本：
+
+![](/img/Snipaste_2024-07-31_23-29-38.png)
+
+可以看到，能正常读写。
+
+注意，测试redis哨兵模式和集群模式使用的python版本和redis包信息：
+
+```sh
+$ python -V
+Python 3.8.5
+                                                                                         
+$ pip list|grep redis
+redis              5.0.7
+```
 
 
 

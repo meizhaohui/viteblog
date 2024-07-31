@@ -77,7 +77,7 @@
         Please run the follow command to create cluster:
         {{ REDIS_BASE_DIR }}/bin/redis-cli -a {{ REDIS_PASSWORD }} --cluster-yes --cluster-replicas 1 --cluster create {{ groups["redishosts"]|first }}:{{ REDIS_LISTEN_PORT }} {{ groups["redishosts"]|first }}:{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }} {{ groups["redishosts"][1] }}:{{ REDIS_LISTEN_PORT }} {{ groups["redishosts"][1] }}:{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }} {{ groups["redishosts"][2] }}:{{ REDIS_LISTEN_PORT }} {{ groups["redishosts"][2] }}:{{ REDIS_CLUSTER_SLAVE_LISTEN_PORT }}
   changed_when: false
-  # 委派给ansible控制节点
+  # 委派给Redis第一个主机
   delegate_to: "{{ groups['redishosts']|first }}"
   # 且只运行一次
   run_once: true
