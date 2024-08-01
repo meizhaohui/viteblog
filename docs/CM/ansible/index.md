@@ -41,6 +41,7 @@ name: Nginx
   -  [ansible role角色(3)--一步一步学role角色](./role_3.md)，base基础角色配置。
   -  [ansible role角色(4)--include的使用](./role_4_include.md)，base基础角色配置优化，拆分任务功能，引入include关键字。
   -  [ansible role角色(5)--使用ansible配置supervisor进程管理角色](./role_5_supervisor.md)，使用miniconda配置Python环境，对应Python版本为 3.10.13，并设置supervisor进程管理工具环境。从中可以了解角色变量的使用，角色任务的拆分与测试等。
+  -  [ansible role角色(6)--使用ansible配置Redis数据库角色](./role_6_redis.md)，从简单到复杂，从单节点到多节点部署，讲解了Redis主从模式、哨兵模式、集群模式的部署，不断优化角色配置。
 
 Ansible内置模块：
 
